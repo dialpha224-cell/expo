@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../App";
 import { Button } from "../components/ui/button";
 import { motion } from "framer-motion";
@@ -17,6 +17,17 @@ import {
 const LandingPage = () => {
   const { user, login } = useAuth();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  // Redirection automatique pour les utilisateurs avec un role specifique
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'founder') {
+        window.location.href = '/founder';
+      } else if (user.role === 'salon_owner') {
+        window.location.href = '/salon';
+      }
+    }
+  }, [user]);
 
   const features = [
     {
@@ -65,13 +76,23 @@ const LandingPage = () => {
             </div>
             <div className="flex items-center gap-4">
               {user ? (
-                <Button 
-                  onClick={() => window.location.href = user.role === 'founder' ? '/founder' : '/salon'}
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                  data-testid="dashboard-btn"
-                >
-                  Dashboard
-                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=4F46E5&color=fff`}
+                      alt={user.name}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <span className="text-white text-sm hidden sm:block">{user.name}</span>
+                  </div>
+                  <Button 
+                    onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/'}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    data-testid="dashboard-btn"
+                  >
+                    {user.role === 'founder' ? 'Admin' : user.role === 'salon_owner' ? 'Mon Salon' : 'Mon Compte'}
+                  </Button>
+                </div>
               ) : (
                 <Button 
                   onClick={login}
@@ -123,14 +144,25 @@ const LandingPage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button 
-                onClick={login}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-indigo-500/25"
-                data-testid="get-started-btn"
-              >
-                Commencer maintenant
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+              {user ? (
+                <Button 
+                  onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/marketplace'}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-indigo-500/25"
+                  data-testid="go-dashboard-btn"
+                >
+                  {user.role === 'founder' ? 'Acceder au Dashboard Admin' : user.role === 'salon_owner' ? 'Acceder a Mon Salon' : 'Explorer la Marketplace'}
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              ) : (
+                <Button 
+                  onClick={login}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-indigo-500/25"
+                  data-testid="get-started-btn"
+                >
+                  Commencer maintenant
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              )}
               <Button 
                 variant="outline"
                 className="border-slate-700 text-white hover:bg-slate-800 py-6 px-8 rounded-xl text-lg"
