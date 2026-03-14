@@ -15,6 +15,7 @@ import TrimConnect from "./pages/TrimConnect";
 import BookingPage from "./pages/BookingPage";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import AISimulation from "./pages/AISimulation";
+import MyAppointments from "./pages/MyAppointments";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -144,6 +145,7 @@ function AppRouter() {
       <Route path="/booking" element={<BookingPage />} />
       <Route path="/booking/confirmation/:appointmentId" element={<BookingConfirmation />} />
       <Route path="/ai-simulation" element={<AISimulation />} />
+      <Route path="/my-appointments" element={<MyAppointments />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<PaymentCancel />} />
     </Routes>

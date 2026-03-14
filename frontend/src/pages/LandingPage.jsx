@@ -75,6 +75,9 @@ const LandingPage = () => {
               <a href="/ai-simulation" className="text-slate-400 hover:text-white transition-colors">Simulation IA</a>
               <a href="/marketplace" className="text-slate-400 hover:text-white transition-colors">Marketplace</a>
               <a href="/trimconnect" className="text-slate-400 hover:text-white transition-colors">TrimConnect</a>
+              {user && user.role === 'client' && (
+                <a href="/my-appointments" className="text-slate-400 hover:text-white transition-colors">Mes RDV</a>
+              )}
             </div>
             <div className="flex items-center gap-4">
               {user ? (

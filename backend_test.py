@@ -9,6 +9,7 @@ class AfroCrownAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
+        self.salon_data = []
 
     def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
         """Run a single API test"""
@@ -74,14 +75,27 @@ class AfroCrownAPITester:
         """Test public endpoints that don't require authentication"""
         print("\n=== TESTING PUBLIC ENDPOINTS ===")
         
-        # Test salons list
-        self.run_test("Salons List", "GET", "salons", 200)
+        # Test salons list - should return 2 salons (Afro Barber MLK, Baggio Barber Shop)
+        success, salons = self.run_test("Salons List", "GET", "salons", 200)
+        if success and isinstance(salons, list):
+            print(f"   Found {len(salons)} salons")
+            if len(salons) != 2:
+                print(f"   ⚠️  Expected 2 salons, got {len(salons)}")
+            self.salon_data = salons
         
-        # Test products list  
-        self.run_test("Products List", "GET", "products", 200)
+        # Test products list - should return 8 products
+        success, products = self.run_test("Products List", "GET", "products", 200)
+        if success and isinstance(products, list):
+            print(f"   Found {len(products)} products")
+            if len(products) != 8:
+                print(f"   ⚠️  Expected 8 products, got {len(products)}")
         
-        # Test haircuts list
-        self.run_test("Haircuts List", "GET", "haircuts", 200)
+        # Test haircuts list - should return 7 haircuts
+        success, haircuts = self.run_test("Haircuts List", "GET", "haircuts", 200)
+        if success and isinstance(haircuts, list):
+            print(f"   Found {len(haircuts)} haircuts")
+            if len(haircuts) != 7:
+                print(f"   ⚠️  Expected 7 haircuts, got {len(haircuts)}")
         
         # Test TrimConnect entries
         self.run_test("TrimConnect Entries", "GET", "trimconnect/entries", 200)
@@ -91,6 +105,29 @@ class AfroCrownAPITester:
         
         # Test Hall of Fame
         self.run_test("TrimConnect Hall of Fame", "GET", "trimconnect/hall-of-fame", 200)
+
+    def test_salon_specific_endpoints(self):
+        """Test salon-specific endpoints for the 2 demo salons"""
+        print("\n=== TESTING SALON-SPECIFIC ENDPOINTS ===")
+        
+        if not self.salon_data:
+            print("   ⚠️  No salon data available, skipping salon-specific tests")
+            return
+            
+        for salon in self.salon_data:
+            salon_id = salon.get('salon_id')
+            salon_name = salon.get('name', 'Unknown')
+            print(f"   Testing salon: {salon_name} (ID: {salon_id})")
+            
+            # Test barbers for this salon
+            success, barbers = self.run_test(f"Barbers for {salon_name}", "GET", f"salons/{salon_id}/barbers", 200)
+            if success and isinstance(barbers, list):
+                print(f"     Found {len(barbers)} barbers")
+            
+            # Test haircuts for this salon
+            success, haircuts = self.run_test(f"Haircuts for {salon_name}", "GET", f"salons/{salon_id}/haircuts", 200)
+            if success and isinstance(haircuts, list):
+                print(f"     Found {len(haircuts)} haircuts")
 
     def test_category_filtering(self):
         """Test product category filtering"""
@@ -157,6 +194,7 @@ def main():
     try:
         tester.test_health_endpoints()
         tester.test_public_endpoints() 
+        tester.test_salon_specific_endpoints()
         tester.test_category_filtering()
         tester.test_auth_protected_endpoints()
         tester.test_founder_protected_endpoints()

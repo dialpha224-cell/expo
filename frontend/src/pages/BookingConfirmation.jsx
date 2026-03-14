@@ -12,7 +12,6 @@ import {
   MapPin,
   User,
   Download,
-  Share2,
   Home
 } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -20,10 +19,7 @@ import { Button } from "../components/ui/button";
 const BookingConfirmation = () => {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
-  const [appointment, setAppointment] = useState(null);
-  const [salon, setSalon] = useState(null);
-  const [barber, setBarber] = useState(null);
-  const [haircut, setHaircut] = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,24 +28,14 @@ const BookingConfirmation = () => {
 
   const fetchAppointmentDetails = async () => {
     try {
-      // For demo, we'll construct the data from what we have
-      // In production, you'd have an endpoint to get full appointment details
-      setAppointment({
-        appointment_id: appointmentId,
-        status: "confirmed"
-      });
-      setLoading(false);
+      const response = await axios.get(`${API}/appointments/${appointmentId}`);
+      setData(response.data);
     } catch (error) {
       console.error("Error fetching appointment:", error);
+    } finally {
       setLoading(false);
     }
   };
-
-  const qrData = JSON.stringify({
-    type: "afrocrown_appointment",
-    id: appointmentId,
-    timestamp: new Date().toISOString()
-  });
 
   if (loading) {
     return (
@@ -58,6 +44,12 @@ const BookingConfirmation = () => {
       </div>
     );
   }
+
+  const appointment = data?.appointment;
+  const salon = data?.salon;
+  const barber = data?.barber;
+  const haircut = data?.haircut;
+  const qrCode = data?.qr_code;
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -91,6 +83,35 @@ const BookingConfirmation = () => {
             Votre rendez-vous a ete enregistre avec succes.
           </p>
 
+          {/* Appointment Details */}
+          {appointment && (
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mb-6 text-left">
+              <h3 className="text-white font-medium mb-4">Details du rendez-vous</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-slate-300">
+                  <MapPin className="h-5 w-5 text-indigo-400" />
+                  <span>{salon?.name || "Salon"}</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-300">
+                  <Scissors className="h-5 w-5 text-indigo-400" />
+                  <span>{haircut?.name || "Coupe"} - {haircut?.price || 0} EUR</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-300">
+                  <User className="h-5 w-5 text-indigo-400" />
+                  <span>{barber?.name || "Coiffeur"}</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-300">
+                  <Calendar className="h-5 w-5 text-indigo-400" />
+                  <span>{appointment.appointment_date}</span>
+                </div>
+                <div className="flex items-center gap-3 text-slate-300">
+                  <Clock className="h-5 w-5 text-indigo-400" />
+                  <span>{appointment.appointment_time}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* QR Code Card */}
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 mb-8">
             <h2 className="text-white font-medium mb-4">Votre QR Code</h2>
@@ -99,12 +120,16 @@ const BookingConfirmation = () => {
             </p>
             
             <div className="bg-white p-4 rounded-xl inline-block mb-6">
-              <QRCodeSVG 
-                value={qrData}
-                size={200}
-                level="H"
-                includeMargin={true}
-              />
+              {qrCode ? (
+                <img src={qrCode} alt="QR Code" className="w-48 h-48" />
+              ) : (
+                <QRCodeSVG 
+                  value={`AFROCROWN|${appointmentId}`}
+                  size={192}
+                  level="H"
+                  includeMargin={true}
+                />
+              )}
             </div>
 
             <div className="text-slate-500 text-sm font-mono">
