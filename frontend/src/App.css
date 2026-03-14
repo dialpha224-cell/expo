@@ -1,34 +1,191 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* AfroCrown App Styles */
+
+.app-container {
+    min-height: 100vh;
+    background-color: #0F172A;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.App-header {
-    background-color: #0f0f10;
+/* Landing Page Hero */
+.hero-section {
+    position: relative;
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: calc(10px + 2vmin);
+    overflow: hidden;
+}
+
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95));
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.dashboard-sidebar {
+    width: 280px;
+    background-color: #0F1923;
+    border-right: 1px solid #334155;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.dashboard-main {
+    flex: 1;
+    margin-left: 280px;
+    background-color: #0F172A;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    height: 72px;
+    background-color: #0F172A;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.dashboard-content {
+    padding: 2rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Bento Grid */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+}
+
+.bento-item-full {
+    grid-column: span 12;
+}
+
+.bento-item-8 {
+    grid-column: span 12;
+}
+
+.bento-item-4 {
+    grid-column: span 12;
+}
+
+@media (min-width: 768px) {
+    .bento-item-8 {
+        grid-column: span 8;
+    }
+    .bento-item-4 {
+        grid-column: span 4;
+    }
+}
+
+/* TrimConnect Battle Styles */
+.battle-card {
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.battle-card:hover {
+    border-color: #F59E0B;
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.2);
+}
+
+.battle-vs-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #4F46E5, #F59E0B);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: bold;
     color: white;
+    z-index: 10;
 }
 
-.App-link {
-    color: #61dafb;
+.crown-icon {
+    color: #F59E0B;
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5));
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
+/* Product Grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    .dashboard-sidebar {
+        transform: translateX(-100%);
+        z-index: 50;
     }
-    to {
-        transform: rotate(360deg);
+    
+    .dashboard-sidebar.open {
+        transform: translateX(0);
     }
+    
+    .dashboard-main {
+        margin-left: 0;
+    }
+}
+
+/* Animations */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* Glass Effect */
+.glass {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Glow Effects */
+.glow-indigo {
+    box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+}
+
+.glow-amber {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+/* Card Hover States */
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }

@@ -1,0 +1,592 @@
+import { useState, useEffect } from "react";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { useAuth, API } from "../App";
+import axios from "axios";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { 
+  LayoutDashboard, 
+  Store, 
+  Users, 
+  BarChart3, 
+  Trophy, 
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Plus,
+  TrendingUp,
+  Calendar,
+  ShoppingBag,
+  Scissors,
+  ChevronRight,
+  Search
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
+
+const FounderDashboard = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const menuItems = [
+    { icon: LayoutDashboard, label: "Tableau de bord", path: "/founder" },
+    { icon: Store, label: "Salons", path: "/founder/salons" },
+    { icon: Users, label: "Utilisateurs", path: "/founder/users" },
+    { icon: BarChart3, label: "Statistiques", path: "/founder/stats" },
+    { icon: Trophy, label: "TrimConnect", path: "/founder/trimconnect" },
+    { icon: Settings, label: "Parametres", path: "/founder/settings" },
+  ];
+
+  const isActive = (path) => {
+    if (path === "/founder") {
+      return location.pathname === "/founder";
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  return (
+    <div className="dashboard-layout">
+      {/* Sidebar */}
+      <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="p-6 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <Scissors className="h-8 w-8 text-indigo-500" />
+            <div>
+              <h1 className="font-heading font-bold text-white text-lg">AfroCrown</h1>
+              <p className="text-xs text-slate-500">Espace Fondateur</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="p-4 space-y-1">
+          {menuItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => {
+                navigate(item.path);
+                setSidebarOpen(false);
+              }}
+              className={`sidebar-item w-full ${isActive(item.path) ? 'sidebar-item-active' : ''}`}
+              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
+          <div className="flex items-center gap-3 mb-4 px-4">
+            <img 
+              src={user?.picture || `https://ui-avatars.com/api/?name=${user?.name}&background=4F46E5&color=fff`}
+              alt={user?.name}
+              className="w-10 h-10 rounded-full"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-medium truncate">{user?.name}</p>
+              <p className="text-slate-500 text-xs truncate">{user?.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="sidebar-item w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            data-testid="logout-btn"
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Deconnexion</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="dashboard-main">
+        {/* Header */}
+        <header className="dashboard-header">
+          <button 
+            className="lg:hidden text-white"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <Input 
+                placeholder="Rechercher..."
+                className="pl-10 bg-slate-800 border-slate-700 text-white"
+                data-testid="search-input"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-slate-400 text-sm hidden sm:block">Bienvenue, {user?.name}</span>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div className="dashboard-content">
+          <Routes>
+            <Route index element={<FounderOverview />} />
+            <Route path="salons" element={<SalonsManagement />} />
+            <Route path="users" element={<UsersManagement />} />
+            <Route path="stats" element={<GlobalStats />} />
+            <Route path="trimconnect" element={<TrimConnectManagement />} />
+            <Route path="settings" element={<FounderSettings />} />
+          </Routes>
+        </div>
+      </main>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+// Founder Overview Component
+const FounderOverview = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get(`${API}/founder/stats`, { withCredentials: true });
+      setStats(response.data);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  const statCards = [
+    { label: "Salons", value: stats?.total_salons || 0, icon: Store, color: "indigo" },
+    { label: "Coiffeurs", value: stats?.total_barbers || 0, icon: Scissors, color: "amber" },
+    { label: "Clients", value: stats?.total_clients || 0, icon: Users, color: "green" },
+    { label: "Rendez-vous", value: stats?.total_appointments || 0, icon: Calendar, color: "purple" },
+    { label: "Produits", value: stats?.total_products || 0, icon: ShoppingBag, color: "pink" },
+    { label: "Revenus", value: `${stats?.total_revenue?.toFixed(2) || 0} EUR`, icon: TrendingUp, color: "emerald" },
+  ];
+
+  return (
+    <div className="space-y-8" data-testid="founder-overview">
+      <div>
+        <h1 className="text-2xl font-heading font-bold text-white mb-2">Tableau de bord</h1>
+        <p className="text-slate-400">Vue globale de la plateforme AfroCrown</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="stats-grid">
+        {statCards.map((stat, index) => (
+          <div 
+            key={index}
+            className="stat-card hover-lift"
+            data-testid={`stat-card-${stat.label.toLowerCase()}`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${stat.color}-600/20`}>
+                <stat.icon className={`h-5 w-5 text-${stat.color}-400`} />
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-600" />
+            </div>
+            <div className="text-2xl font-heading font-bold text-white mb-1">{stat.value}</div>
+            <div className="text-sm text-slate-400">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* TrimConnect Stats */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <Trophy className="h-6 w-6 text-amber-500" />
+          <h2 className="text-xl font-heading font-bold text-white">TrimConnect Barber Battle</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <div className="text-3xl font-heading font-bold text-white mb-1">
+              {stats?.trimconnect?.total_entries || 0}
+            </div>
+            <div className="text-slate-400">Participations</div>
+          </div>
+          <div>
+            <div className="text-3xl font-heading font-bold text-white mb-1">
+              {stats?.trimconnect?.total_votes || 0}
+            </div>
+            <div className="text-slate-400">Votes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Salons Management Component
+const SalonsManagement = () => {
+  const [salons, setSalons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newSalon, setNewSalon] = useState({ name: "", address: "", phone: "", description: "" });
+
+  useEffect(() => {
+    fetchSalons();
+  }, []);
+
+  const fetchSalons = async () => {
+    try {
+      const response = await axios.get(`${API}/salons`);
+      setSalons(response.data);
+    } catch (error) {
+      console.error("Error fetching salons:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createSalon = async () => {
+    try {
+      await axios.post(`${API}/salons`, newSalon, { withCredentials: true });
+      toast.success("Salon cree avec succes");
+      setShowCreateDialog(false);
+      setNewSalon({ name: "", address: "", phone: "", description: "" });
+      fetchSalons();
+    } catch (error) {
+      toast.error("Erreur lors de la creation du salon");
+    }
+  };
+
+  return (
+    <div className="space-y-6" data-testid="salons-management">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion des Salons</h1>
+          <p className="text-slate-400">{salons.length} salons enregistres</p>
+        </div>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-indigo-600 hover:bg-indigo-700" data-testid="create-salon-btn">
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau salon
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Creer un nouveau salon</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <Input
+                placeholder="Nom du salon"
+                value={newSalon.name}
+                onChange={(e) => setNewSalon({...newSalon, name: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="salon-name-input"
+              />
+              <Input
+                placeholder="Adresse"
+                value={newSalon.address}
+                onChange={(e) => setNewSalon({...newSalon, address: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="salon-address-input"
+              />
+              <Input
+                placeholder="Telephone"
+                value={newSalon.phone}
+                onChange={(e) => setNewSalon({...newSalon, phone: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="salon-phone-input"
+              />
+              <Input
+                placeholder="Description"
+                value={newSalon.description}
+                onChange={(e) => setNewSalon({...newSalon, description: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="salon-description-input"
+              />
+              <Button 
+                onClick={createSalon} 
+                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                data-testid="submit-salon-btn"
+              >
+                Creer le salon
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      ) : salons.length === 0 ? (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+          <Store className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-white mb-2">Aucun salon</h3>
+          <p className="text-slate-400 mb-4">Commencez par creer votre premier salon.</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {salons.map((salon) => (
+            <div 
+              key={salon.salon_id}
+              className="bg-slate-800 border border-slate-700 rounded-xl p-6 hover:border-indigo-500/50 transition-all"
+              data-testid={`salon-card-${salon.salon_id}`}
+            >
+              <h3 className="font-heading font-semibold text-white mb-2">{salon.name}</h3>
+              <p className="text-slate-400 text-sm mb-4">{salon.address}</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">{salon.phone}</span>
+                <span className={`px-2 py-1 rounded-full text-xs ${salon.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {salon.is_active ? 'Actif' : 'Inactif'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Users Management Component
+const UsersManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(`${API}/founder/users`, { withCredentials: true });
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRole = async (userId, newRole) => {
+    try {
+      await axios.put(`${API}/founder/users/${userId}/role`, { role: newRole }, { withCredentials: true });
+      toast.success("Role mis a jour");
+      fetchUsers();
+    } catch (error) {
+      toast.error("Erreur lors de la mise a jour");
+    }
+  };
+
+  const roleColors = {
+    founder: "bg-amber-500/20 text-amber-400",
+    salon_owner: "bg-indigo-500/20 text-indigo-400",
+    client: "bg-slate-500/20 text-slate-400"
+  };
+
+  const roleLabels = {
+    founder: "Fondateur",
+    salon_owner: "Proprietaire",
+    client: "Client"
+  };
+
+  return (
+    <div className="space-y-6" data-testid="users-management">
+      <div>
+        <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion des Utilisateurs</h1>
+        <p className="text-slate-400">{users.length} utilisateurs enregistres</p>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      ) : (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Utilisateur</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700">
+              {users.map((user) => (
+                <tr key={user.user_id} data-testid={`user-row-${user.user_id}`}>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=4F46E5&color=fff`}
+                        alt={user.name}
+                        className="w-8 h-8 rounded-full"
+                      />
+                      <span className="text-white">{user.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-slate-400">{user.email}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs ${roleColors[user.role]}`}>
+                      {roleLabels[user.role]}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <select
+                      value={user.role}
+                      onChange={(e) => updateRole(user.user_id, e.target.value)}
+                      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-white text-sm"
+                      data-testid={`role-select-${user.user_id}`}
+                    >
+                      <option value="client">Client</option>
+                      <option value="salon_owner">Proprietaire</option>
+                      <option value="founder">Fondateur</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Global Stats Component
+const GlobalStats = () => {
+  return (
+    <div className="space-y-6" data-testid="global-stats">
+      <h1 className="text-2xl font-heading font-bold text-white">Statistiques Globales</h1>
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <BarChart3 className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+        <p className="text-slate-400">Statistiques detaillees a venir</p>
+      </div>
+    </div>
+  );
+};
+
+// TrimConnect Management Component
+const TrimConnectManagement = () => {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchEntries();
+  }, []);
+
+  const fetchEntries = async () => {
+    try {
+      const response = await axios.get(`${API}/trimconnect/entries`);
+      setEntries(response.data);
+    } catch (error) {
+      console.error("Error fetching entries:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStatus = async (entryId, status) => {
+    try {
+      await axios.put(`${API}/trimconnect/entries/${entryId}/status`, { status }, { withCredentials: true });
+      toast.success("Statut mis a jour");
+      fetchEntries();
+    } catch (error) {
+      toast.error("Erreur lors de la mise a jour");
+    }
+  };
+
+  return (
+    <div className="space-y-6" data-testid="trimconnect-management">
+      <div>
+        <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion TrimConnect</h1>
+        <p className="text-slate-400">{entries.length} participations</p>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      ) : entries.length === 0 ? (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+          <Trophy className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <p className="text-slate-400">Aucune participation pour le moment</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {entries.map((entry) => (
+            <div 
+              key={entry.entry_id}
+              className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden"
+              data-testid={`entry-card-${entry.entry_id}`}
+            >
+              <div className="h-48 bg-slate-700">
+                <img 
+                  src={entry.image_url}
+                  alt={entry.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="font-heading font-semibold text-white mb-2">{entry.title}</h3>
+                <p className="text-slate-400 text-sm mb-2">{entry.barber_name}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-amber-500 font-medium">{entry.votes} votes</span>
+                  <select
+                    value={entry.status}
+                    onChange={(e) => updateStatus(entry.entry_id, e.target.value)}
+                    className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                  >
+                    <option value="pending">En attente</option>
+                    <option value="approved">Approuve</option>
+                    <option value="finalist">Finaliste</option>
+                    <option value="winner">Gagnant</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Founder Settings Component
+const FounderSettings = () => {
+  return (
+    <div className="space-y-6" data-testid="founder-settings">
+      <h1 className="text-2xl font-heading font-bold text-white">Parametres</h1>
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <Settings className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+        <p className="text-slate-400">Parametres de la plateforme a venir</p>
+      </div>
+    </div>
+  );
+};
+
+export default FounderDashboard;
