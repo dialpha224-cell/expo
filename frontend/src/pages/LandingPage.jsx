@@ -11,14 +11,15 @@ import {
   Users, 
   ArrowRight,
   Play,
-  Sparkles
+  Sparkles,
+  LogOut
 } from "lucide-react";
 
 const LandingPage = () => {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-  // Redirection automatique pour les utilisateurs avec un role specifique
+  // Redirection automatique pour les utilisateurs avec un role specifique (fondateur ou salon_owner uniquement)
   useEffect(() => {
     if (user) {
       if (user.role === 'founder') {
@@ -26,6 +27,7 @@ const LandingPage = () => {
       } else if (user.role === 'salon_owner') {
         window.location.href = '/salon';
       }
+      // Les clients restent sur la landing page
     }
   }, [user]);
 
@@ -90,12 +92,31 @@ const LandingPage = () => {
                     />
                     <span className="text-white text-sm hidden sm:block">{user.name}</span>
                   </div>
+                  {user.role === 'founder' && (
+                    <Button 
+                      onClick={() => window.location.href = '/founder'}
+                      className="bg-indigo-600 hover:bg-indigo-700"
+                      data-testid="dashboard-btn"
+                    >
+                      Admin
+                    </Button>
+                  )}
+                  {user.role === 'salon_owner' && (
+                    <Button 
+                      onClick={() => window.location.href = '/salon'}
+                      className="bg-indigo-600 hover:bg-indigo-700"
+                      data-testid="dashboard-btn"
+                    >
+                      Mon Salon
+                    </Button>
+                  )}
                   <Button 
-                    onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/'}
-                    className="bg-indigo-600 hover:bg-indigo-700"
-                    data-testid="dashboard-btn"
+                    onClick={logout}
+                    variant="outline"
+                    className="border-slate-700 text-white hover:bg-slate-800"
+                    data-testid="logout-btn"
                   >
-                    {user.role === 'founder' ? 'Admin' : user.role === 'salon_owner' ? 'Mon Salon' : 'Mon Compte'}
+                    <LogOut className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
