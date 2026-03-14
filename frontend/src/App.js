@@ -12,6 +12,9 @@ import FounderDashboard from "./pages/FounderDashboard";
 import SalonDashboard from "./pages/SalonDashboard";
 import Marketplace from "./pages/Marketplace";
 import TrimConnect from "./pages/TrimConnect";
+import BookingPage from "./pages/BookingPage";
+import BookingConfirmation from "./pages/BookingConfirmation";
+import AISimulation from "./pages/AISimulation";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -138,6 +141,9 @@ function AppRouter() {
       />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/trimconnect" element={<TrimConnect />} />
+      <Route path="/booking" element={<BookingPage />} />
+      <Route path="/booking/confirmation/:appointmentId" element={<BookingConfirmation />} />
+      <Route path="/ai-simulation" element={<AISimulation />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<PaymentCancel />} />
     </Routes>

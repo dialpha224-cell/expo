@@ -15,6 +15,8 @@ import cloudinary.utils
 import time
 import base64
 import httpx
+import qrcode
+from io import BytesIO
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -691,6 +693,55 @@ async def update_appointment_status(appointment_id: str, request: Request, user:
     
     await db.appointments.update_one({"appointment_id": appointment_id}, {"$set": update_data})
     return {"message": "Status updated"}
+
+@api_router.get("/appointments/{appointment_id}")
+async def get_appointment_details(appointment_id: str):
+    """Get appointment details with QR code"""
+    appointment = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    # Get related data
+    salon = await db.salons.find_one({"salon_id": appointment["salon_id"]}, {"_id": 0})
+    barber = await db.barbers.find_one({"barber_id": appointment["barber_id"]}, {"_id": 0})
+    haircut = await db.haircuts.find_one({"haircut_id": appointment["haircut_id"]}, {"_id": 0})
+    
+    # Generate QR code
+    qr_data = f"AFROCROWN|{appointment_id}|{appointment['appointment_date']}|{appointment['appointment_time']}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffer = BytesIO()
+    qr_img.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
+    return {
+        "appointment": appointment,
+        "salon": salon,
+        "barber": barber,
+        "haircut": haircut,
+        "qr_code": f"data:image/png;base64,{qr_base64}"
+    }
+
+@api_router.post("/appointments/{appointment_id}/scan")
+async def scan_appointment_qr(appointment_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Scan QR code to confirm client arrival"""
+    appointment = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    if user.role != "founder" and user.salon_id != appointment["salon_id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Update status to confirmed
+    await db.appointments.update_one(
+        {"appointment_id": appointment_id},
+        {"$set": {"status": "confirmed", "checked_in_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Client checked in", "appointment_id": appointment_id}
 
 # =============================================================================
 # PRODUCT ROUTES (MARKETPLACE)

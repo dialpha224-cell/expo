@@ -71,6 +71,8 @@ const LandingPage = () => {
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-slate-400 hover:text-white transition-colors">Fonctionnalites</a>
+              <a href="/booking" className="text-slate-400 hover:text-white transition-colors">Reserver</a>
+              <a href="/ai-simulation" className="text-slate-400 hover:text-white transition-colors">Simulation IA</a>
               <a href="/marketplace" className="text-slate-400 hover:text-white transition-colors">Marketplace</a>
               <a href="/trimconnect" className="text-slate-400 hover:text-white transition-colors">TrimConnect</a>
             </div>
@@ -146,20 +148,20 @@ const LandingPage = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {user ? (
                 <Button 
-                  onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/marketplace'}
+                  onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/booking'}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-indigo-500/25"
                   data-testid="go-dashboard-btn"
                 >
-                  {user.role === 'founder' ? 'Acceder au Dashboard Admin' : user.role === 'salon_owner' ? 'Acceder a Mon Salon' : 'Explorer la Marketplace'}
+                  {user.role === 'founder' ? 'Acceder au Dashboard Admin' : user.role === 'salon_owner' ? 'Acceder a Mon Salon' : 'Reserver maintenant'}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               ) : (
                 <Button 
-                  onClick={login}
+                  onClick={() => window.location.href = '/booking'}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-indigo-500/25"
                   data-testid="get-started-btn"
                 >
-                  Commencer maintenant
+                  Reserver maintenant
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               )}
