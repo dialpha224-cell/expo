@@ -875,11 +875,12 @@ const AppointmentsManagement = ({ salonId }) => {
   );
 };
 
-// Haircuts Management Component
+// Haircuts Management Component with Custom Pricing
 const HaircutsManagement = ({ salonId }) => {
-  const [haircuts, setHaircuts] = useState([]);
+  const [pricing, setPricing] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingPrice, setEditingPrice] = useState(null);
   const [newHaircut, setNewHaircut] = useState({ 
     name: "", 
     description: "", 
@@ -890,18 +891,18 @@ const HaircutsManagement = ({ salonId }) => {
 
   useEffect(() => {
     if (salonId) {
-      fetchHaircuts();
+      fetchPricing();
     } else {
       setLoading(false);
     }
   }, [salonId]);
 
-  const fetchHaircuts = async () => {
+  const fetchPricing = async () => {
     try {
-      const response = await axios.get(`${API}/salons/${salonId}/haircuts`);
-      setHaircuts(response.data);
+      const response = await axios.get(`${API}/salons/${salonId}/pricing`);
+      setPricing(response.data.pricing || []);
     } catch (error) {
-      console.error("Error fetching haircuts:", error);
+      console.error("Error fetching pricing:", error);
     } finally {
       setLoading(false);
     }
@@ -926,10 +927,50 @@ const HaircutsManagement = ({ salonId }) => {
       toast.success("Coupe ajoutee avec succes");
       setShowCreateDialog(false);
       setNewHaircut({ name: "", description: "", price: "", duration_minutes: "30", category: "classic" });
-      fetchHaircuts();
+      fetchPricing();
     } catch (error) {
       console.error("Error creating haircut:", error);
       toast.error(error.response?.data?.detail || "Erreur lors de l'ajout de la coupe");
+    }
+  };
+
+  const updatePrice = async (haircutId, newPrice, isAvailable = true) => {
+    try {
+      await axios.put(
+        `${API}/salons/${salonId}/pricing/${haircutId}`,
+        { price: parseFloat(newPrice), is_available: isAvailable },
+        { withCredentials: true }
+      );
+      toast.success("Prix mis a jour");
+      setEditingPrice(null);
+      fetchPricing();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
+  const resetPrice = async (haircutId) => {
+    try {
+      await axios.delete(`${API}/salons/${salonId}/pricing/${haircutId}`, { withCredentials: true });
+      toast.success("Prix reinitialise");
+      fetchPricing();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
+  const toggleAvailability = async (haircut) => {
+    const newAvailability = !haircut.is_available;
+    try {
+      await axios.put(
+        `${API}/salons/${salonId}/pricing/${haircut.haircut_id}`,
+        { price: haircut.salon_price, is_available: newAvailability },
+        { withCredentials: true }
+      );
+      toast.success(newAvailability ? "Coupe disponible" : "Coupe desactivee");
+      fetchPricing();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
     }
   };
 
@@ -945,25 +986,25 @@ const HaircutsManagement = ({ salonId }) => {
     <div className="space-y-6" data-testid="haircuts-management">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-white mb-2">Galerie des Coupes</h1>
-          <p className="text-slate-400">{haircuts.length} coupes</p>
+          <h1 className="text-2xl font-heading font-bold text-white mb-2">Tarifs & Coupes</h1>
+          <p className="text-slate-400">{pricing.length} coupes disponibles</p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button className="bg-indigo-600 hover:bg-indigo-700" data-testid="add-haircut-btn">
               <Plus className="h-4 w-4 mr-2" />
-              Ajouter une coupe
+              Nouvelle coupe
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-slate-800 border-slate-700">
             <DialogHeader>
-              <DialogTitle className="text-white">Ajouter une coupe</DialogTitle>
+              <DialogTitle className="text-white">Ajouter une coupe personnalisee</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Nom de la coupe *</label>
                 <Input
-                  placeholder="Ex: Degrade Classique"
+                  placeholder="Ex: Degrade Special Maison"
                   value={newHaircut.name}
                   onChange={(e) => setNewHaircut({...newHaircut, name: e.target.value})}
                   className="bg-slate-900 border-slate-700 text-white"
@@ -973,7 +1014,7 @@ const HaircutsManagement = ({ salonId }) => {
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Description</label>
                 <Textarea
-                  placeholder="Ex: Degrade progressif avec finition nette"
+                  placeholder="Ex: Notre signature avec finition premium"
                   value={newHaircut.description}
                   onChange={(e) => setNewHaircut({...newHaircut, description: e.target.value})}
                   className="bg-slate-900 border-slate-700 text-white"
@@ -1031,42 +1072,128 @@ const HaircutsManagement = ({ salonId }) => {
         </Dialog>
       </div>
 
+      {/* Info Banner */}
+      <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <DollarSign className="h-5 w-5 text-indigo-400 mt-0.5" />
+          <div>
+            <p className="text-white font-medium">Tarification personnalisee</p>
+            <p className="text-slate-400 text-sm">
+              Definissez vos propres prix pour chaque coupe. Les clients verront vos tarifs lors de la reservation.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
-      ) : haircuts.length === 0 ? (
+      ) : pricing.length === 0 ? (
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
           <Scissors className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400">Aucune coupe ajoutee</p>
+          <p className="text-slate-400">Aucune coupe disponible</p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {haircuts.map((haircut) => (
-            <div 
-              key={haircut.haircut_id}
-              className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-indigo-500/50 transition-all"
-              data-testid={`haircut-card-${haircut.haircut_id}`}
-            >
-              <div className="h-48 bg-slate-700 flex items-center justify-center">
-                {haircut.image_url ? (
-                  <img src={haircut.image_url} alt={haircut.name} className="w-full h-full object-cover" />
-                ) : (
-                  <Scissors className="h-12 w-12 text-slate-600" />
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-heading font-semibold text-white mb-2">{haircut.name}</h3>
-                <p className="text-slate-400 text-sm mb-4 line-clamp-2">{haircut.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-indigo-400 font-bold">{haircut.price} EUR</span>
-                  <span className="text-slate-500 text-sm">{haircut.duration_minutes} min</span>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="text-left text-slate-400 font-medium p-4">Coupe</th>
+                <th className="text-center text-slate-400 font-medium p-4">Duree</th>
+                <th className="text-center text-slate-400 font-medium p-4">Prix de base</th>
+                <th className="text-center text-slate-400 font-medium p-4">Votre prix</th>
+                <th className="text-center text-slate-400 font-medium p-4">Statut</th>
+                <th className="text-right text-slate-400 font-medium p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700">
+              {pricing.map((haircut) => (
+                <tr key={haircut.haircut_id} className={`${!haircut.is_available ? 'opacity-50' : ''}`}>
+                  <td className="p-4">
+                    <div>
+                      <p className="text-white font-medium">{haircut.name}</p>
+                      <p className="text-slate-500 text-xs">{haircut.category}</p>
+                      {haircut.is_salon_specific && (
+                        <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full">
+                          Coupe maison
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-4 text-center">
+                    <span className="text-slate-300">{haircut.duration_minutes} min</span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <span className="text-slate-500">{haircut.base_price} EUR</span>
+                  </td>
+                  <td className="p-4 text-center">
+                    {editingPrice === haircut.haircut_id ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Input
+                          type="number"
+                          defaultValue={haircut.salon_price}
+                          className="w-20 bg-slate-900 border-slate-600 text-white text-center"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updatePrice(haircut.haircut_id, e.target.value);
+                            }
+                            if (e.key === 'Escape') {
+                              setEditingPrice(null);
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <span className="text-slate-400">EUR</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setEditingPrice(haircut.haircut_id)}
+                        className={`font-bold ${
+                          haircut.has_custom_price ? 'text-indigo-400' : 'text-white'
+                        } hover:text-indigo-300 transition-colors`}
+                        title="Cliquez pour modifier"
+                      >
+                        {haircut.salon_price} EUR
+                        {haircut.has_custom_price && <span className="text-xs ml-1">*</span>}
+                      </button>
+                    )}
+                  </td>
+                  <td className="p-4 text-center">
+                    <button
+                      onClick={() => toggleAvailability(haircut)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        haircut.is_available 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : 'bg-red-500/20 text-red-400'
+                      }`}
+                    >
+                      {haircut.is_available ? 'Disponible' : 'Desactive'}
+                    </button>
+                  </td>
+                  <td className="p-4 text-right">
+                    {haircut.has_custom_price && !haircut.is_salon_specific && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => resetPrice(haircut.haircut_id)}
+                        className="text-slate-400 hover:text-white"
+                        title="Reinitialiser au prix de base"
+                      >
+                        Reinitialiser
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <p className="text-slate-500 text-sm">
+        * Prix personnalise pour votre salon. Cliquez sur un prix pour le modifier.
+      </p>
     </div>
   );
 };

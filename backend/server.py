@@ -493,6 +493,25 @@ class HaircutResponse(BaseModel):
     is_active: bool = True
     created_at: datetime
 
+# Salon-specific pricing
+class SalonPriceCreate(BaseModel):
+    haircut_id: str
+    price: float
+    is_available: bool = True
+
+class SalonPriceResponse(BaseModel):
+    salon_id: str
+    haircut_id: str
+    haircut_name: Optional[str] = None
+    base_price: float  # Prix de base (global)
+    salon_price: float  # Prix du salon
+    duration_minutes: int
+    category: str
+    is_available: bool = True
+
+class SalonPricingUpdate(BaseModel):
+    prices: List[SalonPriceCreate]
+
 class AppointmentCreate(BaseModel):
     salon_id: str
     barber_id: str
@@ -1969,6 +1988,163 @@ async def list_all_haircuts():
     return haircuts
 
 # =============================================================================
+# SALON CUSTOM PRICING
+# =============================================================================
+
+@api_router.get("/salons/{salon_id}/pricing")
+async def get_salon_pricing(salon_id: str):
+    """Get all haircuts with salon-specific prices"""
+    # Get global/base haircuts
+    base_haircuts = await db.haircuts.find({
+        "$or": [
+            {"salon_id": {"$exists": False}, "is_active": True},
+            {"salon_id": None, "is_active": True}
+        ]
+    }, {"_id": 0}).to_list(100)
+    
+    # Get salon's custom prices
+    custom_prices = await db.salon_prices.find({"salon_id": salon_id}, {"_id": 0}).to_list(100)
+    custom_prices_map = {cp["haircut_id"]: cp for cp in custom_prices}
+    
+    # Merge base haircuts with custom prices
+    pricing = []
+    for haircut in base_haircuts:
+        haircut_id = haircut["haircut_id"]
+        custom = custom_prices_map.get(haircut_id, {})
+        
+        pricing.append({
+            "haircut_id": haircut_id,
+            "name": haircut["name"],
+            "description": haircut.get("description"),
+            "category": haircut.get("category", "classic"),
+            "duration_minutes": haircut.get("duration_minutes", 30),
+            "image_url": haircut.get("image_url"),
+            "base_price": haircut["price"],
+            "salon_price": custom.get("price", haircut["price"]),
+            "is_available": custom.get("is_available", True),
+            "has_custom_price": haircut_id in custom_prices_map
+        })
+    
+    # Get salon's own haircuts
+    salon_haircuts = await db.haircuts.find({
+        "salon_id": salon_id, "is_active": True
+    }, {"_id": 0}).to_list(100)
+    
+    for haircut in salon_haircuts:
+        pricing.append({
+            "haircut_id": haircut["haircut_id"],
+            "name": haircut["name"],
+            "description": haircut.get("description"),
+            "category": haircut.get("category", "classic"),
+            "duration_minutes": haircut.get("duration_minutes", 30),
+            "image_url": haircut.get("image_url"),
+            "base_price": haircut["price"],
+            "salon_price": haircut["price"],
+            "is_available": True,
+            "has_custom_price": False,
+            "is_salon_specific": True
+        })
+    
+    return {
+        "salon_id": salon_id,
+        "pricing": pricing
+    }
+
+@api_router.put("/salons/{salon_id}/pricing")
+async def update_salon_pricing(
+    salon_id: str, 
+    pricing_update: SalonPricingUpdate,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Update salon-specific prices for haircuts"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    # Update or insert each price
+    for price_item in pricing_update.prices:
+        await db.salon_prices.update_one(
+            {"salon_id": salon_id, "haircut_id": price_item.haircut_id},
+            {"$set": {
+                "salon_id": salon_id,
+                "haircut_id": price_item.haircut_id,
+                "price": price_item.price,
+                "is_available": price_item.is_available,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+    
+    return {"message": f"{len(pricing_update.prices)} prix mis a jour"}
+
+@api_router.put("/salons/{salon_id}/pricing/{haircut_id}")
+async def update_single_haircut_price(
+    salon_id: str,
+    haircut_id: str,
+    request: Request,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Update price for a single haircut in a salon"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    body = await request.json()
+    price = body.get("price")
+    is_available = body.get("is_available", True)
+    
+    if price is None or price < 0:
+        raise HTTPException(status_code=400, detail="Prix invalide")
+    
+    await db.salon_prices.update_one(
+        {"salon_id": salon_id, "haircut_id": haircut_id},
+        {"$set": {
+            "salon_id": salon_id,
+            "haircut_id": haircut_id,
+            "price": price,
+            "is_available": is_available,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"message": "Prix mis a jour"}
+
+@api_router.delete("/salons/{salon_id}/pricing/{haircut_id}")
+async def reset_haircut_price(
+    salon_id: str,
+    haircut_id: str,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Reset haircut price to base price (remove custom price)"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    await db.salon_prices.delete_one({"salon_id": salon_id, "haircut_id": haircut_id})
+    return {"message": "Prix reinitialise au prix de base"}
+
+@api_router.get("/salons/{salon_id}/haircuts-with-pricing")
+async def get_haircuts_with_salon_pricing(salon_id: str):
+    """Get haircuts with salon-specific prices for booking"""
+    # Get pricing info
+    pricing_response = await get_salon_pricing(salon_id)
+    
+    # Filter to only available haircuts
+    available = [
+        {
+            "haircut_id": p["haircut_id"],
+            "name": p["name"],
+            "description": p.get("description"),
+            "price": p["salon_price"],  # Use salon price
+            "duration_minutes": p["duration_minutes"],
+            "category": p["category"],
+            "image_url": p.get("image_url")
+        }
+        for p in pricing_response["pricing"]
+        if p["is_available"]
+    ]
+    
+    return available
+
+# =============================================================================
 # APPOINTMENT ROUTES
 # =============================================================================
 
@@ -1977,10 +2153,19 @@ async def create_appointment(appointment: AppointmentCreate, request: Request):
     """Create appointment (can be guest or authenticated)"""
     user = await get_current_user(request)
     
-    # Get haircut price
+    # Get haircut base info
     haircut = await db.haircuts.find_one({"haircut_id": appointment.haircut_id}, {"_id": 0})
     if not haircut:
         raise HTTPException(status_code=404, detail="Haircut not found")
+    
+    # Check for salon-specific price
+    salon_price = await db.salon_prices.find_one({
+        "salon_id": appointment.salon_id, 
+        "haircut_id": appointment.haircut_id
+    }, {"_id": 0})
+    
+    # Use salon price if exists, otherwise use base price
+    final_price = salon_price["price"] if salon_price else haircut["price"]
     
     appointment_id = f"appt_{uuid.uuid4().hex[:12]}"
     appointment_doc = {
@@ -1996,7 +2181,7 @@ async def create_appointment(appointment: AppointmentCreate, request: Request):
         "status": "pending",
         "payment_method": "cash",
         "payment_status": "pending",
-        "total_price": haircut["price"],
+        "total_price": final_price,
         "client_notes": appointment.client_notes,
         "client_photos": appointment.client_photos,
         "created_at": datetime.now(timezone.utc).isoformat()
