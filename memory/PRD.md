@@ -92,6 +92,8 @@ Structure dans /app/mobile avec:
 - [x] Tarification personnalisee par salon (chaque salon definit ses prix)
 - [x] Systeme de promotions (reductions % ou fixes, dates, jours specifiques)
 - [x] Upload photos profil utilisateurs, coiffeurs et coupes
+- [x] Reservations Premium (+20%) avec boissons et snacks
+- [x] Gestion des services premium par salon
 
 ## Prioritized Backlog
 
