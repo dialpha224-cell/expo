@@ -6,7 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -20,6 +20,8 @@ from io import BytesIO
 import secrets
 import string
 from passlib.context import CryptContext
+import asyncio
+import resend
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -35,6 +37,10 @@ def generate_temp_password(length: int = 10) -> str:
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
+def generate_setup_token() -> str:
+    """Generate a secure token for password setup"""
+    return secrets.token_urlsafe(32)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -42,6 +48,10 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Resend config
+resend.api_key = os.getenv("RESEND_API_KEY")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL", "onboarding@resend.dev")
 
 # Cloudinary config
 cloudinary.config(
@@ -60,6 +70,72 @@ api_router = APIRouter(prefix="/api")
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# EMAIL FUNCTIONS
+# =============================================================================
+
+async def send_welcome_email(email: str, name: str, setup_token: str, app_url: str):
+    """Send welcome email with password setup link"""
+    setup_link = f"{app_url}/setup-password?token={setup_token}"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body style="font-family: Arial, sans-serif; background-color: #0f172a; color: #e2e8f0; padding: 40px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; padding: 40px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #818cf8; margin: 0;">✂️ AfroCrown</h1>
+            </div>
+            
+            <h2 style="color: #ffffff; margin-bottom: 20px;">Bienvenue {name} !</h2>
+            
+            <p style="color: #94a3b8; line-height: 1.6;">
+                Votre compte AfroCrown a été créé. Pour commencer à utiliser la plateforme, 
+                veuillez créer votre mot de passe en cliquant sur le bouton ci-dessous.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{setup_link}" 
+                   style="background-color: #6366f1; color: white; padding: 14px 28px; 
+                          text-decoration: none; border-radius: 8px; font-weight: bold;
+                          display: inline-block;">
+                    Créer mon mot de passe
+                </a>
+            </div>
+            
+            <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
+                Ce lien est valide pendant 24 heures. Si vous n'avez pas demandé ce compte, 
+                vous pouvez ignorer cet email.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #334155; margin: 30px 0;">
+            
+            <p style="color: #64748b; font-size: 12px; text-align: center;">
+                © 2024 AfroCrown - La Référence de la Coiffure Afro
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": "Bienvenue sur AfroCrown - Créez votre mot de passe",
+        "html": html_content
+    }
+    
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Welcome email sent to {email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send welcome email to {email}: {str(e)}")
+        raise
 
 # =============================================================================
 # PYDANTIC MODELS
@@ -468,6 +544,104 @@ async def change_password(password_data: PasswordChange, user: UserBase = Depend
     return {"message": "Mot de passe modifie avec succes"}
 
 # =============================================================================
+# PASSWORD SETUP (for email link)
+# =============================================================================
+
+class PasswordSetup(BaseModel):
+    token: str
+    password: str
+
+@api_router.get("/auth/verify-setup-token/{token}")
+async def verify_setup_token(token: str):
+    """Verify if a setup token is valid"""
+    user = await db.users.find_one({"setup_token": token}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Lien invalide ou expire")
+    
+    # Check if token is expired
+    expires_at = user.get("setup_token_expires")
+    if expires_at:
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Ce lien a expire. Contactez l'administrateur.")
+    
+    return {
+        "valid": True,
+        "name": user.get("name"),
+        "email": user.get("email")
+    }
+
+@api_router.post("/auth/setup-password")
+async def setup_password(data: PasswordSetup):
+    """Set password for new user via email link"""
+    user = await db.users.find_one({"setup_token": data.token}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Lien invalide ou expire")
+    
+    # Check if token is expired
+    expires_at = user.get("setup_token_expires")
+    if expires_at:
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Ce lien a expire. Contactez l'administrateur.")
+    
+    if len(data.password) < 6:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit faire au moins 6 caracteres")
+    
+    # Hash and save password
+    password_hash = hash_password(data.password)
+    await db.users.update_one(
+        {"setup_token": data.token},
+        {
+            "$set": {
+                "password_hash": password_hash,
+                "is_active": True,
+                "setup_token": None,
+                "setup_token_expires": None
+            }
+        }
+    )
+    
+    # Create session for auto-login
+    session_token = secrets.token_urlsafe(32)
+    session_expires = datetime.now(timezone.utc) + timedelta(days=7)
+    session_doc = {
+        "user_id": user["user_id"],
+        "session_token": session_token,
+        "expires_at": session_expires.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.user_sessions.delete_many({"user_id": user["user_id"]})
+    await db.user_sessions.insert_one(session_doc)
+    
+    response = JSONResponse(content={
+        "message": "Mot de passe cree avec succes",
+        "user_id": user["user_id"],
+        "email": user["email"],
+        "name": user["name"],
+        "role": user["role"],
+        "salon_id": user.get("salon_id")
+    })
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7*24*60*60
+    )
+    return response
+
+# =============================================================================
 # FOUNDER ROUTES - User Management
 # =============================================================================
 
@@ -498,41 +672,53 @@ async def list_all_users(founder: UserBase = Depends(require_founder)):
     return users
 
 @api_router.post("/founder/users")
-async def create_user_by_admin(user_data: UserCreateByAdmin, founder: UserBase = Depends(require_founder)):
-    """Create a new user (founder only) - returns temporary password"""
+async def create_user_by_admin(user_data: UserCreateByAdmin, request: Request, founder: UserBase = Depends(require_founder)):
+    """Create a new user (founder only) - sends welcome email with setup link"""
     # Check if email already exists
-    existing = await db.users.find_one({"email": user_data.email})
+    existing = await db.users.find_one({"email": user_data.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Un utilisateur avec cet email existe deja")
     
-    # Generate temporary password
-    temp_password = generate_temp_password(10)
-    password_hash = hash_password(temp_password)
+    # Generate setup token (no password yet - user will create it)
+    setup_token = generate_setup_token()
+    token_expires = datetime.now(timezone.utc) + timedelta(hours=24)
     
-    # Create user
+    # Create user without password
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     new_user = {
         "user_id": user_id,
-        "email": user_data.email,
+        "email": user_data.email.lower(),
         "name": user_data.name,
         "picture": None,
         "role": user_data.role,
         "salon_id": user_data.salon_id,
-        "password_hash": password_hash,
-        "must_change_password": True,
+        "password_hash": None,  # No password yet
+        "setup_token": setup_token,
+        "setup_token_expires": token_expires.isoformat(),
+        "is_active": False,  # Not active until password is set
         "created_by": founder.user_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(new_user)
     
-    # Return user info with temporary password (admin will share this with the user)
+    # Get app URL from request
+    origin = request.headers.get("origin", "https://salon-dashboard-48.preview.emergentagent.com")
+    
+    # Send welcome email
+    email_sent = False
+    try:
+        await send_welcome_email(user_data.email.lower(), user_data.name, setup_token, origin)
+        email_sent = True
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+    
     return {
         "user_id": user_id,
         "name": user_data.name,
-        "email": user_data.email,
+        "email": user_data.email.lower(),
         "role": user_data.role,
-        "temporary_password": temp_password,
-        "message": "Utilisateur cree. Partagez le mot de passe temporaire avec l'utilisateur."
+        "email_sent": email_sent,
+        "message": "Utilisateur cree. Un email a ete envoye pour creer le mot de passe." if email_sent else "Utilisateur cree mais l'email n'a pas pu etre envoye."
     }
 
 @api_router.delete("/founder/users/{user_id}")

@@ -16,6 +16,7 @@ import BookingPage from "./pages/BookingPage";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import AISimulation from "./pages/AISimulation";
 import MyAppointments from "./pages/MyAppointments";
+import SetupPassword from "./pages/SetupPassword";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -148,6 +149,7 @@ function AppRouter() {
       <Route path="/booking/confirmation/:appointmentId" element={<BookingConfirmation />} />
       <Route path="/ai-simulation" element={<AISimulation />} />
       <Route path="/my-appointments" element={<MyAppointments />} />
+      <Route path="/setup-password" element={<SetupPassword />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<PaymentCancel />} />
     </Routes>

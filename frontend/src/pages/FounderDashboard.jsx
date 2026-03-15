@@ -663,7 +663,7 @@ const UsersManagement = () => {
         </Dialog>
       </div>
 
-      {/* Password Dialog */}
+      {/* Success Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="bg-slate-800 border-slate-700">
           <DialogHeader>
@@ -671,40 +671,41 @@ const UsersManagement = () => {
           </DialogHeader>
           {createdUser && (
             <div className="space-y-4 mt-4">
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                <p className="text-green-400 text-sm mb-2">Partagez ces informations avec l'utilisateur :</p>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between bg-slate-900 rounded px-3 py-2">
-                    <span className="text-slate-400 text-sm">Email:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-mono">{createdUser.email}</span>
-                      <button 
-                        onClick={() => copyToClipboard(createdUser.email)}
-                        className="text-indigo-400 hover:text-indigo-300"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      </button>
-                    </div>
+              {createdUser.email_sent ? (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-green-400 font-medium">Email envoye !</p>
                   </div>
-                  <div className="flex items-center justify-between bg-slate-900 rounded px-3 py-2">
-                    <span className="text-slate-400 text-sm">Mot de passe:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-amber-400 font-mono font-bold">{createdUser.temporary_password}</span>
-                      <button 
-                        onClick={() => copyToClipboard(createdUser.temporary_password)}
-                        className="text-indigo-400 hover:text-indigo-300"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      </button>
-                    </div>
+                  <p className="text-slate-300 text-sm">
+                    Un email a ete envoye a <span className="text-white font-medium">{createdUser.email}</span> avec un lien pour creer son mot de passe.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p className="text-amber-400 font-medium">Compte cree (email non envoye)</p>
                   </div>
+                  <p className="text-slate-300 text-sm mb-3">
+                    L'utilisateur a ete cree mais l'email n'a pas pu etre envoye. Vous devrez lui transmettre le lien manuellement.
+                  </p>
+                </div>
+              )}
+              
+              <div className="bg-slate-900 rounded-lg p-4">
+                <p className="text-slate-400 text-xs mb-2">Details de l'utilisateur :</p>
+                <div className="space-y-1 text-sm">
+                  <p><span className="text-slate-500">Nom:</span> <span className="text-white">{createdUser.name}</span></p>
+                  <p><span className="text-slate-500">Email:</span> <span className="text-white">{createdUser.email}</span></p>
+                  <p><span className="text-slate-500">Role:</span> <span className="text-white">{roleLabels[createdUser.role]}</span></p>
                 </div>
               </div>
-              <p className="text-slate-500 text-xs">L'utilisateur devra changer son mot de passe a la premiere connexion.</p>
+              
               <Button 
                 onClick={() => setShowPasswordDialog(false)}
                 className="w-full bg-indigo-600 hover:bg-indigo-700"
