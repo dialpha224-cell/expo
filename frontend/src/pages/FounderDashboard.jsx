@@ -25,7 +25,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Eye
+  Eye,
+  HelpCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -35,12 +36,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
+import OnboardingTutorial, { resetOnboarding } from "../components/OnboardingTutorial";
 
 const FounderDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Tableau de bord", path: "/founder" },
@@ -150,7 +153,32 @@ const FounderDashboard = () => {
             <Route path="settings" element={<FounderSettings />} />
           </Routes>
         </div>
+
+        {/* Help Button */}
+        <button
+          onClick={() => {
+            resetOnboarding();
+            setShowOnboarding(true);
+          }}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg flex items-center justify-center text-white transition-all hover:scale-110 z-30"
+          data-testid="help-button"
+          title="Voir le tutoriel"
+        >
+          <HelpCircle className="h-6 w-6" />
+        </button>
       </main>
+
+      {/* Onboarding Tutorial */}
+      <OnboardingTutorial 
+        userRole="founder" 
+        onComplete={() => setShowOnboarding(false)}
+      />
+      {showOnboarding && (
+        <OnboardingTutorial 
+          userRole="founder" 
+          onComplete={() => setShowOnboarding(false)}
+        />
+      )}
 
       {/* Mobile Overlay */}
       {sidebarOpen && (

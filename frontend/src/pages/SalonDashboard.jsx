@@ -22,7 +22,8 @@ import {
   DollarSign,
   CheckCircle,
   Store,
-  ChevronDown
+  ChevronDown,
+  HelpCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -45,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import OnboardingTutorial, { resetOnboarding } from "../components/OnboardingTutorial";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -54,6 +56,7 @@ const SalonDashboard = () => {
   const [salons, setSalons] = useState([]);
   const [selectedSalonId, setSelectedSalonId] = useState(null);
   const [salon, setSalon] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'founder') {
@@ -256,7 +259,32 @@ const SalonDashboard = () => {
             <Route path="settings" element={<SalonSettings salon={salon} onUpdate={() => fetchSalon(selectedSalonId)} />} />
           </Routes>
         </div>
+
+        {/* Help Button */}
+        <button
+          onClick={() => {
+            resetOnboarding();
+            setShowOnboarding(true);
+          }}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-lg flex items-center justify-center text-white transition-all hover:scale-110 z-30"
+          data-testid="help-button"
+          title="Voir le tutoriel"
+        >
+          <HelpCircle className="h-6 w-6" />
+        </button>
       </main>
+
+      {/* Onboarding Tutorial */}
+      <OnboardingTutorial 
+        userRole={user?.role || "salon_owner"} 
+        onComplete={() => setShowOnboarding(false)}
+      />
+      {showOnboarding && (
+        <OnboardingTutorial 
+          userRole={user?.role || "salon_owner"} 
+          onComplete={() => setShowOnboarding(false)}
+        />
+      )}
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
