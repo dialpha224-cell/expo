@@ -18,6 +18,9 @@ import AISimulation from "./pages/AISimulation";
 import MyAppointments from "./pages/MyAppointments";
 import SetupPassword from "./pages/SetupPassword";
 import SalonLiveScreen from "./pages/SalonLiveScreen";
+import LoginAdmin from "./pages/LoginAdmin";
+import LoginSalon from "./pages/LoginSalon";
+import LoginClient from "./pages/LoginClient";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -146,6 +149,10 @@ function AppRouter() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      {/* Login Pages - Specific URLs for each user type */}
+      <Route path="/login/admin" element={<LoginAdmin />} />
+      <Route path="/login/salon" element={<LoginSalon />} />
+      <Route path="/login/client" element={<LoginClient />} />
       <Route
         path="/founder/*"
         element={
