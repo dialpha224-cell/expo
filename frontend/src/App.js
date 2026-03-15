@@ -46,8 +46,10 @@ const AuthProvider = ({ children }) => {
     
     try {
       const response = await axios.get(`${API}/auth/me`, { withCredentials: true });
+      console.log("Auth check response:", response.data);
       setUser(response.data);
     } catch (error) {
+      console.log("Auth check failed, user not logged in");
       setUser(null);
     } finally {
       setLoading(false);

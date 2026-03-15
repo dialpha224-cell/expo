@@ -82,22 +82,14 @@ const LandingPage = () => {
                     />
                     <span className="text-white text-sm hidden sm:block">{user.name}</span>
                   </div>
-                  {user.role === 'founder' && (
+                  {/* Dashboard button - always show for founder/salon_owner */}
+                  {(user.role === 'founder' || user.role === 'salon_owner') && (
                     <Button 
-                      onClick={() => window.location.href = '/founder'}
+                      onClick={() => window.location.href = user.role === 'founder' ? '/founder' : '/salon'}
                       className="bg-indigo-600 hover:bg-indigo-700"
                       data-testid="dashboard-btn"
                     >
-                      Admin
-                    </Button>
-                  )}
-                  {user.role === 'salon_owner' && (
-                    <Button 
-                      onClick={() => window.location.href = '/salon'}
-                      className="bg-indigo-600 hover:bg-indigo-700"
-                      data-testid="dashboard-btn"
-                    >
-                      Mon Salon
+                      {user.role === 'founder' ? 'Admin' : 'Mon Salon'}
                     </Button>
                   )}
                   <Button 
