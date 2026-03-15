@@ -35,8 +35,9 @@ export const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (force = false) => {
     // CRITICAL: If returning from OAuth callback, skip the /me check.
     // AuthCallback will exchange the session_id and establish the session first.
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
@@ -45,21 +46,30 @@ const AuthProvider = ({ children }) => {
       return;
     }
     
+    // Skip if already checked and not forced
+    if (authChecked && !force) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const response = await axios.get(`${API}/auth/me`, { withCredentials: true });
       console.log("Auth check response:", response.data);
       setUser(response.data);
+      setAuthChecked(true);
     } catch (error) {
       console.log("Auth check failed, user not logged in");
       setUser(null);
+      setAuthChecked(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authChecked]);
 
+  // Initial auth check on mount
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
@@ -71,14 +81,22 @@ const AuthProvider = ({ children }) => {
     try {
       await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
       setUser(null);
+      setAuthChecked(false);
       window.location.href = '/';
     } catch (error) {
       console.error("Logout error:", error);
     }
   };
 
+  // Force refresh user when setUser is called with new data
+  const updateUser = useCallback((userData) => {
+    console.log("Updating user state:", userData);
+    setUser(userData);
+    setAuthChecked(true);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, setUser: updateUser, loading, login, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
