@@ -16,14 +16,24 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.afrocrown.mobile"
+      "bundleIdentifier": "com.afrocrown.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "AfroCrown utilise la camera pour la simulation de coupe de cheveux",
+        "NSPhotoLibraryUsageDescription": "AfroCrown accede a vos photos pour la simulation de coupe"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "package": "com.afrocrown.mobile"
+      "package": "com.afrocrown.mobile",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,10 +41,28 @@
     "scheme": "afrocrown",
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366f1",
+          "sounds": ["./assets/notification-sound.wav"]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AfroCrown accede a vos photos pour la simulation IA",
+          "cameraPermission": "AfroCrown utilise la camera pour prendre des photos"
+        }
+      ]
     ],
     "extra": {
-      "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api"
+      "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api",
+      "eas": {
+        "projectId": "afrocrown-mobile"
+      }
     }
   }
 }

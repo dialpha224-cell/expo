@@ -1,263 +1,155 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from './_layout';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function HomeScreen() {
-  const router = useRouter();
-  const { user, login } = useAuth();
+const { width, height } = Dimensions.get('window');
 
-  const features = [
-    { icon: 'calendar', title: 'Reserver', desc: 'Prenez rendez-vous', route: '/booking' },
-    { icon: 'sparkles', title: 'Simulation IA', desc: 'Testez votre coupe', route: '/ai-simulation' },
-    { icon: 'cart', title: 'Marketplace', desc: 'Produits capillaires', route: '/marketplace' },
-    { icon: 'trophy', title: 'TrimConnect', desc: 'Concours coiffure', route: '/trimconnect' },
-  ];
+export default function WelcomeScreen() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/(tabs)/home');
+    }
+  }, [user, loading]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="cut" size={60} color="#818cf8" />
+        <Text style={styles.loadingText}>Chargement...</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <Ionicons name="cut" size={28} color="#6366f1" />
-          <Text style={styles.logoText}>AfroCrown</Text>
-        </View>
-        {user ? (
-          <TouchableOpacity onPress={() => router.push('/profile')}>
-            <Image 
-              source={{ uri: user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=4F46E5&color=fff` }}
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.loginBtn} onPress={login}>
-            <Text style={styles.loginBtnText}>Connexion</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Hero Section */}
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>La Reference de la{'\n'}
-          <Text style={styles.heroTitleGradient}>Coiffure Afro</Text>
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          Reservez, simulez votre coupe avec l'IA et decouvrez les meilleurs produits.
-        </Text>
-        <TouchableOpacity 
-          style={styles.ctaButton}
-          onPress={() => router.push('/booking')}
-        >
-          <Text style={styles.ctaButtonText}>Reserver maintenant</Text>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Features Grid */}
-      <View style={styles.featuresGrid}>
-        {features.map((feature, index) => (
-          <TouchableOpacity 
-            key={index}
-            style={styles.featureCard}
-            onPress={() => router.push(feature.route)}
-          >
-            <View style={styles.featureIconContainer}>
-              <Ionicons name={feature.icon} size={24} color="#818cf8" />
-            </View>
-            <Text style={styles.featureTitle}>{feature.title}</Text>
-            <Text style={styles.featureDesc}>{feature.desc}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* TrimConnect Banner */}
-      <TouchableOpacity 
-        style={styles.trimconnectBanner}
-        onPress={() => router.push('/trimconnect')}
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#0f172a', '#1e293b', '#0f172a']}
+        style={styles.gradient}
       >
-        <View style={styles.trimconnectContent}>
-          <View style={styles.trimconnectHeader}>
-            <Ionicons name="trophy" size={24} color="#F59E0B" />
-            <Text style={styles.trimconnectTitle}>TrimConnect Battle</Text>
-          </View>
-          <Text style={styles.trimconnectDesc}>
-            Participez au plus grand concours de coiffure afro
-          </Text>
+        {/* Logo & Title */}
+        <View style={styles.header}>
+          <Ionicons name="cut" size={80} color="#818cf8" />
+          <Text style={styles.title}>AfroCrown</Text>
+          <Text style={styles.subtitle}>La Reference de la Coiffure Afro</Text>
         </View>
-        <Ionicons name="chevron-forward" size={24} color="#F59E0B" />
-      </TouchableOpacity>
 
-      {/* Quick Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>500+</Text>
-          <Text style={styles.statLabel}>Salons</Text>
+        {/* Features */}
+        <View style={styles.features}>
+          <View style={styles.featureItem}>
+            <Ionicons name="calendar-outline" size={32} color="#818cf8" />
+            <Text style={styles.featureText}>Reservez en ligne</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="camera-outline" size={32} color="#818cf8" />
+            <Text style={styles.featureText}>Simulation IA</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="cart-outline" size={32} color="#818cf8" />
+            <Text style={styles.featureText}>Marketplace</Text>
+          </View>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>10K+</Text>
-          <Text style={styles.statLabel}>Clients</Text>
+
+        {/* Buttons */}
+        <View style={styles.buttons}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => router.push('/login')}
+          >
+            <Text style={styles.primaryButtonText}>Connexion</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={() => router.push('/(tabs)/home')}
+          >
+            <Text style={styles.secondaryButtonText}>Explorer sans compte</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>4.9</Text>
-          <Text style={styles.statLabel}>Note</Text>
-        </View>
-      </View>
-    </ScrollView>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+  },
+  gradient: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingVertical: 60,
+    paddingHorizontal: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#fff',
+    marginTop: 16,
+    fontSize: 16,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    marginTop: 40,
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoText: {
-    fontSize: 20,
+  title: {
+    fontSize: 42,
     fontWeight: 'bold',
     color: '#fff',
+    marginTop: 16,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  loginBtn: {
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  loginBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  hero: {
-    paddingHorizontal: 20,
-    paddingVertical: 40,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
-  },
-  heroTitleGradient: {
-    color: '#818cf8',
-  },
-  heroSubtitle: {
+  subtitle: {
     fontSize: 16,
-    color: '#94A3B8',
-    marginBottom: 24,
-    lineHeight: 24,
+    color: '#94a3b8',
+    marginTop: 8,
+    textAlign: 'center',
   },
-  ctaButton: {
-    backgroundColor: '#4F46E5',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-  },
-  ctaButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  featureCard: {
-    width: '47%',
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  featureIconContainer: {
-    width: 48,
-    height: 48,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  featureDesc: {
-    fontSize: 13,
-    color: '#94A3B8',
-  },
-  trimconnectBanner: {
-    marginHorizontal: 20,
-    marginTop: 24,
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-  },
-  trimconnectContent: {
-    flex: 1,
-  },
-  trimconnectHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  trimconnectTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#F59E0B',
-  },
-  trimconnectDesc: {
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  statsContainer: {
+  features: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 32,
-    marginTop: 24,
+    marginVertical: 40,
   },
-  statItem: {
+  featureItem: {
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
+  featureText: {
+    color: '#e2e8f0',
+    marginTop: 8,
+    fontSize: 12,
+    textAlign: 'center',
   },
-  statLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    marginTop: 4,
+  buttons: {
+    gap: 16,
+  },
+  primaryButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: '#475569',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#94a3b8',
+    fontSize: 16,
   },
 });

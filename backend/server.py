@@ -22,6 +22,8 @@ import string
 from passlib.context import CryptContext
 import asyncio
 import resend
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -63,6 +65,25 @@ cloudinary.config(
 
 # Create the main app
 app = FastAPI(title="AfroCrown API")
+
+# Startup and shutdown events
+@app.on_event("startup")
+async def startup_event():
+    """Start the reminder scheduler on app startup"""
+    scheduler.add_job(
+        check_appointment_reminders,
+        IntervalTrigger(minutes=5),
+        id='appointment_reminders',
+        replace_existing=True
+    )
+    scheduler.start()
+    logger.info("Appointment reminder scheduler started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop the scheduler on app shutdown"""
+    scheduler.shutdown()
+    logger.info("Appointment reminder scheduler stopped")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -136,6 +157,166 @@ async def send_welcome_email(email: str, name: str, setup_token: str, app_url: s
     except Exception as e:
         logger.error(f"Failed to send welcome email to {email}: {str(e)}")
         raise
+
+# =============================================================================
+# PUSH NOTIFICATION SERVICE
+# =============================================================================
+
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+async def send_push_notification(expo_push_tokens: List[str], title: str, body: str, data: dict = None) -> bool:
+    """Send push notification via Expo Push Service"""
+    if not expo_push_tokens:
+        return False
+    
+    payload = {
+        "to": expo_push_tokens,
+        "sound": "default",
+        "title": title,
+        "body": body,
+        "data": data or {},
+        "badge": 1,
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                EXPO_PUSH_URL,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=30.0,
+            )
+            
+            if response.status_code == 200:
+                logger.info(f"Push notification sent to {len(expo_push_tokens)} devices")
+                return True
+            else:
+                logger.error(f"Failed to send push notification: {response.text}")
+                return False
+    except Exception as e:
+        logger.error(f"Error sending push notification: {str(e)}")
+        return False
+
+async def send_appointment_reminder(appointment_id: str, hours_before: int):
+    """Send appointment reminder notification"""
+    appointment = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
+    if not appointment:
+        return False
+    
+    # Get user's push token
+    user = await db.users.find_one({"user_id": appointment.get("user_id")}, {"_id": 0})
+    if not user or not user.get("expo_push_token"):
+        # Try sending email instead
+        if user and user.get("email"):
+            await send_reminder_email(user["email"], user.get("name", "Client"), appointment, hours_before)
+        return False
+    
+    # Get salon and haircut info
+    salon = await db.salons.find_one({"salon_id": appointment.get("salon_id")}, {"_id": 0})
+    haircut = await db.haircuts.find_one({"haircut_id": appointment.get("haircut_id")}, {"_id": 0})
+    
+    salon_name = salon.get("name") if salon else "AfroCrown"
+    haircut_name = haircut.get("name") if haircut else "votre coupe"
+    
+    if hours_before == 24:
+        title = "Rappel RDV demain"
+        body = f"N'oubliez pas votre RDV demain a {appointment.get('time_slot')} chez {salon_name} pour {haircut_name}"
+    else:
+        title = "Rappel RDV dans 1h"
+        body = f"Votre RDV est dans 1 heure chez {salon_name}. Preparez-vous!"
+    
+    return await send_push_notification(
+        [user["expo_push_token"]],
+        title,
+        body,
+        {"appointment_id": appointment_id, "type": "appointment_reminder"}
+    )
+
+async def send_reminder_email(email: str, name: str, appointment: dict, hours_before: int):
+    """Send reminder email when push notification is not available"""
+    salon = await db.salons.find_one({"salon_id": appointment.get("salon_id")}, {"_id": 0})
+    salon_name = salon.get("name") if salon else "AfroCrown"
+    
+    if hours_before == 24:
+        subject = "Rappel: Votre RDV demain chez AfroCrown"
+        time_text = "demain"
+    else:
+        subject = "Rappel: Votre RDV dans 1 heure"
+        time_text = "dans 1 heure"
+    
+    html_content = f"""
+    <div style="font-family: Arial; background-color: #0f172a; color: #e2e8f0; padding: 40px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; padding: 40px;">
+            <h1 style="color: #818cf8;">✂️ Rappel de RDV</h1>
+            <p>Bonjour {name},</p>
+            <p>Votre rendez-vous est prevu <strong>{time_text}</strong> chez <strong>{salon_name}</strong>.</p>
+            <p><strong>Date:</strong> {appointment.get('date')}<br>
+            <strong>Heure:</strong> {appointment.get('time_slot')}</p>
+            <p>A bientot!</p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": subject,
+            "html": html_content
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Reminder email sent to {email}")
+    except Exception as e:
+        logger.error(f"Failed to send reminder email: {e}")
+
+async def check_appointment_reminders():
+    """Check for appointments that need reminders - runs every 5 minutes"""
+    now = datetime.now(timezone.utc)
+    
+    # Get all pending/confirmed appointments
+    appointments = await db.appointments.find({
+        "status": {"$in": ["pending", "confirmed"]},
+        "reminder_24h_sent": {"$ne": True}
+    }, {"_id": 0}).to_list(500)
+    
+    for apt in appointments:
+        try:
+            # Parse appointment date and time
+            apt_date_str = apt.get("date")
+            apt_time_str = apt.get("time_slot", "10:00")
+            
+            if not apt_date_str:
+                continue
+                
+            apt_datetime = datetime.strptime(f"{apt_date_str} {apt_time_str}", "%Y-%m-%d %H:%M")
+            apt_datetime = apt_datetime.replace(tzinfo=timezone.utc)
+            
+            time_until = apt_datetime - now
+            hours_until = time_until.total_seconds() / 3600
+            
+            # 24h reminder (between 23 and 25 hours before)
+            if 23 <= hours_until <= 25 and not apt.get("reminder_24h_sent"):
+                await send_appointment_reminder(apt["appointment_id"], 24)
+                await db.appointments.update_one(
+                    {"appointment_id": apt["appointment_id"]},
+                    {"$set": {"reminder_24h_sent": True}}
+                )
+                logger.info(f"24h reminder sent for appointment {apt['appointment_id']}")
+            
+            # 1h reminder (between 0.5 and 1.5 hours before)
+            elif 0.5 <= hours_until <= 1.5 and not apt.get("reminder_1h_sent"):
+                await send_appointment_reminder(apt["appointment_id"], 1)
+                await db.appointments.update_one(
+                    {"appointment_id": apt["appointment_id"]},
+                    {"$set": {"reminder_1h_sent": True}}
+                )
+                logger.info(f"1h reminder sent for appointment {apt['appointment_id']}")
+                
+        except Exception as e:
+            logger.error(f"Error processing reminder for {apt.get('appointment_id')}: {e}")
+
+# Initialize scheduler
+scheduler = AsyncIOScheduler()
 
 # =============================================================================
 # PYDANTIC MODELS
@@ -545,6 +726,51 @@ async def change_password(password_data: PasswordChange, user: UserBase = Depend
     )
     
     return {"message": "Mot de passe modifie avec succes"}
+
+# =============================================================================
+# PUSH NOTIFICATIONS ENDPOINTS
+# =============================================================================
+
+class PushTokenRegister(BaseModel):
+    expo_push_token: str
+
+@api_router.post("/notifications/register-token")
+async def register_push_token(data: PushTokenRegister, user: UserBase = Depends(require_auth)):
+    """Register Expo push token for user"""
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"expo_push_token": data.expo_push_token}}
+    )
+    return {"message": "Token enregistre avec succes"}
+
+@api_router.delete("/notifications/unregister-token")
+async def unregister_push_token(user: UserBase = Depends(require_auth)):
+    """Unregister push token (on logout)"""
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$unset": {"expo_push_token": ""}}
+    )
+    return {"message": "Token supprime"}
+
+@api_router.post("/notifications/test")
+async def test_push_notification(user: UserBase = Depends(require_auth)):
+    """Send test push notification to current user"""
+    db_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    
+    if not db_user.get("expo_push_token"):
+        raise HTTPException(status_code=400, detail="Aucun token push enregistre")
+    
+    success = await send_push_notification(
+        [db_user["expo_push_token"]],
+        "Test Notification",
+        "Ceci est un test de notification AfroCrown!",
+        {"type": "test"}
+    )
+    
+    if success:
+        return {"message": "Notification envoyee"}
+    else:
+        raise HTTPException(status_code=500, detail="Echec de l'envoi")
 
 # =============================================================================
 # PASSWORD SETUP (for email link)
@@ -1370,10 +1596,11 @@ async def simulate_haircut(request: Request, user: UserBase = Depends(require_au
     """Simulate haircut using AI image generation"""
     body = await request.json()
     base_image_url = body.get("image_url")
+    image_base64_input = body.get("image_base64")
     haircut_style = body.get("haircut_style", "modern fade haircut")
     
-    if not base_image_url:
-        raise HTTPException(status_code=400, detail="image_url required")
+    if not base_image_url and not image_base64_input:
+        raise HTTPException(status_code=400, detail="image_url or image_base64 required")
     
     try:
         from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
@@ -1381,7 +1608,18 @@ async def simulate_haircut(request: Request, user: UserBase = Depends(require_au
         api_key = os.getenv("EMERGENT_LLM_KEY")
         image_gen = OpenAIImageGeneration(api_key=api_key)
         
-        prompt = f"Professional barber photo of a person with a {haircut_style}. Clean, sharp lines, well-groomed afro texture hair. Studio lighting, high quality portrait."
+        # Build detailed prompt based on style
+        style_prompts = {
+            "fade": "clean fade haircut with sharp lines",
+            "dreadlocks": "well-maintained dreadlocks hairstyle",
+            "braids": "neat braided hairstyle with clean parts",
+            "afro": "full natural afro hairstyle, well-shaped",
+            "waves": "360 waves pattern hairstyle",
+            "buzz": "clean buzz cut with defined hairline"
+        }
+        
+        style_description = style_prompts.get(haircut_style, haircut_style)
+        prompt = f"Professional barber photo of an African person with a {style_description}. Clean, sharp lines, well-groomed afro texture hair. Studio lighting, high quality portrait, front facing."
         
         images = await image_gen.generate_images(
             prompt=prompt,
@@ -1390,8 +1628,23 @@ async def simulate_haircut(request: Request, user: UserBase = Depends(require_au
         )
         
         if images and len(images) > 0:
-            image_base64 = base64.b64encode(images[0]).decode('utf-8')
-            return {"image_base64": image_base64, "style": haircut_style}
+            result_base64 = base64.b64encode(images[0]).decode('utf-8')
+            
+            # Upload to Cloudinary for permanent URL
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    f"data:image/png;base64,{result_base64}",
+                    folder="afrocrown/simulations"
+                )
+                generated_url = upload_result.get("secure_url")
+            except:
+                generated_url = None
+            
+            return {
+                "image_base64": result_base64,
+                "generated_image_url": generated_url,
+                "style": haircut_style
+            }
         else:
             raise HTTPException(status_code=500, detail="No image generated")
             
