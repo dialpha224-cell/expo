@@ -11,6 +11,7 @@ from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
 import cloudinary
+import cloudinary.uploader
 import cloudinary.utils
 import time
 import base64
@@ -1599,9 +1600,6 @@ async def simulate_haircut(request: Request, user: UserBase = Depends(require_au
     image_base64_input = body.get("image_base64")
     haircut_style = body.get("haircut_style", "modern fade haircut")
     
-    if not base_image_url and not image_base64_input:
-        raise HTTPException(status_code=400, detail="image_url or image_base64 required")
-    
     try:
         from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
         
@@ -1610,16 +1608,18 @@ async def simulate_haircut(request: Request, user: UserBase = Depends(require_au
         
         # Build detailed prompt based on style
         style_prompts = {
-            "fade": "clean fade haircut with sharp lines",
-            "dreadlocks": "well-maintained dreadlocks hairstyle",
-            "braids": "neat braided hairstyle with clean parts",
-            "afro": "full natural afro hairstyle, well-shaped",
-            "waves": "360 waves pattern hairstyle",
-            "buzz": "clean buzz cut with defined hairline"
+            "fade": "clean fade haircut with sharp lines and precise edges",
+            "dreadlocks": "well-maintained dreadlocks hairstyle, neat and styled",
+            "braids": "neat braided hairstyle with clean parts and intricate patterns",
+            "afro": "full natural afro hairstyle, well-shaped and voluminous",
+            "waves": "360 waves pattern hairstyle with defined waves",
+            "buzz": "clean buzz cut with defined hairline and sharp edges"
         }
         
         style_description = style_prompts.get(haircut_style, haircut_style)
-        prompt = f"Professional barber photo of an African person with a {style_description}. Clean, sharp lines, well-groomed afro texture hair. Studio lighting, high quality portrait, front facing."
+        prompt = f"Professional barber photo portrait of a handsome young African man with a {style_description}. Clean, sharp lines, well-groomed afro texture hair. Studio lighting, high quality portrait, front facing, neutral background."
+        
+        logger.info(f"Generating AI simulation with prompt: {prompt[:100]}...")
         
         images = await image_gen.generate_images(
             prompt=prompt,
@@ -1631,14 +1631,16 @@ async def simulate_haircut(request: Request, user: UserBase = Depends(require_au
             result_base64 = base64.b64encode(images[0]).decode('utf-8')
             
             # Upload to Cloudinary for permanent URL
+            generated_url = None
             try:
                 upload_result = cloudinary.uploader.upload(
                     f"data:image/png;base64,{result_base64}",
                     folder="afrocrown/simulations"
                 )
                 generated_url = upload_result.get("secure_url")
-            except:
-                generated_url = None
+                logger.info(f"Image uploaded to Cloudinary: {generated_url}")
+            except Exception as upload_err:
+                logger.error(f"Cloudinary upload failed: {upload_err}")
             
             return {
                 "image_base64": result_base64,
