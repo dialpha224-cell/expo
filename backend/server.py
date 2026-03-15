@@ -772,6 +772,69 @@ async def get_global_stats(founder: UserBase = Depends(require_founder)):
         }
     }
 
+@api_router.get("/founder/appointments")
+async def get_all_appointments(
+    founder: UserBase = Depends(require_founder),
+    status: Optional[str] = None,
+    salon_id: Optional[str] = None,
+    limit: int = 100
+):
+    """Get all appointments (founder only)"""
+    query = {}
+    if status:
+        query["status"] = status
+    if salon_id:
+        query["salon_id"] = salon_id
+    
+    appointments = await db.appointments.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Enrich with salon, barber, client, and haircut info
+    enriched = []
+    for apt in appointments:
+        # Get salon info
+        salon = await db.salons.find_one({"salon_id": apt.get("salon_id")}, {"_id": 0, "name": 1})
+        # Get barber info
+        barber = await db.barbers.find_one({"barber_id": apt.get("barber_id")}, {"_id": 0, "name": 1})
+        # Get client info
+        client = await db.users.find_one({"user_id": apt.get("user_id")}, {"_id": 0, "name": 1, "email": 1})
+        # Get haircut info
+        haircut = await db.haircuts.find_one({"haircut_id": apt.get("haircut_id")}, {"_id": 0, "name": 1, "price": 1})
+        
+        enriched.append({
+            **apt,
+            "salon_name": salon.get("name") if salon else "N/A",
+            "barber_name": barber.get("name") if barber else "N/A",
+            "client_name": client.get("name") if client else "N/A",
+            "client_email": client.get("email") if client else "N/A",
+            "haircut_name": haircut.get("name") if haircut else "N/A",
+            "haircut_price": haircut.get("price") if haircut else 0
+        })
+    
+    return enriched
+
+@api_router.put("/founder/appointments/{appointment_id}/status")
+async def update_appointment_status(
+    appointment_id: str,
+    request: Request,
+    founder: UserBase = Depends(require_founder)
+):
+    """Update appointment status (founder only)"""
+    body = await request.json()
+    new_status = body.get("status")
+    
+    if new_status not in ["pending", "confirmed", "completed", "cancelled"]:
+        raise HTTPException(status_code=400, detail="Statut invalide")
+    
+    result = await db.appointments.update_one(
+        {"appointment_id": appointment_id},
+        {"$set": {"status": new_status}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Reservation non trouvee")
+    
+    return {"message": "Statut mis a jour"}
+
 # =============================================================================
 # SALON ROUTES
 # =============================================================================

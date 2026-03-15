@@ -20,7 +20,12 @@ import {
   ShoppingBag,
   Scissors,
   ChevronRight,
-  Search
+  Search,
+  CalendarCheck,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Eye
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -40,6 +45,7 @@ const FounderDashboard = () => {
   const menuItems = [
     { icon: LayoutDashboard, label: "Tableau de bord", path: "/founder" },
     { icon: Store, label: "Salons", path: "/founder/salons" },
+    { icon: CalendarCheck, label: "Reservations", path: "/founder/reservations" },
     { icon: Users, label: "Utilisateurs", path: "/founder/users" },
     { icon: BarChart3, label: "Statistiques", path: "/founder/stats" },
     { icon: Trophy, label: "TrimConnect", path: "/founder/trimconnect" },
@@ -137,6 +143,7 @@ const FounderDashboard = () => {
           <Routes>
             <Route index element={<FounderOverview />} />
             <Route path="salons" element={<SalonsManagement />} />
+            <Route path="reservations" element={<ReservationsManagement />} />
             <Route path="users" element={<UsersManagement />} />
             <Route path="stats" element={<GlobalStats />} />
             <Route path="trimconnect" element={<TrimConnectManagement />} />
@@ -475,6 +482,270 @@ const SalonsManagement = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Reservations Management Component
+const ReservationsManagement = () => {
+  const [appointments, setAppointments] = useState([]);
+  const [salons, setSalons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState({ status: "", salon_id: "" });
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+
+  useEffect(() => {
+    fetchAppointments();
+    fetchSalons();
+  }, [filter]);
+
+  const fetchAppointments = async () => {
+    try {
+      let url = `${API}/founder/appointments?limit=100`;
+      if (filter.status) url += `&status=${filter.status}`;
+      if (filter.salon_id) url += `&salon_id=${filter.salon_id}`;
+      
+      const response = await axios.get(url, { withCredentials: true });
+      setAppointments(response.data);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSalons = async () => {
+    try {
+      const response = await axios.get(`${API}/salons`);
+      setSalons(response.data);
+    } catch (error) {
+      console.error("Error fetching salons:", error);
+    }
+  };
+
+  const updateStatus = async (appointmentId, newStatus) => {
+    try {
+      await axios.put(`${API}/founder/appointments/${appointmentId}/status`, 
+        { status: newStatus }, 
+        { withCredentials: true }
+      );
+      toast.success("Statut mis a jour");
+      fetchAppointments();
+    } catch (error) {
+      toast.error("Erreur lors de la mise a jour");
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('fr-FR', { 
+      weekday: 'short', 
+      day: 'numeric', 
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    return timeStr;
+  };
+
+  const statusColors = {
+    pending: "bg-amber-500/20 text-amber-400",
+    confirmed: "bg-blue-500/20 text-blue-400",
+    completed: "bg-green-500/20 text-green-400",
+    cancelled: "bg-red-500/20 text-red-400"
+  };
+
+  const statusLabels = {
+    pending: "En attente",
+    confirmed: "Confirmee",
+    completed: "Terminee",
+    cancelled: "Annulee"
+  };
+
+  const statusIcons = {
+    pending: Clock,
+    confirmed: CheckCircle,
+    completed: CheckCircle,
+    cancelled: XCircle
+  };
+
+  return (
+    <div className="space-y-6" data-testid="reservations-management">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white mb-2">Reservations</h1>
+          <p className="text-slate-400">{appointments.length} reservations</p>
+        </div>
+        
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3">
+          <select
+            value={filter.status}
+            onChange={(e) => setFilter({...filter, status: e.target.value})}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
+            data-testid="status-filter"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="pending">En attente</option>
+            <option value="confirmed">Confirmees</option>
+            <option value="completed">Terminees</option>
+            <option value="cancelled">Annulees</option>
+          </select>
+          <select
+            value={filter.salon_id}
+            onChange={(e) => setFilter({...filter, salon_id: e.target.value})}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
+            data-testid="salon-filter"
+          >
+            <option value="">Tous les salons</option>
+            {salons.map(s => (
+              <option key={s.salon_id} value={s.salon_id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Appointment Detail Dialog */}
+      <Dialog open={!!selectedAppointment} onOpenChange={() => setSelectedAppointment(null)}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white">Details de la reservation</DialogTitle>
+          </DialogHeader>
+          {selectedAppointment && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-900 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Client</p>
+                  <p className="text-white font-medium">{selectedAppointment.client_name}</p>
+                  <p className="text-slate-400 text-sm">{selectedAppointment.client_email}</p>
+                </div>
+                <div className="bg-slate-900 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Salon</p>
+                  <p className="text-white font-medium">{selectedAppointment.salon_name}</p>
+                </div>
+                <div className="bg-slate-900 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Coiffeur</p>
+                  <p className="text-white font-medium">{selectedAppointment.barber_name}</p>
+                </div>
+                <div className="bg-slate-900 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Coupe</p>
+                  <p className="text-white font-medium">{selectedAppointment.haircut_name}</p>
+                  <p className="text-indigo-400 text-sm">{selectedAppointment.haircut_price} EUR</p>
+                </div>
+                <div className="bg-slate-900 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Date</p>
+                  <p className="text-white font-medium">{formatDate(selectedAppointment.date)}</p>
+                </div>
+                <div className="bg-slate-900 rounded-lg p-3">
+                  <p className="text-xs text-slate-500 mb-1">Heure</p>
+                  <p className="text-white font-medium">{selectedAppointment.time_slot}</p>
+                </div>
+              </div>
+              
+              <div className="bg-slate-900 rounded-lg p-3">
+                <p className="text-xs text-slate-500 mb-2">Changer le statut</p>
+                <div className="flex flex-wrap gap-2">
+                  {["pending", "confirmed", "completed", "cancelled"].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => {
+                        updateStatus(selectedAppointment.appointment_id, status);
+                        setSelectedAppointment({...selectedAppointment, status});
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        selectedAppointment.status === status 
+                          ? statusColors[status] + " ring-2 ring-white/30"
+                          : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                      }`}
+                    >
+                      {statusLabels[status]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <Button 
+                onClick={() => setSelectedAppointment(null)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700"
+              >
+                Fermer
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      ) : appointments.length === 0 ? (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+          <CalendarCheck className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-white mb-2">Aucune reservation</h3>
+          <p className="text-slate-400">Les reservations des clients apparaitront ici.</p>
+        </div>
+      ) : (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left px-6 py-4 text-slate-400 text-sm font-medium">Client</th>
+                  <th className="text-left px-6 py-4 text-slate-400 text-sm font-medium">Salon</th>
+                  <th className="text-left px-6 py-4 text-slate-400 text-sm font-medium">Coiffeur</th>
+                  <th className="text-left px-6 py-4 text-slate-400 text-sm font-medium">Date</th>
+                  <th className="text-left px-6 py-4 text-slate-400 text-sm font-medium">Heure</th>
+                  <th className="text-left px-6 py-4 text-slate-400 text-sm font-medium">Statut</th>
+                  <th className="text-left px-6 py-4 text-slate-400 text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {appointments.map((apt) => {
+                  const StatusIcon = statusIcons[apt.status] || Clock;
+                  return (
+                    <tr 
+                      key={apt.appointment_id} 
+                      className="border-b border-slate-700/50 hover:bg-slate-700/20"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="text-white font-medium">{apt.client_name}</p>
+                        <p className="text-slate-500 text-sm">{apt.client_email}</p>
+                      </td>
+                      <td className="px-6 py-4 text-slate-300">{apt.salon_name}</td>
+                      <td className="px-6 py-4 text-slate-300">{apt.barber_name}</td>
+                      <td className="px-6 py-4 text-slate-300">{formatDate(apt.date)}</td>
+                      <td className="px-6 py-4 text-slate-300">{apt.time_slot}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusColors[apt.status]}`}>
+                          <StatusIcon className="h-3 w-3" />
+                          {statusLabels[apt.status] || apt.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedAppointment(apt)}
+                          className="text-indigo-400 hover:text-indigo-300 hover:bg-slate-700"
+                          data-testid={`view-apt-${apt.appointment_id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Voir
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
