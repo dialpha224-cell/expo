@@ -63,6 +63,13 @@
       "eas": {
         "projectId": "afrocrown-mobile"
       }
+    },
+    "owner": "afrocrown",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/afrocrown-mobile"
     }
   }
 }
