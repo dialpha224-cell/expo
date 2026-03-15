@@ -274,17 +274,12 @@ const SalonDashboard = () => {
         </button>
       </main>
 
-      {/* Onboarding Tutorial */}
+      {/* Onboarding Tutorial - only show one instance */}
       <OnboardingTutorial 
         userRole={user?.role || "salon_owner"} 
         onComplete={() => setShowOnboarding(false)}
+        forceShow={showOnboarding}
       />
-      {showOnboarding && (
-        <OnboardingTutorial 
-          userRole={user?.role || "salon_owner"} 
-          onComplete={() => setShowOnboarding(false)}
-        />
-      )}
 
       {/* Mobile Overlay */}
       {sidebarOpen && (

@@ -18,17 +18,23 @@ import {
 
 const ONBOARDING_KEY = "afrocrown_onboarding_completed";
 
-const OnboardingTutorial = ({ userRole = "salon_owner", onComplete }) => {
+const OnboardingTutorial = ({ userRole = "salon_owner", onComplete, forceShow = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    // If forceShow is true, always show the tutorial
+    if (forceShow) {
+      setIsVisible(true);
+      return;
+    }
+    
     // Check if onboarding was already completed
     const completed = localStorage.getItem(ONBOARDING_KEY);
     if (!completed) {
       setIsVisible(true);
     }
-  }, []);
+  }, [forceShow]);
 
   const salonOwnerSteps = [
     {

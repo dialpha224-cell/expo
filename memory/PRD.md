@@ -74,6 +74,13 @@ Structure dans /app/mobile avec:
 ## Bug Fixes Recents
 - [x] Bug bouton Admin navbar apres connexion Google - Refactorisation AuthCallback avec window.location.href
 - [x] Badge "Made with Emergent" supprime de index.html
+- [x] Double rendu OnboardingTutorial corrige avec prop forceShow
+
+## Nouvelles Fonctionnalites (Mars 2026)
+- [x] Tutoriel d'onboarding interactif pour proprietaires de salon (8 etapes)
+- [x] Tutoriel d'onboarding pour fondateurs (6 etapes)
+- [x] Bouton d'aide flottant (?) pour revoir le tutoriel
+- [x] Memorisation localStorage pour ne pas reafficher le tutoriel
 
 ## Prioritized Backlog
 

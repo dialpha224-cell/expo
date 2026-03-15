@@ -168,17 +168,12 @@ const FounderDashboard = () => {
         </button>
       </main>
 
-      {/* Onboarding Tutorial */}
+      {/* Onboarding Tutorial - only show one instance */}
       <OnboardingTutorial 
         userRole="founder" 
         onComplete={() => setShowOnboarding(false)}
+        forceShow={showOnboarding}
       />
-      {showOnboarding && (
-        <OnboardingTutorial 
-          userRole="founder" 
-          onComplete={() => setShowOnboarding(false)}
-        />
-      )}
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
