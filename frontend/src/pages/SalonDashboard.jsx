@@ -377,7 +377,24 @@ const BarbersManagement = ({ salonId }) => {
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [newBarber, setNewBarber] = useState({ name: "", specialties: "", bio: "" });
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [selectedBarber, setSelectedBarber] = useState(null);
+  const [newBarber, setNewBarber] = useState({ 
+    name: "", 
+    email: "",
+    phone: "",
+    specialties: "", 
+    bio: "",
+    role: "employee"
+  });
+
+  const roleLabels = {
+    owner: { label: "Proprietaire", color: "text-purple-400 bg-purple-500/20" },
+    employee: { label: "Employe", color: "text-blue-400 bg-blue-500/20" },
+    volunteer: { label: "Benevole", color: "text-green-400 bg-green-500/20" },
+    intern: { label: "Stagiaire", color: "text-amber-400 bg-amber-500/20" }
+  };
 
   useEffect(() => {
     if (salonId) {
@@ -407,18 +424,67 @@ const BarbersManagement = ({ salonId }) => {
     try {
       const barberData = {
         name: newBarber.name.trim(),
+        email: newBarber.email.trim() || null,
+        phone: newBarber.phone.trim() || null,
         specialties: newBarber.specialties ? newBarber.specialties.split(",").map(s => s.trim()).filter(s => s) : [],
-        bio: newBarber.bio.trim() || null
+        bio: newBarber.bio.trim() || null,
+        role: newBarber.role
       };
       
       await axios.post(`${API}/salons/${salonId}/barbers`, barberData, { withCredentials: true });
       toast.success("Coiffeur ajoute avec succes");
       setShowCreateDialog(false);
-      setNewBarber({ name: "", specialties: "", bio: "" });
+      setNewBarber({ name: "", email: "", phone: "", specialties: "", bio: "", role: "employee" });
       fetchBarbers();
     } catch (error) {
       console.error("Error creating barber:", error);
       toast.error(error.response?.data?.detail || "Erreur lors de l'ajout du coiffeur");
+    }
+  };
+
+  const updateBarberAvailability = async (barberId, isAvailable, reason = null, redirectTo = null) => {
+    try {
+      await axios.put(`${API}/barbers/${barberId}/availability`, {
+        is_available: isAvailable,
+        unavailable_reason: reason,
+        redirect_to_barber_id: redirectTo
+      }, { withCredentials: true });
+      toast.success(isAvailable ? "Coiffeur disponible" : "Coiffeur indisponible");
+      fetchBarbers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
+  const deleteBarber = async (barberId) => {
+    if (!window.confirm("Etes-vous sur de vouloir supprimer ce coiffeur ?")) return;
+    
+    try {
+      await axios.delete(`${API}/barbers/${barberId}`, { withCredentials: true });
+      toast.success("Coiffeur supprime");
+      fetchBarbers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
+  const updateBarber = async () => {
+    if (!selectedBarber) return;
+    
+    try {
+      await axios.put(`${API}/barbers/${selectedBarber.barber_id}`, {
+        name: selectedBarber.name,
+        email: selectedBarber.email,
+        phone: selectedBarber.phone,
+        role: selectedBarber.role,
+        bio: selectedBarber.bio,
+        specialties: selectedBarber.specialties
+      }, { withCredentials: true });
+      toast.success("Coiffeur mis a jour");
+      setShowEditDialog(false);
+      fetchBarbers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
     }
   };
 
@@ -444,7 +510,7 @@ const BarbersManagement = ({ salonId }) => {
               Ajouter un coiffeur
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
             <DialogHeader>
               <DialogTitle className="text-white">Ajouter un coiffeur</DialogTitle>
             </DialogHeader>
@@ -459,8 +525,43 @@ const BarbersManagement = ({ salonId }) => {
                   data-testid="barber-name-input"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="email@salon.com"
+                    value={newBarber.email}
+                    onChange={(e) => setNewBarber({...newBarber, email: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Telephone</label>
+                  <Input
+                    placeholder="+33 6 12 34 56 78"
+                    value={newBarber.phone}
+                    onChange={(e) => setNewBarber({...newBarber, phone: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Specialites (separees par des virgules)</label>
+                <label className="text-sm text-slate-400 mb-1 block">Role</label>
+                <Select value={newBarber.role} onValueChange={(v) => setNewBarber({...newBarber, role: v})}>
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="owner" className="text-white">Proprietaire</SelectItem>
+                    <SelectItem value="employee" className="text-white">Employe</SelectItem>
+                    <SelectItem value="volunteer" className="text-white">Benevole</SelectItem>
+                    <SelectItem value="intern" className="text-white">Stagiaire</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Specialites (separees par virgules)</label>
                 <Input
                   placeholder="Ex: Fade, Degrade, Afro"
                   value={newBarber.specialties}
@@ -503,30 +604,151 @@ const BarbersManagement = ({ salonId }) => {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {barbers.map((barber) => (
-            <div 
-              key={barber.barber_id}
-              className="bg-slate-800 border border-slate-700 rounded-xl p-6 hover:border-indigo-500/50 transition-all"
-              data-testid={`barber-card-${barber.barber_id}`}
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-indigo-600/20 rounded-full flex items-center justify-center">
-                  {barber.image_url ? (
-                    <img src={barber.image_url} alt={barber.name} className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    <Users className="h-6 w-6 text-indigo-400" />
-                  )}
+          {barbers.map((barber) => {
+            const roleConfig = roleLabels[barber.role] || roleLabels.employee;
+            return (
+              <div 
+                key={barber.barber_id}
+                className={`bg-slate-800 border rounded-xl p-6 transition-all ${
+                  barber.is_available !== false ? "border-slate-700 hover:border-indigo-500/50" : "border-red-500/30 bg-slate-800/50"
+                }`}
+                data-testid={`barber-card-${barber.barber_id}`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-indigo-600/20 rounded-full flex items-center justify-center overflow-hidden">
+                        {barber.image_url || barber.photo_url ? (
+                          <img src={barber.image_url || barber.photo_url} alt={barber.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Users className="h-6 w-6 text-indigo-400" />
+                        )}
+                      </div>
+                      {/* Availability indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-800 ${
+                        barber.is_available !== false ? "bg-green-500" : "bg-red-500"
+                      }`}></div>
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-semibold text-white">{barber.name}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${roleConfig.color}`}>
+                        {roleConfig.label}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Actions dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-slate-800 border-slate-700">
+                      <DropdownMenuItem 
+                        className="text-white cursor-pointer"
+                        onClick={() => { setSelectedBarber(barber); setShowEditDialog(true); }}
+                      >
+                        Modifier
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-white cursor-pointer"
+                        onClick={() => updateBarberAvailability(barber.barber_id, barber.is_available === false)}
+                      >
+                        {barber.is_available !== false ? "Marquer indisponible" : "Marquer disponible"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-red-400 cursor-pointer"
+                        onClick={() => deleteBarber(barber.barber_id)}
+                      >
+                        Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-white">{barber.name}</h3>
-                  <p className="text-slate-400 text-sm">{barber.specialties?.join(", ") || "Toutes coupes"}</p>
-                </div>
+                
+                <p className="text-slate-400 text-sm mb-2">{barber.specialties?.join(", ") || "Toutes coupes"}</p>
+                
+                {barber.is_available === false && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 mt-3">
+                    <p className="text-red-400 text-xs">
+                      Indisponible {barber.unavailable_reason && `- ${barber.unavailable_reason}`}
+                    </p>
+                  </div>
+                )}
+                
+                {barber.rating > 0 && (
+                  <div className="flex items-center gap-1 mt-3 text-amber-400">
+                    <span className="text-sm">★</span>
+                    <span className="text-sm">{barber.rating.toFixed(1)}</span>
+                    <span className="text-slate-500 text-xs">({barber.total_reviews} avis)</span>
+                  </div>
+                )}
               </div>
-              {barber.bio && <p className="text-slate-400 text-sm">{barber.bio}</p>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {/* Edit Barber Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Modifier le coiffeur</DialogTitle>
+          </DialogHeader>
+          {selectedBarber && (
+            <div className="space-y-4 mt-4">
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom</label>
+                <Input
+                  value={selectedBarber.name}
+                  onChange={(e) => setSelectedBarber({...selectedBarber, name: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Email</label>
+                  <Input
+                    type="email"
+                    value={selectedBarber.email || ""}
+                    onChange={(e) => setSelectedBarber({...selectedBarber, email: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Telephone</label>
+                  <Input
+                    value={selectedBarber.phone || ""}
+                    onChange={(e) => setSelectedBarber({...selectedBarber, phone: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Role</label>
+                <Select 
+                  value={selectedBarber.role || "employee"} 
+                  onValueChange={(v) => setSelectedBarber({...selectedBarber, role: v})}
+                >
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="owner" className="text-white">Proprietaire</SelectItem>
+                    <SelectItem value="employee" className="text-white">Employe</SelectItem>
+                    <SelectItem value="volunteer" className="text-white">Benevole</SelectItem>
+                    <SelectItem value="intern" className="text-white">Stagiaire</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={updateBarber} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                Enregistrer
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -14,7 +14,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  QrCode
+  QrCode,
+  Star,
+  MessageSquare,
+  Bell
 } from "lucide-react";
 import {
   Dialog,
@@ -22,7 +25,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
 import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
+import ReviewFormModal from "../components/ReviewForm";
 
 const MyAppointments = () => {
   const { user, login } = useAuth();
@@ -31,6 +37,12 @@ const MyAppointments = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showQRDialog, setShowQRDialog] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewAppointment, setReviewAppointment] = useState(null);
+  const [showArrivalDialog, setShowArrivalDialog] = useState(false);
+  const [arrivalAppointment, setArrivalAppointment] = useState(null);
+  const [arrivalType, setArrivalType] = useState("late"); // "late" or "early"
+  const [arrivalMinutes, setArrivalMinutes] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -73,6 +85,45 @@ const MyAppointments = () => {
       setShowQRDialog(true);
     } catch (error) {
       console.error("Error fetching QR:", error);
+    }
+  };
+
+  const openReviewModal = (appointment) => {
+    setReviewAppointment(appointment);
+    setShowReviewModal(true);
+  };
+
+  const openArrivalDialog = (appointment, type) => {
+    setArrivalAppointment(appointment);
+    setArrivalType(type);
+    setArrivalMinutes("");
+    setShowArrivalDialog(true);
+  };
+
+  const submitArrivalNotification = async () => {
+    if (!arrivalMinutes || isNaN(arrivalMinutes) || parseInt(arrivalMinutes) <= 0) {
+      toast.error("Veuillez entrer un nombre de minutes valide");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `${API}/appointments/${arrivalAppointment.appointment_id}/arrival`,
+        {
+          arrival_type: arrivalType,
+          minutes: parseInt(arrivalMinutes)
+        },
+        { withCredentials: true }
+      );
+      toast.success(
+        arrivalType === "late" 
+          ? `Le salon est prevenu de votre retard de ${arrivalMinutes} min`
+          : `Le salon est prevenu de votre avance de ${arrivalMinutes} min`
+      );
+      setShowArrivalDialog(false);
+      fetchAppointments();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la notification");
     }
   };
 
@@ -173,6 +224,17 @@ const MyAppointments = () => {
                           <StatusIcon className="h-3 w-3" />
                           {statusConfig.label}
                         </div>
+                        {appointment.arrival_status && (
+                          <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            appointment.arrival_status === "late" 
+                              ? "bg-red-500/20 text-red-400" 
+                              : "bg-green-500/20 text-green-400"
+                          }`}>
+                            {appointment.arrival_status === "late" 
+                              ? `Retard: ${appointment.arrival_minutes} min` 
+                              : `Avance: ${appointment.arrival_minutes} min`}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-2 text-white">
@@ -187,16 +249,66 @@ const MyAppointments = () => {
                       </div>
                     </div>
                     
-                    {(appointment.status === "pending" || appointment.status === "confirmed") && (
-                      <Button
-                        onClick={() => showQR(appointment)}
-                        variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                      >
-                        <QrCode className="h-4 w-4 mr-2" />
-                        QR Code
-                      </Button>
-                    )}
+                    <div className="flex flex-col gap-2">
+                      {/* QR Code button for pending/confirmed */}
+                      {(appointment.status === "pending" || appointment.status === "confirmed") && (
+                        <>
+                          <Button
+                            onClick={() => showQR(appointment)}
+                            variant="outline"
+                            size="sm"
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                          >
+                            <QrCode className="h-4 w-4 mr-2" />
+                            QR Code
+                          </Button>
+                          
+                          {/* Arrival notification buttons */}
+                          <div className="flex gap-1">
+                            <Button
+                              onClick={() => openArrivalDialog(appointment, "late")}
+                              variant="outline"
+                              size="sm"
+                              className="border-red-600/50 text-red-400 hover:bg-red-500/20 text-xs px-2"
+                              data-testid="notify-late-btn"
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              Retard
+                            </Button>
+                            <Button
+                              onClick={() => openArrivalDialog(appointment, "early")}
+                              variant="outline"
+                              size="sm"
+                              className="border-green-600/50 text-green-400 hover:bg-green-500/20 text-xs px-2"
+                              data-testid="notify-early-btn"
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              Avance
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Review button for completed appointments */}
+                      {appointment.status === "completed" && !appointment.is_reviewed && (
+                        <Button
+                          onClick={() => openReviewModal(appointment)}
+                          className="bg-amber-600 hover:bg-amber-700"
+                          size="sm"
+                          data-testid="leave-review-btn"
+                        >
+                          <Star className="h-4 w-4 mr-2" />
+                          Laisser un avis
+                        </Button>
+                      )}
+                      
+                      {appointment.is_reviewed && (
+                        <div className="flex items-center gap-1 text-green-400 text-sm">
+                          <CheckCircle className="h-4 w-4" />
+                          Avis laisse
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -229,6 +341,66 @@ const MyAppointments = () => {
             <p className="text-slate-500 text-xs mt-4 font-mono">
               Ref: {selectedAppointment?.appointment?.appointment_id}
             </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Modal */}
+      <ReviewFormModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        appointment={reviewAppointment}
+        onSuccess={() => {
+          fetchAppointments();
+          setShowReviewModal(false);
+        }}
+      />
+
+      {/* Arrival Notification Dialog */}
+      <Dialog open={showArrivalDialog} onOpenChange={setShowArrivalDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white text-center">
+              {arrivalType === "late" ? "Signaler un retard" : "Signaler une avance"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-slate-400 text-sm mb-4 text-center">
+              {arrivalType === "late" 
+                ? "De combien de minutes serez-vous en retard ?"
+                : "De combien de minutes serez-vous en avance ?"
+              }
+            </p>
+            <div className="flex items-center gap-3 justify-center">
+              <Input
+                type="number"
+                min="1"
+                max="120"
+                placeholder="Minutes"
+                value={arrivalMinutes}
+                onChange={(e) => setArrivalMinutes(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white w-24 text-center"
+                data-testid="arrival-minutes-input"
+              />
+              <span className="text-slate-400">minutes</span>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowArrivalDialog(false)}
+                variant="outline"
+                className="flex-1 border-slate-600 text-slate-300"
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={submitArrivalNotification}
+                className={`flex-1 ${arrivalType === "late" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
+                data-testid="confirm-arrival-btn"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Prevenir le salon
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

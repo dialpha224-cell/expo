@@ -436,14 +436,18 @@ class SalonResponse(BaseModel):
 
 class BarberCreate(BaseModel):
     name: str
+    email: Optional[str] = None
     specialties: List[str] = []
     bio: Optional[str] = None
     image_url: Optional[str] = None
+    role: str = "employee"  # owner, employee, volunteer, intern
+    phone: Optional[str] = None
 
 class BarberResponse(BaseModel):
     barber_id: str
     salon_id: str
     name: str
+    email: Optional[str] = None
     specialties: List[str] = []
     specialty: Optional[str] = None
     bio: Optional[str] = None
@@ -453,7 +457,21 @@ class BarberResponse(BaseModel):
     rating: float = 0.0
     total_reviews: int = 0
     is_active: bool = True
+    is_available: bool = True
+    role: str = "employee"
+    phone: Optional[str] = None
+    availability_schedule: Optional[Dict[str, Any]] = None
+    unavailable_reason: Optional[str] = None
+    redirect_to_barber_id: Optional[str] = None
     created_at: datetime
+
+class BarberAvailabilityUpdate(BaseModel):
+    is_available: bool
+    unavailable_reason: Optional[str] = None
+    redirect_to_barber_id: Optional[str] = None
+
+class BarberScheduleUpdate(BaseModel):
+    availability_schedule: Dict[str, Any]  # {"monday": {"start": "09:00", "end": "18:00"}, ...}
 
 class HaircutCreate(BaseModel):
     name: str
@@ -566,6 +584,35 @@ class NotificationResponse(BaseModel):
     message: str
     data: Optional[Dict[str, Any]] = None
     is_read: bool = False
+    created_at: datetime
+
+# Review Models
+class ReviewCreate(BaseModel):
+    appointment_id: str
+    salon_rating: int = Field(..., ge=1, le=5)  # 1-5 stars
+    barber_rating: int = Field(..., ge=1, le=5)  # 1-5 stars
+    platform_rating: Optional[int] = Field(None, ge=1, le=5)  # Optional platform rating
+    salon_comment: Optional[str] = None
+    barber_comment: Optional[str] = None
+    platform_comment: Optional[str] = None
+
+class ReviewResponse(BaseModel):
+    review_id: str
+    appointment_id: str
+    user_id: str
+    user_name: str
+    user_picture: Optional[str] = None
+    salon_id: str
+    salon_name: Optional[str] = None
+    barber_id: str
+    barber_name: Optional[str] = None
+    haircut_name: Optional[str] = None
+    salon_rating: int
+    barber_rating: int
+    platform_rating: Optional[int] = None
+    salon_comment: Optional[str] = None
+    barber_comment: Optional[str] = None
+    platform_comment: Optional[str] = None
     created_at: datetime
 
 # =============================================================================
@@ -923,6 +970,266 @@ async def delete_notification(notification_id: str, user: UserBase = Depends(req
     return {"message": "Notification supprimee"}
 
 # =============================================================================
+# REVIEWS ENDPOINTS
+# =============================================================================
+
+@api_router.post("/reviews", response_model=ReviewResponse)
+async def create_review(review: ReviewCreate, user: UserBase = Depends(require_auth)):
+    """Create a review for a completed appointment"""
+    # Get the appointment
+    appointment = await db.appointments.find_one({"appointment_id": review.appointment_id}, {"_id": 0})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouve")
+    
+    # Check if user is the client of this appointment
+    if appointment.get("client_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Vous ne pouvez noter que vos propres rendez-vous")
+    
+    # Check if appointment is completed
+    if appointment.get("status") != "completed":
+        raise HTTPException(status_code=400, detail="Vous ne pouvez noter qu'un rendez-vous termine")
+    
+    # Check if already reviewed
+    existing_review = await db.reviews.find_one({"appointment_id": review.appointment_id})
+    if existing_review:
+        raise HTTPException(status_code=400, detail="Vous avez deja laisse un avis pour ce rendez-vous")
+    
+    # Get related data for the review
+    salon = await db.salons.find_one({"salon_id": appointment.get("salon_id")}, {"_id": 0})
+    barber = await db.barbers.find_one({"barber_id": appointment.get("barber_id")}, {"_id": 0})
+    haircut = await db.haircuts.find_one({"haircut_id": appointment.get("haircut_id")}, {"_id": 0})
+    
+    review_id = f"review_{uuid.uuid4().hex[:12]}"
+    review_doc = {
+        "review_id": review_id,
+        "appointment_id": review.appointment_id,
+        "user_id": user.user_id,
+        "user_name": user.name,
+        "user_picture": user.picture,
+        "salon_id": appointment.get("salon_id"),
+        "salon_name": salon.get("name") if salon else None,
+        "barber_id": appointment.get("barber_id"),
+        "barber_name": barber.get("name") if barber else None,
+        "haircut_name": haircut.get("name") if haircut else None,
+        "salon_rating": review.salon_rating,
+        "barber_rating": review.barber_rating,
+        "platform_rating": review.platform_rating,
+        "salon_comment": review.salon_comment,
+        "barber_comment": review.barber_comment,
+        "platform_comment": review.platform_comment,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.reviews.insert_one(review_doc)
+    
+    # Update salon average rating
+    await update_salon_rating(appointment.get("salon_id"))
+    
+    # Update barber average rating
+    await update_barber_rating(appointment.get("barber_id"))
+    
+    # Mark appointment as reviewed
+    await db.appointments.update_one(
+        {"appointment_id": review.appointment_id},
+        {"$set": {"is_reviewed": True}}
+    )
+    
+    # Notify salon owner about the new review
+    try:
+        await notify_salon_owner_new_review(review_doc)
+    except Exception as e:
+        logger.error(f"Failed to send review notification: {e}")
+    
+    review_doc["created_at"] = datetime.fromisoformat(review_doc["created_at"])
+    return ReviewResponse(**{k: v for k, v in review_doc.items() if k != "_id"})
+
+async def update_salon_rating(salon_id: str):
+    """Update salon's average rating based on all reviews"""
+    pipeline = [
+        {"$match": {"salon_id": salon_id}},
+        {"$group": {
+            "_id": "$salon_id",
+            "avg_rating": {"$avg": "$salon_rating"},
+            "total_reviews": {"$sum": 1}
+        }}
+    ]
+    result = await db.reviews.aggregate(pipeline).to_list(1)
+    if result:
+        await db.salons.update_one(
+            {"salon_id": salon_id},
+            {"$set": {
+                "rating": round(result[0]["avg_rating"], 1),
+                "total_reviews": result[0]["total_reviews"]
+            }}
+        )
+
+async def update_barber_rating(barber_id: str):
+    """Update barber's average rating based on all reviews"""
+    pipeline = [
+        {"$match": {"barber_id": barber_id}},
+        {"$group": {
+            "_id": "$barber_id",
+            "avg_rating": {"$avg": "$barber_rating"},
+            "total_reviews": {"$sum": 1}
+        }}
+    ]
+    result = await db.reviews.aggregate(pipeline).to_list(1)
+    if result:
+        await db.barbers.update_one(
+            {"barber_id": barber_id},
+            {"$set": {
+                "rating": round(result[0]["avg_rating"], 1),
+                "total_reviews": result[0]["total_reviews"]
+            }}
+        )
+
+async def notify_salon_owner_new_review(review_doc: dict):
+    """Notify salon owner about a new review"""
+    salon = await db.salons.find_one({"salon_id": review_doc.get("salon_id")}, {"_id": 0})
+    if not salon:
+        return
+    
+    owner_id = salon.get("owner_id")
+    if not owner_id:
+        # Notify founder if no owner
+        founder = await db.users.find_one({"role": "founder"}, {"_id": 0})
+        if founder:
+            owner_id = founder["user_id"]
+        else:
+            return
+    
+    stars = "★" * review_doc.get("salon_rating", 0) + "☆" * (5 - review_doc.get("salon_rating", 0))
+    
+    await create_notification(
+        user_id=owner_id,
+        notification_type="new_review",
+        title="Nouvel avis client !",
+        message=f"{review_doc.get('user_name')} a laisse un avis {stars} pour votre salon",
+        data={
+            "review_id": review_doc.get("review_id"),
+            "salon_id": review_doc.get("salon_id"),
+            "type": "review"
+        }
+    )
+
+@api_router.get("/reviews/salon/{salon_id}")
+async def get_salon_reviews(salon_id: str, limit: int = 50):
+    """Get all reviews for a salon"""
+    reviews = await db.reviews.find(
+        {"salon_id": salon_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    for r in reviews:
+        if isinstance(r.get("created_at"), str):
+            r["created_at"] = datetime.fromisoformat(r["created_at"])
+    
+    # Calculate stats
+    total = len(reviews)
+    avg_salon = sum(r.get("salon_rating", 0) for r in reviews) / total if total > 0 else 0
+    avg_barber = sum(r.get("barber_rating", 0) for r in reviews) / total if total > 0 else 0
+    
+    # Distribution of ratings
+    distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    for r in reviews:
+        rating = r.get("salon_rating", 0)
+        if rating in distribution:
+            distribution[rating] += 1
+    
+    return {
+        "reviews": reviews,
+        "stats": {
+            "total_reviews": total,
+            "average_salon_rating": round(avg_salon, 1),
+            "average_barber_rating": round(avg_barber, 1),
+            "rating_distribution": distribution
+        }
+    }
+
+@api_router.get("/reviews/barber/{barber_id}")
+async def get_barber_reviews(barber_id: str, limit: int = 50):
+    """Get all reviews for a barber"""
+    reviews = await db.reviews.find(
+        {"barber_id": barber_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    for r in reviews:
+        if isinstance(r.get("created_at"), str):
+            r["created_at"] = datetime.fromisoformat(r["created_at"])
+    
+    total = len(reviews)
+    avg_rating = sum(r.get("barber_rating", 0) for r in reviews) / total if total > 0 else 0
+    
+    return {
+        "reviews": reviews,
+        "stats": {
+            "total_reviews": total,
+            "average_rating": round(avg_rating, 1)
+        }
+    }
+
+@api_router.get("/reviews/appointment/{appointment_id}")
+async def get_appointment_review(appointment_id: str):
+    """Get review for a specific appointment"""
+    review = await db.reviews.find_one({"appointment_id": appointment_id}, {"_id": 0})
+    if not review:
+        raise HTTPException(status_code=404, detail="Aucun avis pour ce rendez-vous")
+    
+    if isinstance(review.get("created_at"), str):
+        review["created_at"] = datetime.fromisoformat(review["created_at"])
+    
+    return review
+
+@api_router.get("/reviews/platform")
+async def get_platform_reviews(limit: int = 50):
+    """Get platform reviews (for AfroCrown feedback)"""
+    reviews = await db.reviews.find(
+        {"platform_rating": {"$exists": True, "$ne": None}},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    for r in reviews:
+        if isinstance(r.get("created_at"), str):
+            r["created_at"] = datetime.fromisoformat(r["created_at"])
+    
+    total = len(reviews)
+    avg_rating = sum(r.get("platform_rating", 0) for r in reviews) / total if total > 0 else 0
+    
+    return {
+        "reviews": reviews,
+        "stats": {
+            "total_reviews": total,
+            "average_rating": round(avg_rating, 1)
+        }
+    }
+
+@api_router.get("/reviews/my-pending")
+async def get_pending_reviews(user: UserBase = Depends(require_auth)):
+    """Get appointments that need a review from the current user"""
+    # Get completed appointments without reviews
+    appointments = await db.appointments.find({
+        "client_id": user.user_id,
+        "status": "completed",
+        "is_reviewed": {"$ne": True}
+    }, {"_id": 0}).to_list(100)
+    
+    # Enrich with salon, barber, haircut info
+    enriched = []
+    for apt in appointments:
+        salon = await db.salons.find_one({"salon_id": apt.get("salon_id")}, {"_id": 0, "name": 1})
+        barber = await db.barbers.find_one({"barber_id": apt.get("barber_id")}, {"_id": 0, "name": 1})
+        haircut = await db.haircuts.find_one({"haircut_id": apt.get("haircut_id")}, {"_id": 0, "name": 1})
+        
+        enriched.append({
+            **apt,
+            "salon_name": salon.get("name") if salon else "N/A",
+            "barber_name": barber.get("name") if barber else "N/A",
+            "haircut_name": haircut.get("name") if haircut else "N/A"
+        })
+    
+    return enriched
+
+# =============================================================================
 # PASSWORD SETUP (for email link)
 # =============================================================================
 
@@ -1215,6 +1522,67 @@ async def update_appointment_status(
     return {"message": "Statut mis a jour"}
 
 # =============================================================================
+# CLIENT ARRIVAL NOTIFICATION
+# =============================================================================
+
+class ArrivalNotification(BaseModel):
+    arrival_type: str  # "late" or "early"
+    minutes: int = Field(..., ge=1, le=120)
+
+@api_router.put("/appointments/{appointment_id}/arrival")
+async def notify_arrival(
+    appointment_id: str,
+    notification: ArrivalNotification,
+    user: UserBase = Depends(require_auth)
+):
+    """Client notifies salon about late/early arrival"""
+    # Verify appointment belongs to user
+    appointment = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouve")
+    
+    if appointment.get("client_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Ce n'est pas votre rendez-vous")
+    
+    if appointment.get("status") not in ["pending", "confirmed"]:
+        raise HTTPException(status_code=400, detail="Ce rendez-vous ne peut plus etre modifie")
+    
+    # Update appointment with arrival info
+    await db.appointments.update_one(
+        {"appointment_id": appointment_id},
+        {"$set": {
+            "arrival_status": notification.arrival_type,
+            "arrival_minutes": notification.minutes,
+            "arrival_notified_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify salon owner
+    salon = await db.salons.find_one({"salon_id": appointment.get("salon_id")}, {"_id": 0})
+    if salon:
+        owner_id = salon.get("owner_id")
+        if not owner_id:
+            founder = await db.users.find_one({"role": "founder"}, {"_id": 0})
+            if founder:
+                owner_id = founder["user_id"]
+        
+        if owner_id:
+            status_text = "en retard" if notification.arrival_type == "late" else "en avance"
+            await create_notification(
+                user_id=owner_id,
+                notification_type="arrival_update",
+                title=f"Client {status_text}",
+                message=f"{user.name} sera {status_text} de {notification.minutes} min pour son RDV de {appointment.get('appointment_time')}",
+                data={
+                    "appointment_id": appointment_id,
+                    "salon_id": appointment.get("salon_id"),
+                    "type": "arrival"
+                }
+            )
+    
+    return {"message": f"Le salon a ete prevenu de votre {'retard' if notification.arrival_type == 'late' else 'avance'}"}
+
+# =============================================================================
 # SALON ROUTES
 # =============================================================================
 
@@ -1292,6 +1660,92 @@ async def assign_salon_owner(salon_id: str, request: Request, founder: UserBase 
     return {"message": "Owner assigned"}
 
 # =============================================================================
+# SALON LIVE SCREEN ENDPOINT
+# =============================================================================
+
+@api_router.get("/salons/{salon_id}/live-screen")
+async def get_salon_live_screen(salon_id: str, date: Optional[str] = None):
+    """Get live appointment data for salon display screen (public endpoint)"""
+    # Use today if no date provided
+    if not date:
+        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Get salon info
+    salon = await db.salons.find_one({"salon_id": salon_id}, {"_id": 0})
+    if not salon:
+        raise HTTPException(status_code=404, detail="Salon non trouve")
+    
+    # Get today's appointments
+    appointments = await db.appointments.find({
+        "salon_id": salon_id,
+        "appointment_date": date
+    }, {"_id": 0}).sort("appointment_time", 1).to_list(100)
+    
+    # Get barbers for this salon
+    barbers = {b["barber_id"]: b async for b in db.barbers.find({"salon_id": salon_id}, {"_id": 0})}
+    
+    # Get haircuts
+    haircuts = {h["haircut_id"]: h async for h in db.haircuts.find({}, {"_id": 0})}
+    
+    # Enrich appointments with status colors
+    enriched_appointments = []
+    current_time = datetime.now(timezone.utc).strftime("%H:%M")
+    
+    for apt in appointments:
+        barber = barbers.get(apt.get("barber_id"), {})
+        haircut = haircuts.get(apt.get("haircut_id"), {})
+        
+        # Determine display status
+        display_status = "on_time"  # green
+        if apt.get("status") == "cancelled":
+            display_status = "cancelled"  # strikethrough
+        elif apt.get("arrival_status") == "late":
+            display_status = "late"  # red
+        elif apt.get("arrival_status") == "early":
+            display_status = "early"  # green (early is good)
+        elif apt.get("status") == "completed":
+            display_status = "completed"  # grey
+        
+        enriched_appointments.append({
+            "appointment_id": apt.get("appointment_id"),
+            "time": apt.get("appointment_time"),
+            "client_name": apt.get("client_name") or "Client",
+            "barber_name": barber.get("name", "N/A"),
+            "barber_id": apt.get("barber_id"),
+            "haircut_name": haircut.get("name", "N/A"),
+            "duration": haircut.get("duration_minutes", 30),
+            "status": apt.get("status"),
+            "display_status": display_status,
+            "arrival_status": apt.get("arrival_status"),
+            "arrival_minutes": apt.get("arrival_minutes"),
+            "is_cancelled": apt.get("status") == "cancelled"
+        })
+    
+    # Get available barbers
+    available_barbers = [
+        {"barber_id": b["barber_id"], "name": b["name"], "is_available": b.get("is_available", True)}
+        for b in barbers.values() if b.get("is_active", True)
+    ]
+    
+    return {
+        "salon": {
+            "name": salon.get("name"),
+            "address": salon.get("address")
+        },
+        "date": date,
+        "current_time": current_time,
+        "appointments": enriched_appointments,
+        "barbers": available_barbers,
+        "stats": {
+            "total": len(enriched_appointments),
+            "on_time": sum(1 for a in enriched_appointments if a["display_status"] == "on_time"),
+            "late": sum(1 for a in enriched_appointments if a["display_status"] == "late"),
+            "cancelled": sum(1 for a in enriched_appointments if a["display_status"] == "cancelled"),
+            "completed": sum(1 for a in enriched_appointments if a["display_status"] == "completed")
+        }
+    }
+
+# =============================================================================
 # BARBER ROUTES
 # =============================================================================
 
@@ -1306,12 +1760,30 @@ async def create_barber(salon_id: str, barber: BarberCreate, user: UserBase = De
         "barber_id": barber_id,
         "salon_id": salon_id,
         "name": barber.name,
+        "email": barber.email,
+        "phone": barber.phone,
         "specialties": barber.specialties,
+        "specialty": barber.specialties[0] if barber.specialties else None,
         "bio": barber.bio,
         "image_url": barber.image_url,
+        "photo_url": barber.image_url,
+        "experience_years": 0,
         "rating": 0.0,
         "total_reviews": 0,
         "is_active": True,
+        "is_available": True,
+        "role": barber.role,
+        "availability_schedule": {
+            "monday": {"start": "09:00", "end": "18:00", "active": True},
+            "tuesday": {"start": "09:00", "end": "18:00", "active": True},
+            "wednesday": {"start": "09:00", "end": "18:00", "active": True},
+            "thursday": {"start": "09:00", "end": "18:00", "active": True},
+            "friday": {"start": "09:00", "end": "18:00", "active": True},
+            "saturday": {"start": "09:00", "end": "17:00", "active": True},
+            "sunday": {"start": "00:00", "end": "00:00", "active": False}
+        },
+        "unavailable_reason": None,
+        "redirect_to_barber_id": None,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.barbers.insert_one(barber_doc)
@@ -1338,11 +1810,111 @@ async def update_barber(barber_id: str, request: Request, user: UserBase = Depen
         raise HTTPException(status_code=403, detail="Access denied")
     
     body = await request.json()
-    allowed_fields = ["name", "specialties", "bio", "image_url", "is_active"]
+    allowed_fields = ["name", "email", "phone", "specialties", "bio", "image_url", "photo_url", "is_active", "role", "experience_years"]
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
     
     await db.barbers.update_one({"barber_id": barber_id}, {"$set": update_data})
     return {"message": "Barber updated"}
+
+@api_router.delete("/barbers/{barber_id}")
+async def delete_barber(barber_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Delete (deactivate) barber"""
+    barber = await db.barbers.find_one({"barber_id": barber_id}, {"_id": 0})
+    if not barber:
+        raise HTTPException(status_code=404, detail="Coiffeur non trouve")
+    
+    if user.role != "founder" and user.salon_id != barber["salon_id"]:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    await db.barbers.update_one({"barber_id": barber_id}, {"$set": {"is_active": False}})
+    return {"message": "Coiffeur supprime"}
+
+@api_router.put("/barbers/{barber_id}/availability")
+async def update_barber_availability(
+    barber_id: str, 
+    availability: BarberAvailabilityUpdate, 
+    user: UserBase = Depends(require_auth)
+):
+    """Update barber availability (salon owner or barber themselves)"""
+    barber = await db.barbers.find_one({"barber_id": barber_id}, {"_id": 0})
+    if not barber:
+        raise HTTPException(status_code=404, detail="Coiffeur non trouve")
+    
+    # Check permission: founder, salon owner, or the barber themselves
+    is_owner = user.role == "founder" or (user.role == "salon_owner" and user.salon_id == barber["salon_id"])
+    is_self = barber.get("email") == user.email
+    
+    if not is_owner and not is_self:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    update_data = {
+        "is_available": availability.is_available,
+        "unavailable_reason": availability.unavailable_reason if not availability.is_available else None,
+        "redirect_to_barber_id": availability.redirect_to_barber_id if not availability.is_available else None
+    }
+    
+    await db.barbers.update_one({"barber_id": barber_id}, {"$set": update_data})
+    
+    # Notify salon owner if barber sets themselves unavailable
+    if not availability.is_available and is_self and not is_owner:
+        salon = await db.salons.find_one({"salon_id": barber["salon_id"]}, {"_id": 0})
+        if salon and salon.get("owner_id"):
+            await create_notification(
+                user_id=salon["owner_id"],
+                notification_type="barber_unavailable",
+                title="Coiffeur indisponible",
+                message=f"{barber.get('name')} s'est mis indisponible. Raison: {availability.unavailable_reason or 'Non specifiee'}",
+                data={"barber_id": barber_id, "salon_id": barber["salon_id"]}
+            )
+    
+    return {"message": "Disponibilite mise a jour"}
+
+@api_router.put("/barbers/{barber_id}/schedule")
+async def update_barber_schedule(
+    barber_id: str, 
+    schedule: BarberScheduleUpdate, 
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Update barber's weekly schedule (salon owner only)"""
+    barber = await db.barbers.find_one({"barber_id": barber_id}, {"_id": 0})
+    if not barber:
+        raise HTTPException(status_code=404, detail="Coiffeur non trouve")
+    
+    if user.role != "founder" and user.salon_id != barber["salon_id"]:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    await db.barbers.update_one(
+        {"barber_id": barber_id}, 
+        {"$set": {"availability_schedule": schedule.availability_schedule}}
+    )
+    return {"message": "Horaires mis a jour"}
+
+@api_router.get("/barbers/{barber_id}")
+async def get_barber(barber_id: str):
+    """Get barber details"""
+    barber = await db.barbers.find_one({"barber_id": barber_id}, {"_id": 0})
+    if not barber:
+        raise HTTPException(status_code=404, detail="Coiffeur non trouve")
+    
+    if isinstance(barber.get("created_at"), str):
+        barber["created_at"] = datetime.fromisoformat(barber["created_at"])
+    
+    return BarberResponse(**barber)
+
+@api_router.get("/salons/{salon_id}/available-barbers")
+async def get_available_barbers(salon_id: str):
+    """Get only available barbers for a salon"""
+    barbers = await db.barbers.find({
+        "salon_id": salon_id, 
+        "is_active": True,
+        "is_available": True
+    }, {"_id": 0}).to_list(100)
+    
+    for b in barbers:
+        if isinstance(b.get("created_at"), str):
+            b["created_at"] = datetime.fromisoformat(b["created_at"])
+    
+    return [BarberResponse(**b) for b in barbers]
 
 # =============================================================================
 # HAIRCUT ROUTES
