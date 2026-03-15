@@ -23,7 +23,9 @@ import {
   CheckCircle,
   Store,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Tag,
+  Camera
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -48,6 +50,8 @@ import {
 } from "../components/ui/dropdown-menu";
 import OnboardingTutorial, { resetOnboarding } from "../components/OnboardingTutorial";
 import NotificationBell from "../components/NotificationBell";
+import PhotoUploader from "../components/PhotoUploader";
+import PromotionsManager from "../components/PromotionsManager";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -101,7 +105,8 @@ const SalonDashboard = () => {
     { icon: LayoutDashboard, label: "Tableau de bord", path: "/salon" },
     { icon: Users, label: "Coiffeurs", path: "/salon/barbers" },
     { icon: Calendar, label: "Rendez-vous", path: "/salon/appointments" },
-    { icon: Scissors, label: "Coupes", path: "/salon/haircuts" },
+    { icon: Scissors, label: "Coupes & Tarifs", path: "/salon/haircuts" },
+    { icon: Tag, label: "Promotions", path: "/salon/promotions" },
     { icon: ShoppingBag, label: "Produits", path: "/salon/products" },
     { icon: BarChart3, label: "Statistiques", path: "/salon/stats" },
     { icon: Settings, label: "Parametres", path: "/salon/settings" },
@@ -256,6 +261,7 @@ const SalonDashboard = () => {
             <Route path="barbers" element={<BarbersManagement salonId={selectedSalonId} />} />
             <Route path="appointments" element={<AppointmentsManagement salonId={selectedSalonId} />} />
             <Route path="haircuts" element={<HaircutsManagement salonId={selectedSalonId} />} />
+            <Route path="promotions" element={<PromotionsPage salonId={selectedSalonId} />} />
             <Route path="products" element={<ProductsManagement />} />
             <Route path="stats" element={<SalonStats salonId={selectedSalonId} />} />
             <Route path="settings" element={<SalonSettings salon={salon} onUpdate={() => fetchSalon(selectedSalonId)} />} />
@@ -1196,6 +1202,36 @@ const HaircutsManagement = ({ salonId }) => {
       </p>
     </div>
   );
+};
+
+// Promotions Page Component
+const PromotionsPage = ({ salonId }) => {
+  const [haircuts, setHaircuts] = useState([]);
+
+  useEffect(() => {
+    if (salonId) {
+      fetchHaircuts();
+    }
+  }, [salonId]);
+
+  const fetchHaircuts = async () => {
+    try {
+      const response = await axios.get(`${API}/salons/${salonId}/pricing`);
+      setHaircuts(response.data.pricing || []);
+    } catch (error) {
+      console.error("Error fetching haircuts:", error);
+    }
+  };
+
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour gerer les promotions.</p>
+      </div>
+    );
+  }
+
+  return <PromotionsManager salonId={salonId} haircuts={haircuts} />;
 };
 
 // Products Management Component

@@ -512,6 +512,36 @@ class SalonPriceResponse(BaseModel):
 class SalonPricingUpdate(BaseModel):
     prices: List[SalonPriceCreate]
 
+# Salon Promotions
+class PromotionCreate(BaseModel):
+    haircut_id: Optional[str] = None  # None = applies to all haircuts
+    name: str
+    discount_type: str = "percentage"  # percentage or fixed
+    discount_value: float  # 20 for 20% or 5 for 5 EUR
+    start_date: str
+    end_date: str
+    days_of_week: List[str] = []  # ["monday", "tuesday"] - empty = all days
+    description: Optional[str] = None
+
+class PromotionResponse(BaseModel):
+    promotion_id: str
+    salon_id: str
+    haircut_id: Optional[str] = None
+    haircut_name: Optional[str] = None
+    name: str
+    discount_type: str
+    discount_value: float
+    start_date: str
+    end_date: str
+    days_of_week: List[str] = []
+    description: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime
+
+# Profile Photo Update
+class ProfilePhotoUpdate(BaseModel):
+    picture: str  # Cloudinary URL
+
 class AppointmentCreate(BaseModel):
     salon_id: str
     barber_id: str
@@ -2143,6 +2173,226 @@ async def get_haircuts_with_salon_pricing(salon_id: str):
     ]
     
     return available
+
+# =============================================================================
+# SALON PROMOTIONS
+# =============================================================================
+
+@api_router.post("/salons/{salon_id}/promotions", response_model=PromotionResponse)
+async def create_promotion(
+    salon_id: str,
+    promotion: PromotionCreate,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Create a promotion for a salon"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    # Get haircut name if specified
+    haircut_name = None
+    if promotion.haircut_id:
+        haircut = await db.haircuts.find_one({"haircut_id": promotion.haircut_id}, {"_id": 0})
+        if haircut:
+            haircut_name = haircut.get("name")
+    
+    promotion_id = f"promo_{uuid.uuid4().hex[:12]}"
+    promotion_doc = {
+        "promotion_id": promotion_id,
+        "salon_id": salon_id,
+        "haircut_id": promotion.haircut_id,
+        "haircut_name": haircut_name,
+        "name": promotion.name,
+        "discount_type": promotion.discount_type,
+        "discount_value": promotion.discount_value,
+        "start_date": promotion.start_date,
+        "end_date": promotion.end_date,
+        "days_of_week": promotion.days_of_week,
+        "description": promotion.description,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.promotions.insert_one(promotion_doc)
+    promotion_doc["created_at"] = datetime.fromisoformat(promotion_doc["created_at"])
+    return PromotionResponse(**{k: v for k, v in promotion_doc.items() if k != "_id"})
+
+@api_router.get("/salons/{salon_id}/promotions")
+async def get_salon_promotions(salon_id: str, active_only: bool = True):
+    """Get promotions for a salon"""
+    query = {"salon_id": salon_id}
+    if active_only:
+        query["is_active"] = True
+        # Filter by date
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        query["start_date"] = {"$lte": today}
+        query["end_date"] = {"$gte": today}
+    
+    promotions = await db.promotions.find(query, {"_id": 0}).to_list(100)
+    
+    for p in promotions:
+        if isinstance(p.get("created_at"), str):
+            p["created_at"] = datetime.fromisoformat(p["created_at"])
+    
+    return promotions
+
+@api_router.put("/salons/{salon_id}/promotions/{promotion_id}")
+async def update_promotion(
+    salon_id: str,
+    promotion_id: str,
+    request: Request,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Update a promotion"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    body = await request.json()
+    allowed_fields = ["name", "discount_type", "discount_value", "start_date", "end_date", "days_of_week", "description", "is_active"]
+    update_data = {k: v for k, v in body.items() if k in allowed_fields}
+    
+    await db.promotions.update_one(
+        {"promotion_id": promotion_id, "salon_id": salon_id},
+        {"$set": update_data}
+    )
+    return {"message": "Promotion mise a jour"}
+
+@api_router.delete("/salons/{salon_id}/promotions/{promotion_id}")
+async def delete_promotion(
+    salon_id: str,
+    promotion_id: str,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Delete a promotion"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    await db.promotions.delete_one({"promotion_id": promotion_id, "salon_id": salon_id})
+    return {"message": "Promotion supprimee"}
+
+# Helper function to calculate promotional price
+async def get_promotional_price(salon_id: str, haircut_id: str, base_price: float, date: str = None) -> dict:
+    """Calculate price with any applicable promotion"""
+    if not date:
+        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    day_of_week = datetime.strptime(date, "%Y-%m-%d").strftime("%A").lower()
+    
+    # Find applicable promotions
+    promotions = await db.promotions.find({
+        "salon_id": salon_id,
+        "is_active": True,
+        "start_date": {"$lte": date},
+        "end_date": {"$gte": date},
+        "$or": [
+            {"haircut_id": haircut_id},
+            {"haircut_id": None}  # Applies to all
+        ]
+    }, {"_id": 0}).to_list(10)
+    
+    best_discount = 0
+    applied_promotion = None
+    
+    for promo in promotions:
+        # Check if day is applicable
+        if promo.get("days_of_week") and day_of_week not in promo["days_of_week"]:
+            continue
+        
+        # Calculate discount
+        if promo["discount_type"] == "percentage":
+            discount = base_price * (promo["discount_value"] / 100)
+        else:
+            discount = promo["discount_value"]
+        
+        if discount > best_discount:
+            best_discount = discount
+            applied_promotion = promo
+    
+    final_price = max(0, base_price - best_discount)
+    
+    return {
+        "original_price": base_price,
+        "final_price": round(final_price, 2),
+        "discount": round(best_discount, 2),
+        "promotion": applied_promotion
+    }
+
+# =============================================================================
+# PHOTO UPLOAD ENDPOINTS
+# =============================================================================
+
+@api_router.put("/users/me/photo")
+async def update_user_photo(photo: ProfilePhotoUpdate, user: UserBase = Depends(require_auth)):
+    """Update current user's profile photo"""
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"picture": photo.picture}}
+    )
+    return {"message": "Photo de profil mise a jour", "picture": photo.picture}
+
+@api_router.put("/barbers/{barber_id}/photo")
+async def update_barber_photo(
+    barber_id: str,
+    request: Request,
+    user: UserBase = Depends(require_auth)
+):
+    """Update barber's photo (salon owner or barber themselves)"""
+    barber = await db.barbers.find_one({"barber_id": barber_id}, {"_id": 0})
+    if not barber:
+        raise HTTPException(status_code=404, detail="Coiffeur non trouve")
+    
+    # Check permission
+    is_owner = user.role in ["founder", "salon_owner"] and (user.role == "founder" or user.salon_id == barber["salon_id"])
+    is_self = barber.get("email") == user.email
+    
+    if not is_owner and not is_self:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    body = await request.json()
+    photo_url = body.get("photo_url")
+    
+    if not photo_url:
+        raise HTTPException(status_code=400, detail="URL de photo requise")
+    
+    await db.barbers.update_one(
+        {"barber_id": barber_id},
+        {"$set": {"photo_url": photo_url, "image_url": photo_url}}
+    )
+    return {"message": "Photo mise a jour", "photo_url": photo_url}
+
+@api_router.put("/salons/{salon_id}/haircuts/{haircut_id}/photo")
+async def update_haircut_photo(
+    salon_id: str,
+    haircut_id: str,
+    request: Request,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Update haircut photo for a specific salon"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    body = await request.json()
+    photo_url = body.get("photo_url")
+    
+    if not photo_url:
+        raise HTTPException(status_code=400, detail="URL de photo requise")
+    
+    # Check if it's a salon-specific haircut
+    haircut = await db.haircuts.find_one({"haircut_id": haircut_id, "salon_id": salon_id}, {"_id": 0})
+    
+    if haircut:
+        # Update salon-specific haircut
+        await db.haircuts.update_one(
+            {"haircut_id": haircut_id, "salon_id": salon_id},
+            {"$set": {"image_url": photo_url}}
+        )
+    else:
+        # Store salon-specific photo in salon_prices
+        await db.salon_prices.update_one(
+            {"salon_id": salon_id, "haircut_id": haircut_id},
+            {"$set": {"photo_url": photo_url}},
+            upsert=True
+        )
+    
+    return {"message": "Photo de coupe mise a jour", "photo_url": photo_url}
 
 # =============================================================================
 # APPOINTMENT ROUTES
