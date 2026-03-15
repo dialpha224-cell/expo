@@ -6,33 +6,37 @@ import {
   TouchableOpacity, 
   Image,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView,
+  Dimensions
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../_layout';
 
+const { width } = Dimensions.get('window');
+
 export default function SimulationScreen() {
-  const { API_URL } = useAuth();
+  const { user, API_URL } = useAuth();
   const [selectedImage, setSelectedImage] = useState(null);
   const [resultImage, setResultImage] = useState(null);
   const [selectedStyle, setSelectedStyle] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const hairstyles = [
-    { id: 'fade', name: 'Degrade', icon: 'cut' },
-    { id: 'dreadlocks', name: 'Dreadlocks', icon: 'git-branch' },
-    { id: 'braids', name: 'Tresses', icon: 'apps' },
-    { id: 'afro', name: 'Afro', icon: 'sunny' },
-    { id: 'waves', name: 'Waves', icon: 'water' },
-    { id: 'buzz', name: 'Buzz Cut', icon: 'flash' },
+    { id: 'fade', name: 'Dégradé', icon: 'cut', description: 'Coupe classique avec dégradé' },
+    { id: 'dreadlocks', name: 'Dreadlocks', icon: 'git-branch', description: 'Locks naturels' },
+    { id: 'braids', name: 'Tresses', icon: 'apps', description: 'Tresses africaines' },
+    { id: 'afro', name: 'Afro', icon: 'sunny', description: 'Afro naturel volumineux' },
+    { id: 'waves', name: 'Waves', icon: 'water', description: '360 waves' },
+    { id: 'buzz', name: 'Buzz Cut', icon: 'flash', description: 'Coupe courte' },
   ];
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Nous avons besoin d\'acceder a vos photos');
+      Alert.alert('Permission requise', 'Nous avons besoin d\'accéder à vos photos pour la simulation');
       return;
     }
 
@@ -40,11 +44,11 @@ export default function SimulationScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.7,
       base64: true,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets[0]) {
       setSelectedImage(result.assets[0]);
       setResultImage(null);
     }
@@ -53,138 +57,213 @@ export default function SimulationScreen() {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Nous avons besoin d\'acceder a la camera');
+      Alert.alert('Permission requise', 'Nous avons besoin d\'accéder à la caméra pour la simulation');
       return;
     }
 
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.7,
       base64: true,
+      cameraType: ImagePicker.CameraType.front, // Caméra frontale par défaut
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets[0]) {
       setSelectedImage(result.assets[0]);
       setResultImage(null);
     }
   };
 
   const generateSimulation = async () => {
-    if (!selectedImage || !selectedStyle) {
-      Alert.alert('Selection requise', 'Choisissez une photo et un style');
+    if (!selectedStyle) {
+      Alert.alert('Style requis', 'Veuillez choisir un style de coiffure');
+      return;
+    }
+
+    if (!user) {
+      Alert.alert('Connexion requise', 'Veuillez vous connecter pour utiliser la simulation IA');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/ai/simulate-haircut`, {
-        image_base64: selectedImage.base64,
+      const requestData = {
         haircut_style: selectedStyle,
-      });
+      };
+
+      // Si une image est sélectionnée, l'envoyer
+      if (selectedImage && selectedImage.base64) {
+        requestData.image_base64 = selectedImage.base64;
+      }
+
+      const response = await axios.post(
+        `${API_URL}/ai/simulate-haircut`,
+        requestData,
+        { withCredentials: true, timeout: 120000 }
+      );
 
       if (response.data.generated_image_url) {
         setResultImage(response.data.generated_image_url);
+        Alert.alert('Succès!', 'Votre simulation a été générée');
+      } else if (response.data.image_base64) {
+        setResultImage(`data:image/png;base64,${response.data.image_base64}`);
+        Alert.alert('Succès!', 'Votre simulation a été générée');
       } else {
-        Alert.alert('Erreur', 'Impossible de generer la simulation');
+        Alert.alert('Erreur', 'Aucune image générée');
       }
     } catch (error) {
-      console.log('Simulation error:', error);
-      Alert.alert('Erreur', 'Une erreur est survenue lors de la simulation');
+      console.log('Simulation error:', error.response?.data || error.message);
+      Alert.alert('Erreur', error.response?.data?.detail || 'Une erreur est survenue lors de la simulation');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Simulation IA</Text>
-      <Text style={styles.subtitle}>Visualisez votre nouvelle coupe avant de reserver</Text>
+  const resetSimulation = () => {
+    setSelectedImage(null);
+    setResultImage(null);
+    setSelectedStyle(null);
+  };
 
-      {/* Image Selection */}
-      <View style={styles.imageSection}>
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Simulation IA</Text>
+        <Text style={styles.subtitle}>
+          Visualisez votre nouvelle coupe avant de réserver
+        </Text>
+      </View>
+
+      {/* Photo Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>1. Votre photo (optionnel)</Text>
+        <Text style={styles.sectionHint}>
+          Prenez un selfie ou choisissez une photo pour un résultat personnalisé
+        </Text>
+        
         {selectedImage ? (
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: selectedImage.uri }} style={styles.selectedImage} />
-            <TouchableOpacity 
-              style={styles.changeImageBtn}
-              onPress={() => setSelectedImage(null)}
-            >
-              <Ionicons name="refresh" size={20} color="#fff" />
+          <View style={styles.imagePreviewContainer}>
+            <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+            <TouchableOpacity style={styles.removeImageBtn} onPress={() => setSelectedImage(null)}>
+              <Ionicons name="close-circle" size={30} color="#ef4444" />
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="person" size={60} color="#64748b" />
-            <Text style={styles.placeholderText}>Ajoutez votre photo</Text>
-            <View style={styles.imageButtons}>
-              <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
-                <Ionicons name="images" size={24} color="#818cf8" />
-                <Text style={styles.imageBtnText}>Galerie</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.imageBtn} onPress={takePhoto}>
-                <Ionicons name="camera" size={24} color="#818cf8" />
-                <Text style={styles.imageBtnText}>Camera</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.imageButtons}>
+            <TouchableOpacity style={styles.imageBtn} onPress={takePhoto}>
+              <View style={styles.imageBtnIcon}>
+                <Ionicons name="camera" size={32} color="#818cf8" />
+              </View>
+              <Text style={styles.imageBtnTitle}>Prendre un selfie</Text>
+              <Text style={styles.imageBtnHint}>Caméra frontale</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
+              <View style={styles.imageBtnIcon}>
+                <Ionicons name="images" size={32} color="#818cf8" />
+              </View>
+              <Text style={styles.imageBtnTitle}>Galerie</Text>
+              <Text style={styles.imageBtnHint}>Choisir une photo</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
 
       {/* Style Selection */}
-      <Text style={styles.sectionTitle}>Choisissez un style</Text>
-      <View style={styles.stylesGrid}>
-        {hairstyles.map((style) => (
-          <TouchableOpacity
-            key={style.id}
-            style={[
-              styles.styleCard,
-              selectedStyle === style.id && styles.styleCardSelected
-            ]}
-            onPress={() => setSelectedStyle(style.id)}
-          >
-            <Ionicons 
-              name={style.icon} 
-              size={28} 
-              color={selectedStyle === style.id ? '#fff' : '#818cf8'} 
-            />
-            <Text style={[
-              styles.styleName,
-              selectedStyle === style.id && styles.styleNameSelected
-            ]}>
-              {style.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>2. Choisissez un style</Text>
+        <View style={styles.stylesGrid}>
+          {hairstyles.map((style) => (
+            <TouchableOpacity
+              key={style.id}
+              style={[
+                styles.styleCard,
+                selectedStyle === style.id && styles.styleCardSelected
+              ]}
+              onPress={() => setSelectedStyle(style.id)}
+            >
+              <Ionicons 
+                name={style.icon} 
+                size={28} 
+                color={selectedStyle === style.id ? '#fff' : '#818cf8'} 
+              />
+              <Text style={[
+                styles.styleName,
+                selectedStyle === style.id && styles.styleNameSelected
+              ]}>
+                {style.name}
+              </Text>
+              {selectedStyle === style.id && (
+                <View style={styles.checkBadge}>
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* Result */}
+      {/* Result Section */}
       {resultImage && (
-        <View style={styles.resultSection}>
-          <Text style={styles.sectionTitle}>Resultat</Text>
-          <Image source={{ uri: resultImage }} style={styles.resultImage} />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Résultat</Text>
+          <View style={styles.resultContainer}>
+            <Image source={{ uri: resultImage }} style={styles.resultImage} />
+            <View style={styles.resultActions}>
+              <TouchableOpacity style={styles.resultActionBtn}>
+                <Ionicons name="download-outline" size={20} color="#fff" />
+                <Text style={styles.resultActionText}>Sauvegarder</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resultActionBtn}>
+                <Ionicons name="share-outline" size={20} color="#fff" />
+                <Text style={styles.resultActionText}>Partager</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       )}
 
       {/* Generate Button */}
-      <TouchableOpacity 
-        style={[
-          styles.generateBtn,
-          (!selectedImage || !selectedStyle) && styles.generateBtnDisabled
-        ]}
-        onPress={generateSimulation}
-        disabled={loading || !selectedImage || !selectedStyle}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
+      <View style={styles.bottomSection}>
+        {resultImage ? (
+          <TouchableOpacity style={styles.resetBtn} onPress={resetSimulation}>
+            <Ionicons name="refresh" size={24} color="#fff" />
+            <Text style={styles.resetBtnText}>Nouvelle simulation</Text>
+          </TouchableOpacity>
         ) : (
-          <>
-            <Ionicons name="sparkles" size={24} color="#fff" />
-            <Text style={styles.generateBtnText}>Generer la simulation</Text>
-          </>
+          <TouchableOpacity 
+            style={[
+              styles.generateBtn,
+              !selectedStyle && styles.generateBtnDisabled
+            ]}
+            onPress={generateSimulation}
+            disabled={loading || !selectedStyle}
+          >
+            {loading ? (
+              <>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={styles.generateBtnText}>Génération en cours...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="sparkles" size={24} color="#fff" />
+                <Text style={styles.generateBtnText}>
+                  {selectedImage ? 'Transformer ma photo' : 'Générer la simulation'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         )}
-      </TouchableOpacity>
-    </View>
+
+        {!user && (
+          <Text style={styles.loginHint}>
+            Connectez-vous pour utiliser la simulation IA
+          </Text>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -192,7 +271,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0f172a',
-    padding: 16,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  header: {
+    padding: 20,
+    paddingTop: 10,
   },
   title: {
     fontSize: 28,
@@ -203,82 +288,85 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94a3b8',
     marginTop: 4,
-    marginBottom: 20,
   },
-  imageSection: {
+  section: {
+    paddingHorizontal: 20,
     marginBottom: 24,
-  },
-  imageContainer: {
-    position: 'relative',
-    alignItems: 'center',
-  },
-  selectedImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    alignSelf: 'center',
-  },
-  changeImageBtn: {
-    position: 'absolute',
-    bottom: 0,
-    right: '30%',
-    backgroundColor: '#6366f1',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imagePlaceholder: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#334155',
-    borderStyle: 'dashed',
-  },
-  placeholderText: {
-    color: '#64748b',
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  imageButtons: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  imageBtn: {
-    alignItems: 'center',
-    backgroundColor: '#0f172a',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-  },
-  imageBtnText: {
-    color: '#818cf8',
-    marginTop: 4,
-    fontSize: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
+    marginBottom: 8,
+  },
+  sectionHint: {
+    fontSize: 13,
+    color: '#64748b',
+    marginBottom: 16,
+  },
+  imageButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  imageBtn: {
+    flex: 1,
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#334155',
+    borderStyle: 'dashed',
+  },
+  imageBtnIcon: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#0f172a',
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
+  },
+  imageBtnTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  imageBtnHint: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  imagePreviewContainer: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  previewImage: {
+    width: width - 80,
+    height: width - 80,
+    borderRadius: 20,
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: -10,
+    right: 20,
+    backgroundColor: '#0f172a',
+    borderRadius: 15,
   },
   stylesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
+    gap: 10,
   },
   styleCard: {
-    width: '30%',
+    width: '31%',
     backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    position: 'relative',
   },
   styleCardSelected: {
     backgroundColor: '#6366f1',
@@ -289,35 +377,91 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 12,
     textAlign: 'center',
+    fontWeight: '500',
   },
   styleNameSelected: {
     color: '#fff',
   },
-  resultSection: {
-    marginBottom: 16,
+  checkBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#10b981',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resultContainer: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#1e293b',
   },
   resultImage: {
     width: '100%',
-    height: 300,
-    borderRadius: 16,
-    backgroundColor: '#1e293b',
+    height: width - 40,
+    backgroundColor: '#334155',
+  },
+  resultActions: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 12,
+  },
+  resultActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#334155',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  resultActionText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  bottomSection: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
   generateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#6366f1',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 18,
+    borderRadius: 14,
     gap: 12,
-    marginTop: 'auto',
   },
   generateBtnDisabled: {
     opacity: 0.5,
   },
   generateBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
+  },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#334155',
+    paddingVertical: 18,
+    borderRadius: 14,
+    gap: 12,
+  },
+  resetBtnText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  loginHint: {
+    color: '#64748b',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 12,
   },
 });
