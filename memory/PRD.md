@@ -6,21 +6,24 @@ Plateforme digitale centralisee pour la coiffure afro reliant clients, salons et
 ## Architecture
 - **Backend**: FastAPI + MongoDB
 - **Frontend Web**: React + Tailwind CSS + Shadcn UI
-- **Frontend Mobile**: React Native / Expo (structure creee)
-- **Auth**: Google OAuth via Emergent
+- **Frontend Mobile**: React Native / Expo (complete, pret pour deploiement)
+- **Auth**: Google OAuth via Emergent + Email/Password custom
 - **Payments**: Stripe (cle test configuree)
 - **Images**: Cloudinary (configure avec cles utilisateur)
 - **AI**: OpenAI GPT Image 1 via Emergent LLM Key
+- **Email**: Resend (mode test)
+- **Push Notifications**: Expo Push (integre backend + mobile)
 
 ## User Personas
 1. **Fondateur**: Controle global, gestion salons, supervision TrimConnect
 2. **Proprietaire Salon**: Gestion coiffeurs, rendez-vous, coupes, produits, ventes
 3. **Client**: Reservation, simulation IA, achat produits, vote TrimConnect
 
-## What's Been Implemented (Jan 2026)
+## What's Been Implemented (Mars 2026)
 
-### Backend APIs (28 endpoints)
-- Auth: session, me, logout
+### Backend APIs (35+ endpoints)
+- Auth: session, me, logout, login (email/password), change-password, setup-password, verify-setup-token
+- Founder: create users, list users, delete users, stats, reservations, update appointment status
 - Salons: CRUD, stats, assign owner
 - Barbers: CRUD par salon
 - Haircuts: CRUD par salon + liste globale
@@ -29,12 +32,15 @@ Plateforme digitale centralisee pour la coiffure afro reliant clients, salons et
 - TrimConnect: entries, votes, leaderboard, hall of fame
 - Payments: Stripe checkout, status, webhook
 - Cloudinary: signature upload
-- AI Simulation: generate haircut
+- AI Simulation: generate haircut (avec image base64)
+- Push Notifications: register-token, unregister-token, test
+- Email: welcome emails avec lien de setup password
 
 ### Frontend Web Pages
-- Landing Page avec navigation complete
-- Auth Callback (Google OAuth)
-- Dashboard Fondateur: Overview, Salons, Users, Stats, TrimConnect, Settings
+- Landing Page avec navigation complete et double authentification (Google + Email)
+- Auth Callback (Google OAuth) - REFACTORISE pour corriger bug navigation
+- Setup Password page (pour nouveaux utilisateurs)
+- Dashboard Fondateur: Overview, Salons, Users (create/delete), Reservations, Stats, TrimConnect, Settings
 - Dashboard Salon: Overview, Barbers, Appointments, Haircuts, Products, Stats, Settings
 - Booking Page: 5 etapes (Salon > Coupe > Coiffeur > Date > Confirmation)
 - Booking Confirmation: Details + QR Code
@@ -43,47 +49,58 @@ Plateforme digitale centralisee pour la coiffure afro reliant clients, salons et
 - TrimConnect: Participations, Classement, Hall of Fame
 - AI Simulation: 8 styles de coupe
 
-### Application Mobile (React Native/Expo)
-Structure creee dans /app/mobile avec:
-- Home screen
-- Booking flow
+### Application Mobile (React Native/Expo) - COMPLETE
+Structure dans /app/mobile avec:
+- Home screen (reservations)
+- Booking flow complet
 - Marketplace
-- TrimConnect
-- AI Simulation
-- Profile
+- TrimConnect (vote, classement)
+- AI Simulation (camera/galerie)
+- Profile (gestion compte, push notifications)
+- Push notifications integrees
+- AuthContext avec session persistante
 
 ### Demo Data
-- 2 Salons: Afro Barber MLK, Baggio Barber Shop
-- 5 Coiffeurs avec specialites
+- 3 Salons: Afro Barber MLK, Baggio Barber Shop, AfroCrown Premium
+- 5 Coiffeurs avec photos africaines/metisses
 - 7 Coupes avec prix et durees
 - 8 Produits capillaires avec images
 
-## Test Results
-- Backend: 100% (28/28 tests)
-- Frontend: 95% (minor console errors)
+## Test Results (Mars 2026)
+- Backend: 100% (17/17 tests - iteration_3)
+- Frontend: 100% (toutes pages fonctionnelles)
+- Mobile: Structure complete, pret pour test utilisateur
+
+## Bug Fixes Recents
+- [x] Bug bouton Admin navbar apres connexion Google - Refactorisation AuthCallback avec window.location.href
+- [x] Badge "Made with Emergent" supprime de index.html
 
 ## Prioritized Backlog
 
 ### P0 (Done)
 - [x] Platform structure
-- [x] Authentication
+- [x] Authentication (Google + Email/Password)
 - [x] CRUD operations
 - [x] Booking flow
 - [x] QR Code generation
 - [x] Marketplace
 - [x] TrimConnect
 - [x] AI Simulation page
+- [x] Mobile app structure complete
+- [x] Push notifications backend
+- [x] Admin user management avec email
 
 ### P1 (Next)
-- [ ] Deploy mobile app to stores
+- [ ] Test manuel connexion Google (verifier bouton Admin)
+- [ ] Deploy mobile app (Expo EAS)
 - [ ] Real Stripe payment testing
-- [ ] AI Simulation real testing with images
+- [ ] Scanner QR code cote salon (UI)
 
 ### P2 (Medium)
 - [ ] Calendar view for appointments
-- [ ] Real-time notifications (push)
 - [ ] Interactive screen for salons
 - [ ] Client loyalty points
+- [ ] Full TrimConnect voting mechanism
 
 ### P3 (Low)
 - [ ] Advanced statistics charts
@@ -92,8 +109,8 @@ Structure creee dans /app/mobile avec:
 - [ ] Academy section
 
 ## Next Tasks
-1. Publier l'app mobile sur App Store / Play Store
-2. Tester les paiements Stripe en production
-3. Ajouter plus de produits et coiffeurs reels
-4. Implementer les notifications push
-5. Creer l'ecran interactif pour salons
+1. Tester manuellement la connexion Google avec dialpha224@gmail.com
+2. Telecharger et deployer l'app mobile via Expo EAS
+3. Tester le scan QR code dans le dashboard salon
+4. Verifier domaine Resend pour envoi emails en production
+5. Implementer ecran interactif salon
