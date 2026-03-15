@@ -17,6 +17,23 @@ import base64
 import httpx
 import qrcode
 from io import BytesIO
+import secrets
+import string
+from passlib.context import CryptContext
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def generate_temp_password(length: int = 10) -> str:
+    """Generate a temporary password"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -62,6 +79,20 @@ class UserSession(BaseModel):
     session_token: str
     expires_at: datetime
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class UserCreateByAdmin(BaseModel):
+    name: str
+    email: str
+    role: str = "client"  # client, salon_owner
+    salon_id: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 class SalonCreate(BaseModel):
     name: str
@@ -366,6 +397,76 @@ async def logout(request: Request):
     response.delete_cookie(key="session_token", path="/")
     return response
 
+@api_router.post("/auth/login")
+async def login_with_password(credentials: UserLogin):
+    """Login with email and password"""
+    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    
+    # Check if user has a password set
+    if not user.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Ce compte utilise la connexion Google. Utilisez le bouton 'Connexion avec Google'.")
+    
+    # Verify password
+    if not verify_password(credentials.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    
+    # Create session
+    session_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    session_doc = {
+        "user_id": user["user_id"],
+        "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.user_sessions.delete_many({"user_id": user["user_id"]})
+    await db.user_sessions.insert_one(session_doc)
+    
+    response = JSONResponse(content={
+        "user_id": user["user_id"],
+        "email": user["email"],
+        "name": user["name"],
+        "picture": user.get("picture"),
+        "role": user["role"],
+        "salon_id": user.get("salon_id"),
+        "must_change_password": user.get("must_change_password", False)
+    })
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7*24*60*60
+    )
+    return response
+
+@api_router.post("/auth/change-password")
+async def change_password(password_data: PasswordChange, user: UserBase = Depends(require_auth)):
+    """Change user password"""
+    db_user = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouve")
+    
+    # If user has a password, verify current password
+    if db_user.get("password_hash"):
+        if not verify_password(password_data.current_password, db_user["password_hash"]):
+            raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
+    
+    # Hash and save new password
+    new_hash = hash_password(password_data.new_password)
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"password_hash": new_hash, "must_change_password": False}}
+    )
+    
+    return {"message": "Mot de passe modifie avec succes"}
+
 # =============================================================================
 # FOUNDER ROUTES - User Management
 # =============================================================================
@@ -393,8 +494,62 @@ async def update_user_role(user_id: str, request: Request, founder: UserBase = D
 @api_router.get("/founder/users")
 async def list_all_users(founder: UserBase = Depends(require_founder)):
     """List all users (founder only)"""
-    users = await db.users.find({}, {"_id": 0}).to_list(1000)
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
     return users
+
+@api_router.post("/founder/users")
+async def create_user_by_admin(user_data: UserCreateByAdmin, founder: UserBase = Depends(require_founder)):
+    """Create a new user (founder only) - returns temporary password"""
+    # Check if email already exists
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Un utilisateur avec cet email existe deja")
+    
+    # Generate temporary password
+    temp_password = generate_temp_password(10)
+    password_hash = hash_password(temp_password)
+    
+    # Create user
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    new_user = {
+        "user_id": user_id,
+        "email": user_data.email,
+        "name": user_data.name,
+        "picture": None,
+        "role": user_data.role,
+        "salon_id": user_data.salon_id,
+        "password_hash": password_hash,
+        "must_change_password": True,
+        "created_by": founder.user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(new_user)
+    
+    # Return user info with temporary password (admin will share this with the user)
+    return {
+        "user_id": user_id,
+        "name": user_data.name,
+        "email": user_data.email,
+        "role": user_data.role,
+        "temporary_password": temp_password,
+        "message": "Utilisateur cree. Partagez le mot de passe temporaire avec l'utilisateur."
+    }
+
+@api_router.delete("/founder/users/{user_id}")
+async def delete_user(user_id: str, founder: UserBase = Depends(require_founder)):
+    """Delete a user (founder only)"""
+    # Don't allow deleting yourself
+    if user_id == founder.user_id:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas supprimer votre propre compte")
+    
+    result = await db.users.delete_one({"user_id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouve")
+    
+    # Also delete user sessions
+    await db.user_sessions.delete_many({"user_id": user_id})
+    
+    return {"message": "Utilisateur supprime"}
 
 @api_router.get("/founder/stats")
 async def get_global_stats(founder: UserBase = Depends(require_founder)):

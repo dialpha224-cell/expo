@@ -484,10 +484,16 @@ const SalonsManagement = () => {
 // Users Management Component
 const UsersManagement = () => {
   const [users, setUsers] = useState([]);
+  const [salons, setSalons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [createdUser, setCreatedUser] = useState(null);
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "client", salon_id: "" });
 
   useEffect(() => {
     fetchUsers();
+    fetchSalons();
   }, []);
 
   const fetchUsers = async () => {
@@ -501,6 +507,52 @@ const UsersManagement = () => {
     }
   };
 
+  const fetchSalons = async () => {
+    try {
+      const response = await axios.get(`${API}/salons`);
+      setSalons(response.data);
+    } catch (error) {
+      console.error("Error fetching salons:", error);
+    }
+  };
+
+  const createUser = async () => {
+    if (!newUser.name.trim() || !newUser.email.trim()) {
+      toast.error("Le nom et l'email sont obligatoires");
+      return;
+    }
+    
+    try {
+      const userData = {
+        name: newUser.name.trim(),
+        email: newUser.email.trim().toLowerCase(),
+        role: newUser.role,
+        salon_id: newUser.role === 'salon_owner' && newUser.salon_id ? newUser.salon_id : null
+      };
+      
+      const response = await axios.post(`${API}/founder/users`, userData, { withCredentials: true });
+      setCreatedUser(response.data);
+      setShowCreateDialog(false);
+      setShowPasswordDialog(true);
+      setNewUser({ name: "", email: "", role: "client", salon_id: "" });
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la creation");
+    }
+  };
+
+  const deleteUser = async (userId) => {
+    if (!confirm("Etes-vous sur de vouloir supprimer cet utilisateur ?")) return;
+    
+    try {
+      await axios.delete(`${API}/founder/users/${userId}`, { withCredentials: true });
+      toast.success("Utilisateur supprime");
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la suppression");
+    }
+  };
+
   const updateRole = async (userId, newRole) => {
     try {
       await axios.put(`${API}/founder/users/${userId}/role`, { role: newRole }, { withCredentials: true });
@@ -509,6 +561,11 @@ const UsersManagement = () => {
     } catch (error) {
       toast.error("Erreur lors de la mise a jour");
     }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copie dans le presse-papier");
   };
 
   const roleColors = {
@@ -525,10 +582,139 @@ const UsersManagement = () => {
 
   return (
     <div className="space-y-6" data-testid="users-management">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion des Utilisateurs</h1>
-        <p className="text-slate-400">{users.length} utilisateurs enregistres</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion des Utilisateurs</h1>
+          <p className="text-slate-400">{users.length} utilisateurs enregistres</p>
+        </div>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-indigo-600 hover:bg-indigo-700" data-testid="create-user-btn">
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvel utilisateur
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Creer un nouvel utilisateur</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom complet *</label>
+                <Input
+                  placeholder="Ex: Jean Dupont"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="user-name-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Email *</label>
+                <Input
+                  type="email"
+                  placeholder="email@exemple.com"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="user-email-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Role</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-white"
+                  data-testid="user-role-select"
+                >
+                  <option value="client">Client</option>
+                  <option value="salon_owner">Proprietaire de salon</option>
+                </select>
+              </div>
+              {newUser.role === 'salon_owner' && salons.length > 0 && (
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Assigner a un salon</label>
+                  <select
+                    value={newUser.salon_id}
+                    onChange={(e) => setNewUser({...newUser, salon_id: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-white"
+                    data-testid="user-salon-select"
+                  >
+                    <option value="">-- Selectionner un salon --</option>
+                    {salons.map(s => (
+                      <option key={s.salon_id} value={s.salon_id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="bg-slate-900 rounded-lg p-3 text-sm text-slate-400">
+                <p>Un mot de passe temporaire sera genere. L'utilisateur devra le changer a la premiere connexion.</p>
+              </div>
+              <Button 
+                onClick={createUser} 
+                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                data-testid="submit-user-btn"
+              >
+                Creer l'utilisateur
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Utilisateur cree avec succes</DialogTitle>
+          </DialogHeader>
+          {createdUser && (
+            <div className="space-y-4 mt-4">
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                <p className="text-green-400 text-sm mb-2">Partagez ces informations avec l'utilisateur :</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between bg-slate-900 rounded px-3 py-2">
+                    <span className="text-slate-400 text-sm">Email:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-mono">{createdUser.email}</span>
+                      <button 
+                        onClick={() => copyToClipboard(createdUser.email)}
+                        className="text-indigo-400 hover:text-indigo-300"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-900 rounded px-3 py-2">
+                    <span className="text-slate-400 text-sm">Mot de passe:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-400 font-mono font-bold">{createdUser.temporary_password}</span>
+                      <button 
+                        onClick={() => copyToClipboard(createdUser.temporary_password)}
+                        className="text-indigo-400 hover:text-indigo-300"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-slate-500 text-xs">L'utilisateur devra changer son mot de passe a la premiere connexion.</p>
+              <Button 
+                onClick={() => setShowPasswordDialog(false)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700"
+              >
+                Fermer
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -565,16 +751,30 @@ const UsersManagement = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <select
-                      value={user.role}
-                      onChange={(e) => updateRole(user.user_id, e.target.value)}
-                      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-white text-sm"
-                      data-testid={`role-select-${user.user_id}`}
-                    >
-                      <option value="client">Client</option>
-                      <option value="salon_owner">Proprietaire</option>
-                      <option value="founder">Fondateur</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={user.role}
+                        onChange={(e) => updateRole(user.user_id, e.target.value)}
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-white text-sm"
+                        data-testid={`role-select-${user.user_id}`}
+                      >
+                        <option value="client">Client</option>
+                        <option value="salon_owner">Proprietaire</option>
+                        <option value="founder">Fondateur</option>
+                      </select>
+                      {user.role !== 'founder' && (
+                        <button
+                          onClick={() => deleteUser(user.user_id)}
+                          className="text-red-400 hover:text-red-300 p-1"
+                          title="Supprimer"
+                          data-testid={`delete-user-${user.user_id}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
