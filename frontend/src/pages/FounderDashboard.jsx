@@ -248,12 +248,17 @@ const FounderOverview = () => {
 // Salons Management Component
 const SalonsManagement = () => {
   const [salons, setSalons] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedSalon, setSelectedSalon] = useState(null);
   const [newSalon, setNewSalon] = useState({ name: "", address: "", phone: "", description: "" });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchSalons();
+    fetchUsers();
   }, []);
 
   const fetchSalons = async () => {
@@ -267,6 +272,15 @@ const SalonsManagement = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(`${API}/founder/users`, { withCredentials: true });
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
   const createSalon = async () => {
     try {
       await axios.post(`${API}/salons`, newSalon, { withCredentials: true });
@@ -277,6 +291,26 @@ const SalonsManagement = () => {
     } catch (error) {
       toast.error("Erreur lors de la creation du salon");
     }
+  };
+
+  const assignOwner = async (userId) => {
+    if (!selectedSalon) return;
+    try {
+      await axios.put(`${API}/salons/${selectedSalon.salon_id}/owner`, { owner_id: userId }, { withCredentials: true });
+      toast.success("Proprietaire assigne avec succes");
+      setShowAssignDialog(false);
+      setSelectedSalon(null);
+      fetchSalons();
+      fetchUsers();
+    } catch (error) {
+      toast.error("Erreur lors de l'assignation");
+    }
+  };
+
+  const getOwnerName = (ownerId) => {
+    if (!ownerId) return null;
+    const owner = users.find(u => u.user_id === ownerId);
+    return owner ? owner.name : null;
   };
 
   return (
@@ -338,6 +372,52 @@ const SalonsManagement = () => {
         </Dialog>
       </div>
 
+      {/* Assign Owner Dialog */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Assigner un proprietaire</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <p className="text-slate-400 mb-4">
+              Salon : <span className="text-white font-medium">{selectedSalon?.name}</span>
+            </p>
+            <p className="text-sm text-slate-500 mb-4">
+              Selectionnez un utilisateur pour le nommer proprietaire de ce salon. 
+              Il pourra ensuite gerer les coiffeurs, coupes et rendez-vous.
+            </p>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {users.filter(u => u.role !== 'founder').map((user) => (
+                <button
+                  key={user.user_id}
+                  onClick={() => assignOwner(user.user_id)}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-900 hover:bg-slate-700 transition-colors text-left"
+                  data-testid={`assign-user-${user.user_id}`}
+                >
+                  <img 
+                    src={user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=4F46E5&color=fff`}
+                    alt={user.name}
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{user.name}</p>
+                    <p className="text-slate-500 text-sm">{user.email}</p>
+                  </div>
+                  {user.role === 'salon_owner' && (
+                    <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-full">
+                      Proprietaire
+                    </span>
+                  )}
+                </button>
+              ))}
+              {users.filter(u => u.role !== 'founder').length === 0 && (
+                <p className="text-slate-500 text-center py-4">Aucun utilisateur disponible</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
@@ -357,12 +437,41 @@ const SalonsManagement = () => {
               data-testid={`salon-card-${salon.salon_id}`}
             >
               <h3 className="font-heading font-semibold text-white mb-2">{salon.name}</h3>
-              <p className="text-slate-400 text-sm mb-4">{salon.address}</p>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">{salon.phone}</span>
-                <span className={`px-2 py-1 rounded-full text-xs ${salon.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                  {salon.is_active ? 'Actif' : 'Inactif'}
-                </span>
+              <p className="text-slate-400 text-sm mb-2">{salon.address}</p>
+              <p className="text-slate-500 text-sm mb-4">{salon.phone}</p>
+              
+              {/* Owner Info */}
+              <div className="bg-slate-900 rounded-lg p-3 mb-4">
+                <p className="text-xs text-slate-500 mb-1">Proprietaire</p>
+                {salon.owner_id ? (
+                  <p className="text-white text-sm font-medium">{getOwnerName(salon.owner_id) || 'Utilisateur assigne'}</p>
+                ) : (
+                  <p className="text-amber-400 text-sm">Non assigne</p>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedSalon(salon);
+                    setShowAssignDialog(true);
+                  }}
+                  className="flex-1 border-slate-700 text-white hover:bg-slate-700"
+                  data-testid={`assign-owner-btn-${salon.salon_id}`}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  {salon.owner_id ? 'Changer' : 'Assigner'}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/salon')}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  data-testid={`manage-salon-btn-${salon.salon_id}`}
+                >
+                  Gerer
+                </Button>
               </div>
             </div>
           ))}

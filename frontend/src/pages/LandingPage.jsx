@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "../App";
 import { Button } from "../components/ui/button";
 import { motion } from "framer-motion";
@@ -16,20 +16,10 @@ import {
 } from "lucide-react";
 
 const LandingPage = () => {
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, loading } = useAuth();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-  // Redirection automatique pour les utilisateurs avec un role specifique (fondateur ou salon_owner uniquement)
-  useEffect(() => {
-    if (user) {
-      if (user.role === 'founder') {
-        window.location.href = '/founder';
-      } else if (user.role === 'salon_owner') {
-        window.location.href = '/salon';
-      }
-      // Les clients restent sur la landing page
-    }
-  }, [user]);
+  // Pas de redirection automatique - l'utilisateur choisit ou aller
 
   const features = [
     {

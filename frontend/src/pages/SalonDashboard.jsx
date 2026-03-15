@@ -21,8 +21,8 @@ import {
   Clock,
   DollarSign,
   CheckCircle,
-  XCircle,
-  Eye
+  Store,
+  ChevronDown
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -39,23 +39,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [salons, setSalons] = useState([]);
+  const [selectedSalonId, setSelectedSalonId] = useState(null);
   const [salon, setSalon] = useState(null);
 
   useEffect(() => {
-    if (user?.salon_id) {
-      fetchSalon();
+    if (user?.role === 'founder') {
+      // Fondateur: charger tous les salons
+      fetchAllSalons();
+    } else if (user?.salon_id) {
+      // Proprietaire: charger son salon
+      setSelectedSalonId(user.salon_id);
+      fetchSalon(user.salon_id);
     }
   }, [user]);
 
-  const fetchSalon = async () => {
+  useEffect(() => {
+    if (selectedSalonId) {
+      fetchSalon(selectedSalonId);
+    }
+  }, [selectedSalonId]);
+
+  const fetchAllSalons = async () => {
     try {
-      const response = await axios.get(`${API}/salons/${user.salon_id}`);
+      const response = await axios.get(`${API}/salons`);
+      setSalons(response.data);
+      if (response.data.length > 0) {
+        setSelectedSalonId(response.data[0].salon_id);
+      }
+    } catch (error) {
+      console.error("Error fetching salons:", error);
+    }
+  };
+
+  const fetchSalon = async (salonId) => {
+    try {
+      const response = await axios.get(`${API}/salons/${salonId}`);
       setSalon(response.data);
     } catch (error) {
       console.error("Error fetching salon:", error);
@@ -79,6 +110,22 @@ const SalonDashboard = () => {
     return location.pathname.startsWith(path);
   };
 
+  // Si pas de salon selectionne et pas fondateur
+  if (!selectedSalonId && user?.role !== 'founder') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center max-w-md">
+          <Store className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+          <h2 className="text-xl font-heading font-bold text-white mb-2">Aucun salon assigne</h2>
+          <p className="text-slate-400 mb-6">Contactez l'administrateur pour vous assigner a un salon.</p>
+          <Button onClick={() => navigate("/")} variant="outline" className="border-slate-700 text-white">
+            Retour a l'accueil
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-layout">
       {/* Sidebar */}
@@ -88,10 +135,36 @@ const SalonDashboard = () => {
             <Scissors className="h-8 w-8 text-indigo-500" />
             <div>
               <h1 className="font-heading font-bold text-white text-lg">AfroCrown</h1>
-              <p className="text-xs text-slate-500">{salon?.name || "Mon Salon"}</p>
+              <p className="text-xs text-slate-500">Espace Salon</p>
             </div>
           </div>
         </div>
+
+        {/* Salon Selector (pour fondateur) */}
+        {user?.role === 'founder' && salons.length > 0 && (
+          <div className="p-4 border-b border-slate-800">
+            <label className="text-xs text-slate-500 mb-2 block">Salon actif</label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between border-slate-700 text-white bg-slate-800 hover:bg-slate-700">
+                  <span className="truncate">{salon?.name || "Selectionner"}</span>
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700">
+                {salons.map((s) => (
+                  <DropdownMenuItem 
+                    key={s.salon_id}
+                    onClick={() => setSelectedSalonId(s.salon_id)}
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    {s.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
 
         <nav className="p-4 space-y-1">
           {menuItems.map((item) => (
@@ -109,6 +182,19 @@ const SalonDashboard = () => {
             </button>
           ))}
         </nav>
+
+        {/* Lien vers dashboard fondateur */}
+        {user?.role === 'founder' && (
+          <div className="px-4 py-2">
+            <button
+              onClick={() => navigate('/founder')}
+              className="sidebar-item w-full text-indigo-400 hover:bg-indigo-500/10"
+            >
+              <LayoutDashboard className="h-5 w-5" />
+              <span>Dashboard Admin</span>
+            </button>
+          </div>
+        )}
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
           <div className="flex items-center gap-3 mb-4 px-4">
@@ -161,13 +247,13 @@ const SalonDashboard = () => {
         {/* Content */}
         <div className="dashboard-content">
           <Routes>
-            <Route index element={<SalonOverview salonId={user?.salon_id} />} />
-            <Route path="barbers" element={<BarbersManagement salonId={user?.salon_id} />} />
-            <Route path="appointments" element={<AppointmentsManagement salonId={user?.salon_id} />} />
-            <Route path="haircuts" element={<HaircutsManagement salonId={user?.salon_id} />} />
-            <Route path="products" element={<ProductsManagement salonId={user?.salon_id} />} />
-            <Route path="stats" element={<SalonStats salonId={user?.salon_id} />} />
-            <Route path="settings" element={<SalonSettings salon={salon} onUpdate={fetchSalon} />} />
+            <Route index element={<SalonOverview salonId={selectedSalonId} />} />
+            <Route path="barbers" element={<BarbersManagement salonId={selectedSalonId} />} />
+            <Route path="appointments" element={<AppointmentsManagement salonId={selectedSalonId} />} />
+            <Route path="haircuts" element={<HaircutsManagement salonId={selectedSalonId} />} />
+            <Route path="products" element={<ProductsManagement />} />
+            <Route path="stats" element={<SalonStats salonId={selectedSalonId} />} />
+            <Route path="settings" element={<SalonSettings salon={salon} onUpdate={() => fetchSalon(selectedSalonId)} />} />
           </Routes>
         </div>
       </main>
@@ -191,6 +277,8 @@ const SalonOverview = ({ salonId }) => {
   useEffect(() => {
     if (salonId) {
       fetchStats();
+    } else {
+      setLoading(false);
     }
   }, [salonId]);
 
@@ -208,7 +296,8 @@ const SalonOverview = ({ salonId }) => {
   if (!salonId) {
     return (
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
-        <p className="text-slate-400">Aucun salon assigne. Contactez l'administrateur.</p>
+        <Store className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+        <p className="text-slate-400">Selectionnez un salon pour voir les statistiques.</p>
       </div>
     );
   }
@@ -234,7 +323,7 @@ const SalonOverview = ({ salonId }) => {
     <div className="space-y-8" data-testid="salon-overview">
       <div>
         <h1 className="text-2xl font-heading font-bold text-white mb-2">Tableau de bord</h1>
-        <p className="text-slate-400">Vue d'ensemble de votre salon</p>
+        <p className="text-slate-400">Vue d'ensemble du salon</p>
       </div>
 
       <div className="stats-grid">
@@ -263,11 +352,13 @@ const BarbersManagement = ({ salonId }) => {
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [newBarber, setNewBarber] = useState({ name: "", specialties: [], bio: "" });
+  const [newBarber, setNewBarber] = useState({ name: "", specialties: "", bio: "" });
 
   useEffect(() => {
     if (salonId) {
       fetchBarbers();
+    } else {
+      setLoading(false);
     }
   }, [salonId]);
 
@@ -283,16 +374,36 @@ const BarbersManagement = ({ salonId }) => {
   };
 
   const createBarber = async () => {
+    if (!newBarber.name.trim()) {
+      toast.error("Le nom est obligatoire");
+      return;
+    }
+    
     try {
-      await axios.post(`${API}/salons/${salonId}/barbers`, newBarber, { withCredentials: true });
+      const barberData = {
+        name: newBarber.name.trim(),
+        specialties: newBarber.specialties ? newBarber.specialties.split(",").map(s => s.trim()).filter(s => s) : [],
+        bio: newBarber.bio.trim() || null
+      };
+      
+      await axios.post(`${API}/salons/${salonId}/barbers`, barberData, { withCredentials: true });
       toast.success("Coiffeur ajoute avec succes");
       setShowCreateDialog(false);
-      setNewBarber({ name: "", specialties: [], bio: "" });
+      setNewBarber({ name: "", specialties: "", bio: "" });
       fetchBarbers();
     } catch (error) {
-      toast.error("Erreur lors de l'ajout du coiffeur");
+      console.error("Error creating barber:", error);
+      toast.error(error.response?.data?.detail || "Erreur lors de l'ajout du coiffeur");
     }
   };
+
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour gerer les coiffeurs.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="barbers-management">
@@ -313,33 +424,42 @@ const BarbersManagement = ({ salonId }) => {
               <DialogTitle className="text-white">Ajouter un coiffeur</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <Input
-                placeholder="Nom du coiffeur"
-                value={newBarber.name}
-                onChange={(e) => setNewBarber({...newBarber, name: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="barber-name-input"
-              />
-              <Input
-                placeholder="Specialites (separees par des virgules)"
-                value={newBarber.specialties.join(", ")}
-                onChange={(e) => setNewBarber({...newBarber, specialties: e.target.value.split(",").map(s => s.trim())})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="barber-specialties-input"
-              />
-              <Textarea
-                placeholder="Bio"
-                value={newBarber.bio}
-                onChange={(e) => setNewBarber({...newBarber, bio: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="barber-bio-input"
-              />
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
+                <Input
+                  placeholder="Ex: Marcus Johnson"
+                  value={newBarber.name}
+                  onChange={(e) => setNewBarber({...newBarber, name: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="barber-name-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Specialites (separees par des virgules)</label>
+                <Input
+                  placeholder="Ex: Fade, Degrade, Afro"
+                  value={newBarber.specialties}
+                  onChange={(e) => setNewBarber({...newBarber, specialties: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="barber-specialties-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Bio</label>
+                <Textarea
+                  placeholder="Ex: Expert en degrades avec 10 ans d'experience"
+                  value={newBarber.bio}
+                  onChange={(e) => setNewBarber({...newBarber, bio: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="barber-bio-input"
+                />
+              </div>
               <Button 
                 onClick={createBarber} 
                 className="w-full bg-indigo-600 hover:bg-indigo-700"
                 data-testid="submit-barber-btn"
               >
-                Ajouter
+                Ajouter le coiffeur
               </Button>
             </div>
           </DialogContent>
@@ -366,11 +486,15 @@ const BarbersManagement = ({ salonId }) => {
             >
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 bg-indigo-600/20 rounded-full flex items-center justify-center">
-                  <Users className="h-6 w-6 text-indigo-400" />
+                  {barber.image_url ? (
+                    <img src={barber.image_url} alt={barber.name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <Users className="h-6 w-6 text-indigo-400" />
+                  )}
                 </div>
                 <div>
                   <h3 className="font-heading font-semibold text-white">{barber.name}</h3>
-                  <p className="text-slate-400 text-sm">{barber.specialties.join(", ") || "Toutes coupes"}</p>
+                  <p className="text-slate-400 text-sm">{barber.specialties?.join(", ") || "Toutes coupes"}</p>
                 </div>
               </div>
               {barber.bio && <p className="text-slate-400 text-sm">{barber.bio}</p>}
@@ -390,6 +514,8 @@ const AppointmentsManagement = ({ salonId }) => {
   useEffect(() => {
     if (salonId) {
       fetchAppointments();
+    } else {
+      setLoading(false);
     }
   }, [salonId]);
 
@@ -428,6 +554,14 @@ const AppointmentsManagement = ({ salonId }) => {
     cancelled: "Annule"
   };
 
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour voir les rendez-vous.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" data-testid="appointments-management">
       <div>
@@ -446,45 +580,48 @@ const AppointmentsManagement = ({ salonId }) => {
         </div>
       ) : (
         <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-900">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Client</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Heure</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Prix</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Statut</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700">
-              {appointments.map((apt) => (
-                <tr key={apt.appointment_id} data-testid={`appointment-row-${apt.appointment_id}`}>
-                  <td className="px-6 py-4 text-white">{apt.client_name || "Client anonyme"}</td>
-                  <td className="px-6 py-4 text-slate-400">{apt.appointment_date}</td>
-                  <td className="px-6 py-4 text-slate-400">{apt.appointment_time}</td>
-                  <td className="px-6 py-4 text-white">{apt.total_price} EUR</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${statusColors[apt.status]}`}>
-                      {statusLabels[apt.status]}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <select
-                      value={apt.status}
-                      onChange={(e) => updateStatus(apt.appointment_id, e.target.value)}
-                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-                    >
-                      <option value="pending">En attente</option>
-                      <option value="confirmed">Confirme</option>
-                      <option value="completed">Termine</option>
-                      <option value="cancelled">Annule</option>
-                    </select>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-900">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Client</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Heure</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Prix</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Statut</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {appointments.map((apt) => (
+                  <tr key={apt.appointment_id} data-testid={`appointment-row-${apt.appointment_id}`}>
+                    <td className="px-6 py-4 text-white">{apt.client_name || "Client anonyme"}</td>
+                    <td className="px-6 py-4 text-slate-400">{apt.appointment_date}</td>
+                    <td className="px-6 py-4 text-slate-400">{apt.appointment_time}</td>
+                    <td className="px-6 py-4 text-white">{apt.total_price} EUR</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${statusColors[apt.status]}`}>
+                        {statusLabels[apt.status]}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Select value={apt.status} onValueChange={(value) => updateStatus(apt.appointment_id, value)}>
+                        <SelectTrigger className="w-32 bg-slate-900 border-slate-700 text-white text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700">
+                          <SelectItem value="pending">En attente</SelectItem>
+                          <SelectItem value="confirmed">Confirme</SelectItem>
+                          <SelectItem value="completed">Termine</SelectItem>
+                          <SelectItem value="cancelled">Annule</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -500,13 +637,15 @@ const HaircutsManagement = ({ salonId }) => {
     name: "", 
     description: "", 
     price: "", 
-    duration_minutes: 30, 
+    duration_minutes: "30", 
     category: "classic" 
   });
 
   useEffect(() => {
     if (salonId) {
       fetchHaircuts();
+    } else {
+      setLoading(false);
     }
   }, [salonId]);
 
@@ -522,19 +661,38 @@ const HaircutsManagement = ({ salonId }) => {
   };
 
   const createHaircut = async () => {
+    if (!newHaircut.name.trim() || !newHaircut.price) {
+      toast.error("Le nom et le prix sont obligatoires");
+      return;
+    }
+    
     try {
-      await axios.post(`${API}/salons/${salonId}/haircuts`, {
-        ...newHaircut,
-        price: parseFloat(newHaircut.price)
-      }, { withCredentials: true });
+      const haircutData = {
+        name: newHaircut.name.trim(),
+        description: newHaircut.description.trim() || null,
+        price: parseFloat(newHaircut.price),
+        duration_minutes: parseInt(newHaircut.duration_minutes) || 30,
+        category: newHaircut.category
+      };
+      
+      await axios.post(`${API}/salons/${salonId}/haircuts`, haircutData, { withCredentials: true });
       toast.success("Coupe ajoutee avec succes");
       setShowCreateDialog(false);
-      setNewHaircut({ name: "", description: "", price: "", duration_minutes: 30, category: "classic" });
+      setNewHaircut({ name: "", description: "", price: "", duration_minutes: "30", category: "classic" });
       fetchHaircuts();
     } catch (error) {
-      toast.error("Erreur lors de l'ajout de la coupe");
+      console.error("Error creating haircut:", error);
+      toast.error(error.response?.data?.detail || "Erreur lors de l'ajout de la coupe");
     }
   };
+
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour gerer les coupes.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="haircuts-management">
@@ -555,54 +713,71 @@ const HaircutsManagement = ({ salonId }) => {
               <DialogTitle className="text-white">Ajouter une coupe</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <Input
-                placeholder="Nom de la coupe"
-                value={newHaircut.name}
-                onChange={(e) => setNewHaircut({...newHaircut, name: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="haircut-name-input"
-              />
-              <Textarea
-                placeholder="Description"
-                value={newHaircut.description}
-                onChange={(e) => setNewHaircut({...newHaircut, description: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="haircut-description-input"
-              />
-              <Input
-                type="number"
-                placeholder="Prix (EUR)"
-                value={newHaircut.price}
-                onChange={(e) => setNewHaircut({...newHaircut, price: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="haircut-price-input"
-              />
-              <Input
-                type="number"
-                placeholder="Duree (minutes)"
-                value={newHaircut.duration_minutes}
-                onChange={(e) => setNewHaircut({...newHaircut, duration_minutes: parseInt(e.target.value)})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="haircut-duration-input"
-              />
-              <Select value={newHaircut.category} onValueChange={(v) => setNewHaircut({...newHaircut, category: v})}>
-                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
-                  <SelectValue placeholder="Categorie" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="classic">Classique</SelectItem>
-                  <SelectItem value="fade">Degrade</SelectItem>
-                  <SelectItem value="afro">Afro</SelectItem>
-                  <SelectItem value="braids">Tresses</SelectItem>
-                  <SelectItem value="locks">Locks</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom de la coupe *</label>
+                <Input
+                  placeholder="Ex: Degrade Classique"
+                  value={newHaircut.name}
+                  onChange={(e) => setNewHaircut({...newHaircut, name: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="haircut-name-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Description</label>
+                <Textarea
+                  placeholder="Ex: Degrade progressif avec finition nette"
+                  value={newHaircut.description}
+                  onChange={(e) => setNewHaircut({...newHaircut, description: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="haircut-description-input"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Prix (EUR) *</label>
+                  <Input
+                    type="number"
+                    placeholder="25"
+                    value={newHaircut.price}
+                    onChange={(e) => setNewHaircut({...newHaircut, price: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                    data-testid="haircut-price-input"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Duree (min)</label>
+                  <Input
+                    type="number"
+                    placeholder="30"
+                    value={newHaircut.duration_minutes}
+                    onChange={(e) => setNewHaircut({...newHaircut, duration_minutes: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                    data-testid="haircut-duration-input"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Categorie</label>
+                <Select value={newHaircut.category} onValueChange={(v) => setNewHaircut({...newHaircut, category: v})}>
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Categorie" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="classic">Classique</SelectItem>
+                    <SelectItem value="fade">Degrade</SelectItem>
+                    <SelectItem value="afro">Afro</SelectItem>
+                    <SelectItem value="braids">Tresses</SelectItem>
+                    <SelectItem value="locks">Locks</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button 
                 onClick={createHaircut} 
                 className="w-full bg-indigo-600 hover:bg-indigo-700"
                 data-testid="submit-haircut-btn"
               >
-                Ajouter
+                Ajouter la coupe
               </Button>
             </div>
           </DialogContent>
@@ -627,7 +802,11 @@ const HaircutsManagement = ({ salonId }) => {
               data-testid={`haircut-card-${haircut.haircut_id}`}
             >
               <div className="h-48 bg-slate-700 flex items-center justify-center">
-                <Scissors className="h-12 w-12 text-slate-600" />
+                {haircut.image_url ? (
+                  <img src={haircut.image_url} alt={haircut.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Scissors className="h-12 w-12 text-slate-600" />
+                )}
               </div>
               <div className="p-4">
                 <h3 className="font-heading font-semibold text-white mb-2">{haircut.name}</h3>
@@ -646,7 +825,7 @@ const HaircutsManagement = ({ salonId }) => {
 };
 
 // Products Management Component
-const ProductsManagement = ({ salonId }) => {
+const ProductsManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -655,7 +834,7 @@ const ProductsManagement = ({ salonId }) => {
     description: "", 
     price: "", 
     category: "hair_care",
-    stock: 0
+    stock: "10"
   });
 
   useEffect(() => {
@@ -674,17 +853,28 @@ const ProductsManagement = ({ salonId }) => {
   };
 
   const createProduct = async () => {
+    if (!newProduct.name.trim() || !newProduct.price) {
+      toast.error("Le nom et le prix sont obligatoires");
+      return;
+    }
+    
     try {
-      await axios.post(`${API}/products`, {
-        ...newProduct,
-        price: parseFloat(newProduct.price)
-      }, { withCredentials: true });
+      const productData = {
+        name: newProduct.name.trim(),
+        description: newProduct.description.trim() || null,
+        price: parseFloat(newProduct.price),
+        category: newProduct.category,
+        stock: parseInt(newProduct.stock) || 0
+      };
+      
+      await axios.post(`${API}/products`, productData, { withCredentials: true });
       toast.success("Produit ajoute avec succes");
       setShowCreateDialog(false);
-      setNewProduct({ name: "", description: "", price: "", category: "hair_care", stock: 0 });
+      setNewProduct({ name: "", description: "", price: "", category: "hair_care", stock: "10" });
       fetchProducts();
     } catch (error) {
-      toast.error("Erreur lors de l'ajout du produit");
+      console.error("Error creating product:", error);
+      toast.error(error.response?.data?.detail || "Erreur lors de l'ajout du produit");
     }
   };
 
@@ -707,53 +897,70 @@ const ProductsManagement = ({ salonId }) => {
               <DialogTitle className="text-white">Ajouter un produit</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <Input
-                placeholder="Nom du produit"
-                value={newProduct.name}
-                onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="product-name-input"
-              />
-              <Textarea
-                placeholder="Description"
-                value={newProduct.description}
-                onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="product-description-input"
-              />
-              <Input
-                type="number"
-                placeholder="Prix (EUR)"
-                value={newProduct.price}
-                onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="product-price-input"
-              />
-              <Input
-                type="number"
-                placeholder="Stock"
-                value={newProduct.stock}
-                onChange={(e) => setNewProduct({...newProduct, stock: parseInt(e.target.value)})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="product-stock-input"
-              />
-              <Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}>
-                <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
-                  <SelectValue placeholder="Categorie" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="hair_care">Soins capillaires</SelectItem>
-                  <SelectItem value="styling">Coiffage</SelectItem>
-                  <SelectItem value="tools">Outils</SelectItem>
-                  <SelectItem value="accessories">Accessoires</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom du produit *</label>
+                <Input
+                  placeholder="Ex: Huile de Ricin"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="product-name-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Description</label>
+                <Textarea
+                  placeholder="Ex: Huile 100% naturelle pour la pousse des cheveux"
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="product-description-input"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Prix (EUR) *</label>
+                  <Input
+                    type="number"
+                    placeholder="15"
+                    value={newProduct.price}
+                    onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                    data-testid="product-price-input"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Stock</label>
+                  <Input
+                    type="number"
+                    placeholder="10"
+                    value={newProduct.stock}
+                    onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                    data-testid="product-stock-input"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Categorie</label>
+                <Select value={newProduct.category} onValueChange={(v) => setNewProduct({...newProduct, category: v})}>
+                  <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                    <SelectValue placeholder="Categorie" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="hair_care">Soins capillaires</SelectItem>
+                    <SelectItem value="styling">Coiffage</SelectItem>
+                    <SelectItem value="tools">Outils</SelectItem>
+                    <SelectItem value="accessories">Accessoires</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button 
                 onClick={createProduct} 
                 className="w-full bg-indigo-600 hover:bg-indigo-700"
                 data-testid="submit-product-btn"
               >
-                Ajouter
+                Ajouter le produit
               </Button>
             </div>
           </DialogContent>
@@ -770,22 +977,26 @@ const ProductsManagement = ({ salonId }) => {
           <p className="text-slate-400">Aucun produit ajoute</p>
         </div>
       ) : (
-        <div className="product-grid">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <div 
               key={product.product_id}
               className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-indigo-500/50 transition-all"
               data-testid={`product-card-${product.product_id}`}
             >
-              <div className="h-48 bg-slate-700 flex items-center justify-center">
-                <ShoppingBag className="h-12 w-12 text-slate-600" />
+              <div className="h-40 bg-slate-700 flex items-center justify-center">
+                {product.image_url ? (
+                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <ShoppingBag className="h-10 w-10 text-slate-600" />
+                )}
               </div>
               <div className="p-4">
-                <h3 className="font-heading font-semibold text-white mb-2">{product.name}</h3>
-                <p className="text-slate-400 text-sm mb-4 line-clamp-2">{product.description}</p>
+                <h3 className="font-heading font-semibold text-white mb-1 text-sm">{product.name}</h3>
+                <p className="text-slate-400 text-xs mb-3 line-clamp-2">{product.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-indigo-400 font-bold">{product.price} EUR</span>
-                  <span className="text-slate-500 text-sm">Stock: {product.stock}</span>
+                  <span className="text-slate-500 text-xs">Stock: {product.stock}</span>
                 </div>
               </div>
             </div>
@@ -812,11 +1023,12 @@ const SalonStats = ({ salonId }) => {
 // Salon Settings Component
 const SalonSettings = ({ salon, onUpdate }) => {
   const [formData, setFormData] = useState({
-    name: salon?.name || "",
-    address: salon?.address || "",
-    phone: salon?.phone || "",
-    description: salon?.description || ""
+    name: "",
+    address: "",
+    phone: "",
+    description: ""
   });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (salon) {
@@ -830,14 +1042,27 @@ const SalonSettings = ({ salon, onUpdate }) => {
   }, [salon]);
 
   const handleSubmit = async () => {
+    if (!salon?.salon_id) return;
+    
+    setSaving(true);
     try {
       await axios.put(`${API}/salons/${salon.salon_id}`, formData, { withCredentials: true });
       toast.success("Parametres mis a jour");
       onUpdate();
     } catch (error) {
       toast.error("Erreur lors de la mise a jour");
+    } finally {
+      setSaving(false);
     }
   };
+
+  if (!salon) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour modifier ses parametres.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="salon-settings">
@@ -883,10 +1108,11 @@ const SalonSettings = ({ salon, onUpdate }) => {
           </div>
           <Button 
             onClick={handleSubmit}
+            disabled={saving}
             className="bg-indigo-600 hover:bg-indigo-700"
             data-testid="save-settings-btn"
           >
-            Enregistrer
+            {saving ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </div>
       </div>
