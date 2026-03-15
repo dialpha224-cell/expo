@@ -21,7 +21,10 @@ import {
   CreditCard,
   Banknote,
   Check,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Coffee,
+  Cookie
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +47,10 @@ const BookingPage = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [clientNotes, setClientNotes] = useState("");
+  
+  // Premium option
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumServices, setPremiumServices] = useState({ drinks: [], snacks: [], has_premium: false });
   
   // Available time slots
   const timeSlots = [
@@ -75,12 +82,15 @@ const BookingPage = () => {
 
   const fetchSalonData = async (salonId) => {
     try {
-      const [barbersRes, haircutsRes] = await Promise.all([
+      const [barbersRes, haircutsRes, premiumRes] = await Promise.all([
         axios.get(`${API}/salons/${salonId}/barbers`),
-        axios.get(`${API}/salons/${salonId}/haircuts`)
+        axios.get(`${API}/salons/${salonId}/haircuts`),
+        axios.get(`${API}/salons/${salonId}/premium-services`)
       ]);
       setBarbers(barbersRes.data);
       setHaircuts(haircutsRes.data);
+      setPremiumServices(premiumRes.data);
+      setIsPremium(false); // Reset premium choice when salon changes
     } catch (error) {
       console.error("Error fetching salon data:", error);
     }
@@ -100,7 +110,8 @@ const BookingPage = () => {
         appointment_date: format(selectedDate, "yyyy-MM-dd"),
         appointment_time: selectedTime,
         client_notes: clientNotes,
-        client_photos: []
+        client_photos: [],
+        is_premium: isPremium
       };
 
       const response = await axios.post(`${API}/appointments`, bookingData, { 
@@ -117,11 +128,12 @@ const BookingPage = () => {
         window.location.href = checkoutResponse.data.url;
       } else {
         // Cash payment - show confirmation
-        toast.success("Reservation confirmee ! Paiement a effectuer au salon.");
+        const premiumMsg = isPremium ? " (Premium avec boisson/snack)" : "";
+        toast.success(`Reservation confirmee${premiumMsg} ! Paiement a effectuer au salon.`);
         navigate(`/booking/confirmation/${response.data.appointment_id}`);
       }
     } catch (error) {
-      toast.error("Erreur lors de la reservation");
+      toast.error(error.response?.data?.detail || "Erreur lors de la reservation");
       console.error("Booking error:", error);
     }
   };
@@ -465,6 +477,69 @@ const BookingPage = () => {
             >
               <h2 className="text-2xl font-heading font-bold text-white">Confirmez votre reservation</h2>
               
+              {/* Premium Option */}
+              {premiumServices.has_premium && (
+                <div className={`rounded-xl p-6 border-2 transition-all ${
+                  isPremium 
+                    ? 'bg-amber-500/10 border-amber-500' 
+                    : 'bg-slate-800 border-slate-700 hover:border-amber-500/50'
+                }`}>
+                  <button
+                    onClick={() => setIsPremium(!isPremium)}
+                    className="w-full text-left"
+                    data-testid="premium-option-btn"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        isPremium ? 'bg-amber-500' : 'bg-slate-700'
+                      }`}>
+                        <Sparkles className={`h-6 w-6 ${isPremium ? 'text-white' : 'text-amber-400'}`} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className={`font-heading font-bold text-lg ${isPremium ? 'text-amber-400' : 'text-white'}`}>
+                            Reservation Premium
+                          </h3>
+                          <span className={`text-lg font-bold ${isPremium ? 'text-amber-400' : 'text-slate-400'}`}>
+                            +20%
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-sm mb-3">
+                          Profitez d'une boisson et d'un snack offerts pendant votre coupe !
+                        </p>
+                        
+                        {/* Show what's included */}
+                        <div className="flex flex-wrap gap-3">
+                          {premiumServices.drinks.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Coffee className="h-4 w-4 text-amber-400" />
+                              <span className="text-slate-300">
+                                {premiumServices.drinks.map(d => d.name).join(", ")}
+                              </span>
+                            </div>
+                          )}
+                          {premiumServices.snacks.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Cookie className="h-4 w-4 text-amber-400" />
+                              <span className="text-slate-300">
+                                {premiumServices.snacks.map(s => s.name).join(", ")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        isPremium 
+                          ? 'border-amber-500 bg-amber-500' 
+                          : 'border-slate-600'
+                      }`}>
+                        {isPremium && <Check className="h-4 w-4 text-white" />}
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+              
               {/* Summary */}
               <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-700">
@@ -493,9 +568,25 @@ const BookingPage = () => {
                   <span className="text-slate-400">Duree</span>
                   <span className="text-white font-medium">{selectedHaircut?.duration_minutes} minutes</span>
                 </div>
+                {isPremium && (
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+                    <span className="text-amber-400 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Option Premium
+                    </span>
+                    <span className="text-amber-400 font-medium">
+                      +{((selectedHaircut?.price || 0) * 0.20).toFixed(2)} EUR
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-white font-bold text-lg">Total</span>
-                  <span className="text-indigo-400 font-bold text-2xl">{selectedHaircut?.price} EUR</span>
+                  <span className="text-indigo-400 font-bold text-2xl">
+                    {isPremium 
+                      ? ((selectedHaircut?.price || 0) * 1.20).toFixed(2)
+                      : selectedHaircut?.price
+                    } EUR
+                  </span>
                 </div>
               </div>
 

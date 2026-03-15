@@ -25,7 +25,8 @@ import {
   ChevronDown,
   HelpCircle,
   Tag,
-  Camera
+  Camera,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -52,6 +53,7 @@ import OnboardingTutorial, { resetOnboarding } from "../components/OnboardingTut
 import NotificationBell from "../components/NotificationBell";
 import PhotoUploader from "../components/PhotoUploader";
 import PromotionsManager from "../components/PromotionsManager";
+import PremiumServicesManager from "../components/PremiumServicesManager";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -107,6 +109,7 @@ const SalonDashboard = () => {
     { icon: Calendar, label: "Rendez-vous", path: "/salon/appointments" },
     { icon: Scissors, label: "Coupes & Tarifs", path: "/salon/haircuts" },
     { icon: Tag, label: "Promotions", path: "/salon/promotions" },
+    { icon: Sparkles, label: "Services Premium", path: "/salon/premium" },
     { icon: ShoppingBag, label: "Produits", path: "/salon/products" },
     { icon: BarChart3, label: "Statistiques", path: "/salon/stats" },
     { icon: Settings, label: "Parametres", path: "/salon/settings" },
@@ -262,6 +265,7 @@ const SalonDashboard = () => {
             <Route path="appointments" element={<AppointmentsManagement salonId={selectedSalonId} />} />
             <Route path="haircuts" element={<HaircutsManagement salonId={selectedSalonId} />} />
             <Route path="promotions" element={<PromotionsPage salonId={selectedSalonId} />} />
+            <Route path="premium" element={<PremiumServicesPage salonId={selectedSalonId} />} />
             <Route path="products" element={<ProductsManagement />} />
             <Route path="stats" element={<SalonStats salonId={selectedSalonId} />} />
             <Route path="settings" element={<SalonSettings salon={salon} onUpdate={() => fetchSalon(selectedSalonId)} />} />
@@ -1232,6 +1236,19 @@ const PromotionsPage = ({ salonId }) => {
   }
 
   return <PromotionsManager salonId={salonId} haircuts={haircuts} />;
+};
+
+// Premium Services Page Component
+const PremiumServicesPage = ({ salonId }) => {
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour gerer les services premium.</p>
+      </div>
+    );
+  }
+
+  return <PremiumServicesManager salonId={salonId} />;
 };
 
 // Products Management Component

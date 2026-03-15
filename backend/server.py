@@ -550,6 +550,7 @@ class AppointmentCreate(BaseModel):
     appointment_time: str
     client_notes: Optional[str] = None
     client_photos: List[str] = []
+    is_premium: bool = False  # Premium reservation with drinks/snacks
 
 class AppointmentResponse(BaseModel):
     appointment_id: str
@@ -565,9 +566,28 @@ class AppointmentResponse(BaseModel):
     payment_method: str = "cash"  # cash, stripe
     payment_status: str = "pending"
     total_price: float = 0.0
+    base_price: float = 0.0
+    premium_fee: float = 0.0
+    is_premium: bool = False
     client_notes: Optional[str] = None
     client_photos: List[str] = []
     created_at: datetime
+
+# Premium Service Models (drinks/snacks offered by salon)
+class PremiumServiceCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str = "drink"  # drink, snack
+    image_url: Optional[str] = None
+
+class PremiumServiceResponse(BaseModel):
+    service_id: str
+    salon_id: str
+    name: str
+    description: Optional[str] = None
+    category: str
+    image_url: Optional[str] = None
+    is_active: bool = True
 
 class ProductCreate(BaseModel):
     name: str
@@ -1795,6 +1815,88 @@ async def get_salon_live_screen(salon_id: str, date: Optional[str] = None):
     }
 
 # =============================================================================
+# PREMIUM SERVICES (Drinks & Snacks for Premium Reservations)
+# =============================================================================
+
+@api_router.post("/salons/{salon_id}/premium-services", response_model=PremiumServiceResponse)
+async def create_premium_service(
+    salon_id: str,
+    service: PremiumServiceCreate,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Add a premium service (drink/snack) to a salon"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    service_id = f"premium_{uuid.uuid4().hex[:12]}"
+    service_doc = {
+        "service_id": service_id,
+        "salon_id": salon_id,
+        "name": service.name,
+        "description": service.description,
+        "category": service.category,
+        "image_url": service.image_url,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.premium_services.insert_one(service_doc)
+    return PremiumServiceResponse(**{k: v for k, v in service_doc.items() if k != "_id" and k != "created_at"})
+
+@api_router.get("/salons/{salon_id}/premium-services")
+async def get_premium_services(salon_id: str, active_only: bool = True):
+    """Get premium services for a salon"""
+    query = {"salon_id": salon_id}
+    if active_only:
+        query["is_active"] = True
+    
+    services = await db.premium_services.find(query, {"_id": 0}).to_list(100)
+    
+    # Group by category
+    drinks = [s for s in services if s.get("category") == "drink"]
+    snacks = [s for s in services if s.get("category") == "snack"]
+    
+    return {
+        "services": services,
+        "drinks": drinks,
+        "snacks": snacks,
+        "has_premium": len(services) > 0
+    }
+
+@api_router.put("/salons/{salon_id}/premium-services/{service_id}")
+async def update_premium_service(
+    salon_id: str,
+    service_id: str,
+    request: Request,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Update a premium service"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    body = await request.json()
+    allowed_fields = ["name", "description", "category", "image_url", "is_active"]
+    update_data = {k: v for k, v in body.items() if k in allowed_fields}
+    
+    await db.premium_services.update_one(
+        {"service_id": service_id, "salon_id": salon_id},
+        {"$set": update_data}
+    )
+    return {"message": "Service mis a jour"}
+
+@api_router.delete("/salons/{salon_id}/premium-services/{service_id}")
+async def delete_premium_service(
+    salon_id: str,
+    service_id: str,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Delete a premium service"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    
+    await db.premium_services.delete_one({"service_id": service_id, "salon_id": salon_id})
+    return {"message": "Service supprime"}
+
+# =============================================================================
 # BARBER ROUTES
 # =============================================================================
 
@@ -2415,7 +2517,26 @@ async def create_appointment(appointment: AppointmentCreate, request: Request):
     }, {"_id": 0})
     
     # Use salon price if exists, otherwise use base price
-    final_price = salon_price["price"] if salon_price else haircut["price"]
+    base_price = salon_price["price"] if salon_price else haircut["price"]
+    
+    # Calculate premium fee if premium reservation (+20%)
+    premium_fee = 0.0
+    if appointment.is_premium:
+        # Check if salon offers premium services
+        premium_services = await db.premium_services.find({
+            "salon_id": appointment.salon_id, 
+            "is_active": True
+        }, {"_id": 0}).to_list(10)
+        
+        if not premium_services:
+            raise HTTPException(
+                status_code=400, 
+                detail="Ce salon ne propose pas de reservation premium"
+            )
+        
+        premium_fee = round(base_price * 0.20, 2)  # +20%
+    
+    final_price = base_price + premium_fee
     
     appointment_id = f"appt_{uuid.uuid4().hex[:12]}"
     appointment_doc = {
@@ -2431,7 +2552,10 @@ async def create_appointment(appointment: AppointmentCreate, request: Request):
         "status": "pending",
         "payment_method": "cash",
         "payment_status": "pending",
+        "base_price": base_price,
+        "premium_fee": premium_fee,
         "total_price": final_price,
+        "is_premium": appointment.is_premium,
         "client_notes": appointment.client_notes,
         "client_photos": appointment.client_photos,
         "created_at": datetime.now(timezone.utc).isoformat()

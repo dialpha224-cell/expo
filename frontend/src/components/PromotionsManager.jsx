@@ -182,14 +182,14 @@ const PromotionsManager = ({ salonId, haircuts = [] }) => {
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Coupe concernee</label>
                 <Select 
-                  value={newPromotion.haircut_id} 
-                  onValueChange={(v) => setNewPromotion({...newPromotion, haircut_id: v})}
+                  value={newPromotion.haircut_id || "all"} 
+                  onValueChange={(v) => setNewPromotion({...newPromotion, haircut_id: v === "all" ? "" : v})}
                 >
                   <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                     <SelectValue placeholder="Toutes les coupes" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="" className="text-white">Toutes les coupes</SelectItem>
+                    <SelectItem value="all" className="text-white">Toutes les coupes</SelectItem>
                     {haircuts.map(h => (
                       <SelectItem key={h.haircut_id} value={h.haircut_id} className="text-white">
                         {h.name}
