@@ -184,7 +184,7 @@ class SalonResponse(BaseModel):
     phone: str
     description: Optional[str] = None
     owner_id: Optional[str] = None
-    opening_hours: Optional[Dict[str, str]] = None
+    opening_hours: Optional[Dict[str, Any]] = None
     image_url: Optional[str] = None
     rating: float = 0.0
     total_reviews: int = 0
@@ -202,8 +202,11 @@ class BarberResponse(BaseModel):
     salon_id: str
     name: str
     specialties: List[str] = []
+    specialty: Optional[str] = None
     bio: Optional[str] = None
     image_url: Optional[str] = None
+    photo_url: Optional[str] = None
+    experience_years: Optional[int] = None
     rating: float = 0.0
     total_reviews: int = 0
     is_active: bool = True
@@ -219,12 +222,12 @@ class HaircutCreate(BaseModel):
 
 class HaircutResponse(BaseModel):
     haircut_id: str
-    salon_id: str
+    salon_id: Optional[str] = None
     name: str
     description: Optional[str] = None
     price: float
     duration_minutes: int
-    category: str
+    category: str = "classic"
     image_url: Optional[str] = None
     is_active: bool = True
     created_at: datetime
@@ -994,8 +997,15 @@ async def create_haircut(salon_id: str, haircut: HaircutCreate, user: UserBase =
 
 @api_router.get("/salons/{salon_id}/haircuts", response_model=List[HaircutResponse])
 async def list_haircuts(salon_id: str):
-    """List haircuts for salon"""
-    haircuts = await db.haircuts.find({"salon_id": salon_id, "is_active": True}, {"_id": 0}).to_list(100)
+    """List haircuts for salon (includes global haircuts)"""
+    # Get salon-specific haircuts OR global haircuts (no salon_id)
+    haircuts = await db.haircuts.find({
+        "$or": [
+            {"salon_id": salon_id, "is_active": True},
+            {"salon_id": {"$exists": False}, "is_active": True},
+            {"salon_id": None, "is_active": True}
+        ]
+    }, {"_id": 0}).to_list(100)
     for h in haircuts:
         if isinstance(h.get("created_at"), str):
             h["created_at"] = datetime.fromisoformat(h["created_at"])

@@ -325,10 +325,14 @@ const BookingPage = () => {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <h2 className="text-2xl font-heading font-bold text-white">Choisissez votre coiffeur</h2>
+              <div>
+                <h2 className="text-2xl font-heading font-bold text-white">Choisissez votre coiffeur</h2>
+                <p className="text-slate-400 mt-1">Coiffeurs disponibles chez {selectedSalon?.name}</p>
+              </div>
               
               {barbers.length === 0 ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+                  <User className="h-12 w-12 text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-400">Aucun coiffeur disponible pour ce salon</p>
                 </div>
               ) : (
@@ -337,32 +341,47 @@ const BookingPage = () => {
                     <div
                       key={barber.barber_id}
                       onClick={() => setSelectedBarber(barber)}
-                      className={`bg-slate-800 border rounded-xl p-6 cursor-pointer transition-all hover-lift ${
+                      className={`bg-slate-800 border rounded-xl p-5 cursor-pointer transition-all hover-lift ${
                         selectedBarber?.barber_id === barber.barber_id
                           ? 'border-indigo-500 ring-2 ring-indigo-500/20'
                           : 'border-slate-700 hover:border-slate-600'
                       }`}
                       data-testid={`barber-option-${barber.barber_id}`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-slate-700 overflow-hidden">
-                          {barber.image_url ? (
+                      <div className="flex items-start gap-4">
+                        <div className="w-20 h-20 rounded-xl bg-slate-700 overflow-hidden flex-shrink-0">
+                          {barber.photo_url ? (
+                            <img src={barber.photo_url} alt={barber.name} className="w-full h-full object-cover" />
+                          ) : barber.image_url ? (
                             <img src={barber.image_url} alt={barber.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <User className="h-8 w-8 text-slate-600" />
+                              <User className="h-10 w-10 text-slate-600" />
                             </div>
                           )}
                         </div>
-                        <div>
-                          <h3 className="font-heading font-semibold text-white">{barber.name}</h3>
-                          <p className="text-slate-400 text-sm">{barber.specialties?.join(", ")}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                            <span className="text-white text-sm">{barber.rating || 4.8}</span>
-                            <span className="text-slate-500 text-sm">({barber.total_reviews || 0})</span>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-heading font-semibold text-white text-lg">{barber.name}</h3>
+                          <p className="text-indigo-400 text-sm mt-0.5">{barber.specialty || barber.specialties?.join(", ") || "Coiffeur polyvalent"}</p>
+                          {barber.experience_years && (
+                            <p className="text-slate-500 text-sm mt-1">{barber.experience_years} ans d'experience</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                              <span className="text-white text-sm font-medium">{barber.rating || 4.8}</span>
+                            </div>
+                            <span className="text-slate-600">•</span>
+                            <span className="text-slate-500 text-sm">{barber.total_reviews || 0} avis</span>
                           </div>
                         </div>
+                        {selectedBarber?.barber_id === barber.barber_id && (
+                          <div className="flex-shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                              <Check className="h-4 w-4 text-white" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
