@@ -320,6 +320,67 @@ async def check_appointment_reminders():
 scheduler = AsyncIOScheduler()
 
 # =============================================================================
+# IN-APP NOTIFICATIONS HELPER
+# =============================================================================
+
+async def create_notification(
+    user_id: str,
+    notification_type: str,
+    title: str,
+    message: str,
+    data: dict = None
+) -> str:
+    """Create an in-app notification for a user"""
+    notification_id = f"notif_{uuid.uuid4().hex[:12]}"
+    notification_doc = {
+        "notification_id": notification_id,
+        "user_id": user_id,
+        "type": notification_type,
+        "title": title,
+        "message": message,
+        "data": data or {},
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification_doc)
+    logger.info(f"Notification created for user {user_id}: {title}")
+    return notification_id
+
+async def notify_salon_owner_new_appointment(appointment_doc: dict):
+    """Notify salon owner about a new appointment"""
+    # Get salon to find owner
+    salon = await db.salons.find_one({"salon_id": appointment_doc.get("salon_id")}, {"_id": 0})
+    if not salon or not salon.get("owner_id"):
+        # If no specific owner, notify founder
+        founder = await db.users.find_one({"role": "founder"}, {"_id": 0})
+        if founder:
+            owner_id = founder["user_id"]
+        else:
+            return
+    else:
+        owner_id = salon["owner_id"]
+    
+    # Get barber and haircut info for the message
+    barber = await db.barbers.find_one({"barber_id": appointment_doc.get("barber_id")}, {"_id": 0})
+    haircut = await db.haircuts.find_one({"haircut_id": appointment_doc.get("haircut_id")}, {"_id": 0})
+    
+    barber_name = barber.get("name", "Un coiffeur") if barber else "Un coiffeur"
+    haircut_name = haircut.get("name", "une coupe") if haircut else "une coupe"
+    client_name = appointment_doc.get("client_name", "Un client")
+    
+    await create_notification(
+        user_id=owner_id,
+        notification_type="new_appointment",
+        title="Nouveau rendez-vous !",
+        message=f"{client_name} a reserve {haircut_name} avec {barber_name} le {appointment_doc.get('appointment_date')} a {appointment_doc.get('appointment_time')}",
+        data={
+            "appointment_id": appointment_doc.get("appointment_id"),
+            "salon_id": appointment_doc.get("salon_id"),
+            "type": "appointment"
+        }
+    )
+
+# =============================================================================
 # PYDANTIC MODELS
 # =============================================================================
 
@@ -489,6 +550,23 @@ class CheckoutRequest(BaseModel):
     appointment_id: Optional[str] = None
     product_ids: Optional[List[str]] = None
     origin_url: str
+
+# Notification Models
+class NotificationCreate(BaseModel):
+    type: str  # new_appointment, appointment_cancelled, appointment_confirmed, etc.
+    title: str
+    message: str
+    data: Optional[Dict[str, Any]] = None
+
+class NotificationResponse(BaseModel):
+    notification_id: str
+    user_id: str
+    type: str
+    title: str
+    message: str
+    data: Optional[Dict[str, Any]] = None
+    is_read: bool = False
+    created_at: datetime
 
 # =============================================================================
 # AUTH HELPERS
@@ -772,6 +850,77 @@ async def test_push_notification(user: UserBase = Depends(require_auth)):
         return {"message": "Notification envoyee"}
     else:
         raise HTTPException(status_code=500, detail="Echec de l'envoi")
+
+# =============================================================================
+# IN-APP NOTIFICATIONS ENDPOINTS
+# =============================================================================
+
+@api_router.get("/notifications")
+async def get_notifications(
+    user: UserBase = Depends(require_auth),
+    unread_only: bool = False,
+    limit: int = 50
+):
+    """Get notifications for current user"""
+    query = {"user_id": user.user_id}
+    if unread_only:
+        query["is_read"] = False
+    
+    notifications = await db.notifications.find(
+        query, 
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Get unread count
+    unread_count = await db.notifications.count_documents({
+        "user_id": user.user_id,
+        "is_read": False
+    })
+    
+    for n in notifications:
+        if isinstance(n.get("created_at"), str):
+            n["created_at"] = datetime.fromisoformat(n["created_at"])
+    
+    return {
+        "notifications": notifications,
+        "unread_count": unread_count
+    }
+
+@api_router.put("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, user: UserBase = Depends(require_auth)):
+    """Mark a notification as read"""
+    result = await db.notifications.update_one(
+        {"notification_id": notification_id, "user_id": user.user_id},
+        {"$set": {"is_read": True}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification non trouvee")
+    
+    return {"message": "Notification marquee comme lue"}
+
+@api_router.put("/notifications/read-all")
+async def mark_all_notifications_read(user: UserBase = Depends(require_auth)):
+    """Mark all notifications as read for current user"""
+    await db.notifications.update_many(
+        {"user_id": user.user_id, "is_read": False},
+        {"$set": {"is_read": True}}
+    )
+    
+    return {"message": "Toutes les notifications marquees comme lues"}
+
+@api_router.delete("/notifications/{notification_id}")
+async def delete_notification(notification_id: str, user: UserBase = Depends(require_auth)):
+    """Delete a notification"""
+    result = await db.notifications.delete_one({
+        "notification_id": notification_id,
+        "user_id": user.user_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Notification non trouvee")
+    
+    return {"message": "Notification supprimee"}
 
 # =============================================================================
 # PASSWORD SETUP (for email link)
@@ -1281,6 +1430,13 @@ async def create_appointment(appointment: AppointmentCreate, request: Request):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.appointments.insert_one(appointment_doc)
+    
+    # Send in-app notification to salon owner
+    try:
+        await notify_salon_owner_new_appointment(appointment_doc)
+    except Exception as e:
+        logger.error(f"Failed to send notification for appointment: {e}")
+    
     appointment_doc["created_at"] = datetime.fromisoformat(appointment_doc["created_at"])
     return AppointmentResponse(**{k: v for k, v in appointment_doc.items() if k != "_id"})
 

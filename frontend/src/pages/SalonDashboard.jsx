@@ -47,6 +47,7 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import OnboardingTutorial, { resetOnboarding } from "../components/OnboardingTutorial";
+import NotificationBell from "../components/NotificationBell";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -243,6 +244,7 @@ const SalonDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <span className="text-slate-400 text-sm hidden sm:block">{salon?.name}</span>
           </div>
         </header>

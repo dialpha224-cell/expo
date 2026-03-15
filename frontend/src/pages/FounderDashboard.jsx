@@ -37,6 +37,7 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog";
 import OnboardingTutorial, { resetOnboarding } from "../components/OnboardingTutorial";
+import NotificationBell from "../components/NotificationBell";
 
 const FounderDashboard = () => {
   const { user, logout } = useAuth();
@@ -137,6 +138,7 @@ const FounderDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <span className="text-slate-400 text-sm hidden sm:block">Bienvenue, {user?.name}</span>
           </div>
         </header>
