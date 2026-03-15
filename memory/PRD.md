@@ -81,6 +81,13 @@ Structure dans /app/mobile avec:
 - [x] Tutoriel d'onboarding pour fondateurs (6 etapes)
 - [x] Bouton d'aide flottant (?) pour revoir le tutoriel
 - [x] Memorisation localStorage pour ne pas reafficher le tutoriel
+- [x] Notifications in-app pour les nouveaux RDV
+- [x] Systeme d'avis clients avec notes etoiles (1-5) pour salon, coiffeur et plateforme
+- [x] Gestion des roles coiffeurs (proprietaire, employe, benevole, stagiaire)
+- [x] Disponibilite coiffeurs (disponible/indisponible avec raison et redirection)
+- [x] Notification d'arrivee client (retard/avance avec minutes)
+- [x] Ecran live salon avec RDV en temps reel (vert=a l'heure, rouge=retard, barre=annule)
+- [x] Mode Simulation IA sur ecran live
 
 ## Prioritized Backlog
 
@@ -101,11 +108,11 @@ Structure dans /app/mobile avec:
 - [ ] Test manuel connexion Google (verifier bouton Admin)
 - [ ] Deploy mobile app (Expo EAS)
 - [ ] Real Stripe payment testing
-- [ ] Scanner QR code cote salon (UI)
+- [ ] Prix par salon (chaque salon definit ses tarifs)
 
 ### P2 (Medium)
 - [ ] Calendar view for appointments
-- [ ] Interactive screen for salons
+- [ ] Ecran tactile salon (vente via plateforme)
 - [ ] Client loyalty points
 - [ ] Full TrimConnect voting mechanism
 
