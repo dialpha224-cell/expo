@@ -67,9 +67,10 @@ Structure dans /app/mobile avec:
 - 8 Produits capillaires avec images
 
 ## Test Results (Mars 2026)
-- Backend: 100% (17/17 tests - iteration_3)
+- Backend: 100% (23+ tests passes - iteration_6)
 - Frontend: 100% (toutes pages fonctionnelles)
 - Mobile: Structure complete, pret pour test utilisateur
+- Custom Pricing: 11/11 tests passes
 
 ## Bug Fixes Recents
 - [x] Bug bouton Admin navbar apres connexion Google - Refactorisation AuthCallback avec window.location.href
@@ -88,6 +89,7 @@ Structure dans /app/mobile avec:
 - [x] Notification d'arrivee client (retard/avance avec minutes)
 - [x] Ecran live salon avec RDV en temps reel (vert=a l'heure, rouge=retard, barre=annule)
 - [x] Mode Simulation IA sur ecran live
+- [x] Tarification personnalisee par salon (chaque salon definit ses prix)
 
 ## Prioritized Backlog
 
@@ -108,7 +110,6 @@ Structure dans /app/mobile avec:
 - [ ] Test manuel connexion Google (verifier bouton Admin)
 - [ ] Deploy mobile app (Expo EAS)
 - [ ] Real Stripe payment testing
-- [ ] Prix par salon (chaque salon definit ses tarifs)
 
 ### P2 (Medium)
 - [ ] Calendar view for appointments
