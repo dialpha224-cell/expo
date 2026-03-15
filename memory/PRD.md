@@ -90,6 +90,8 @@ Structure dans /app/mobile avec:
 - [x] Ecran live salon avec RDV en temps reel (vert=a l'heure, rouge=retard, barre=annule)
 - [x] Mode Simulation IA sur ecran live
 - [x] Tarification personnalisee par salon (chaque salon definit ses prix)
+- [x] Systeme de promotions (reductions % ou fixes, dates, jours specifiques)
+- [x] Upload photos profil utilisateurs, coiffeurs et coupes
 
 ## Prioritized Backlog
 
