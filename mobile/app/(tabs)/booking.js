@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   Image,
   Alert,
-  Dimensions
+  Dimensions,
+  SafeAreaView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import axios from 'axios';
 import { useAuth } from '../_layout';
 
 const { width } = Dimensions.get('window');
+const HAIRCUT_SIZE = (width - 52) / 2;
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -381,22 +383,22 @@ export default function BookingScreen() {
             
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
-                <Ionicons name="storefront" size={20} color="#818cf8" />
+                <Ionicons name="storefront" size={20} color="#FFD700" />
                 <Text style={styles.summaryLabel}>Salon</Text>
                 <Text style={styles.summaryValue}>{selectedSalon?.name}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Ionicons name="cut" size={20} color="#818cf8" />
+                <Ionicons name="cut" size={20} color="#FFD700" />
                 <Text style={styles.summaryLabel}>Coupe</Text>
                 <Text style={styles.summaryValue}>{selectedHaircut?.name}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Ionicons name="person" size={20} color="#818cf8" />
+                <Ionicons name="person" size={20} color="#FFD700" />
                 <Text style={styles.summaryLabel}>Coiffeur</Text>
                 <Text style={styles.summaryValue}>{selectedBarber?.name}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Ionicons name="calendar" size={20} color="#818cf8" />
+                <Ionicons name="calendar" size={20} color="#FFD700" />
                 <Text style={styles.summaryLabel}>Date</Text>
                 <Text style={styles.summaryValue}>{selectedDate} a {selectedTime}</Text>
               </View>
@@ -423,7 +425,7 @@ export default function BookingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
         {[1, 2, 3, 4, 5].map((s) => (
@@ -437,7 +439,7 @@ export default function BookingScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.scrollContent}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {renderStep()}
       </ScrollView>
 
@@ -466,10 +468,10 @@ export default function BookingScreen() {
           <Text style={styles.nextButtonText}>
             {loading ? 'Chargement...' : step === 5 ? 'Confirmer' : 'Continuer'}
           </Text>
-          {step < 5 && <Ionicons name="arrow-forward" size={20} color="#fff" />}
+          {step < 5 && <Ionicons name="arrow-forward" size={20} color="#0f172a" />}
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

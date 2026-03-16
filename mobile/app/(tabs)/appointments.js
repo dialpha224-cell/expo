@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   ScrollView,
   RefreshControl,
-  Alert
+  Alert,
+  SafeAreaView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,8 +34,7 @@ export default function AppointmentsScreen() {
       });
       setAppointments(response.data);
     } catch (error) {
-      console.log('Error fetching appointments:', error);
-      // Mock data for demo
+      // Mock data
       setAppointments([
         {
           id: 1,
@@ -68,22 +68,19 @@ export default function AppointmentsScreen() {
 
   const cancelAppointment = (appointmentId) => {
     Alert.alert(
-      'Annuler le rendez-vous',
-      'Êtes-vous sûr de vouloir annuler ce rendez-vous ?',
+      'Annuler le RDV',
+      'Voulez-vous annuler ce rendez-vous ?',
       [
         { text: 'Non', style: 'cancel' },
         { 
-          text: 'Oui, annuler',
+          text: 'Oui',
           style: 'destructive',
           onPress: async () => {
             try {
-              await axios.delete(`${API_URL}/appointments/${appointmentId}`, {
-                withCredentials: true
-              });
+              await axios.delete(`${API_URL}/appointments/${appointmentId}`);
               fetchAppointments();
-              Alert.alert('Succès', 'Rendez-vous annulé');
             } catch (error) {
-              Alert.alert('Erreur', 'Impossible d\'annuler le rendez-vous');
+              Alert.alert('Erreur', 'Impossible d\'annuler');
             }
           }
         }
@@ -91,176 +88,185 @@ export default function AppointmentsScreen() {
     );
   };
 
-  const getStatusColor = (status) => {
+  const getStatusStyle = (status) => {
     switch (status) {
-      case 'confirmed': return '#10b981';
-      case 'pending': return '#f59e0b';
-      case 'completed': return '#6366f1';
-      case 'cancelled': return '#ef4444';
-      default: return '#64748b';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'confirmed': return 'Confirmé';
-      case 'pending': return 'En attente';
-      case 'completed': return 'Terminé';
-      case 'cancelled': return 'Annulé';
-      default: return status;
+      case 'confirmed': return { bg: '#10b98120', color: '#10b981', label: 'Confirmé' };
+      case 'pending': return { bg: '#f59e0b20', color: '#f59e0b', label: 'En attente' };
+      case 'completed': return { bg: '#6366f120', color: '#6366f1', label: 'Terminé' };
+      case 'cancelled': return { bg: '#ef444420', color: '#ef4444', label: 'Annulé' };
+      default: return { bg: '#64748b20', color: '#64748b', label: status };
     }
   };
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    return date.toLocaleDateString('fr-FR', options);
+    return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
-  const upcomingAppointments = appointments.filter(a => 
-    a.status === 'confirmed' || a.status === 'pending'
-  );
-  const pastAppointments = appointments.filter(a => 
-    a.status === 'completed' || a.status === 'cancelled'
-  );
-
-  const renderAppointment = (appointment) => (
-    <View key={appointment.id} style={styles.appointmentCard}>
-      <View style={styles.cardHeader}>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(appointment.status) + '20' }]}>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(appointment.status) }]} />
-          <Text style={[styles.statusText, { color: getStatusColor(appointment.status) }]}>
-            {getStatusLabel(appointment.status)}
-          </Text>
-        </View>
-        <Text style={styles.price}>{appointment.price}€</Text>
-      </View>
-      
-      <View style={styles.cardBody}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="cut" size={28} color="#FFD700" />
-        </View>
-        
-        <View style={styles.appointmentDetails}>
-          <Text style={styles.serviceName}>{appointment.service}</Text>
-          <Text style={styles.salonName}>{appointment.salon_name}</Text>
-          <Text style={styles.barberName}>avec {appointment.barber_name}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.dateTimeRow}>
-        <View style={styles.dateTimeItem}>
-          <Ionicons name="calendar-outline" size={18} color="#94a3b8" />
-          <Text style={styles.dateTimeText}>{formatDate(appointment.date)}</Text>
-        </View>
-        <View style={styles.dateTimeItem}>
-          <Ionicons name="time-outline" size={18} color="#94a3b8" />
-          <Text style={styles.dateTimeText}>{appointment.time}</Text>
-        </View>
-      </View>
-      
-      {(appointment.status === 'confirmed' || appointment.status === 'pending') && (
-        <View style={styles.cardActions}>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Ionicons name="navigate-outline" size={18} color="#fff" />
-            <Text style={styles.actionBtnText}>Itinéraire</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionBtn, styles.cancelBtn]}
-            onPress={() => cancelAppointment(appointment.id)}
-          >
-            <Ionicons name="close-circle-outline" size={18} color="#ef4444" />
-            <Text style={[styles.actionBtnText, styles.cancelBtnText]}>Annuler</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
+  const upcomingAppointments = appointments.filter(a => a.status === 'confirmed' || a.status === 'pending');
+  const pastAppointments = appointments.filter(a => a.status === 'completed' || a.status === 'cancelled');
 
   if (!user) {
     return (
-      <View style={styles.container}>
-        <View style={styles.emptyState}>
-          <Ionicons name="calendar-outline" size={64} color="#64748b" />
-          <Text style={styles.emptyTitle}>Connectez-vous</Text>
-          <Text style={styles.emptyText}>
-            Connectez-vous pour voir vos rendez-vous
-          </Text>
-          <TouchableOpacity 
-            style={styles.loginBtn}
-            onPress={() => router.push('/login')}
-          >
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loginPrompt}>
+          <View style={styles.loginIcon}>
+            <Ionicons name="calendar-outline" size={48} color="#64748b" />
+          </View>
+          <Text style={styles.loginTitle}>Connectez-vous</Text>
+          <Text style={styles.loginText}>Pour voir vos rendez-vous</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
             <Text style={styles.loginBtnText}>Se connecter</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFD700" />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Mes Rendez-vous</Text>
-        <Text style={styles.subtitle}>
-          {upcomingAppointments.length} rendez-vous à venir
-        </Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFD700" />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Mes RDV</Text>
+          <Text style={styles.subtitle}>{upcomingAppointments.length} rendez-vous à venir</Text>
+        </View>
 
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'upcoming' && styles.tabActive]}
-          onPress={() => setActiveTab('upcoming')}
-        >
-          <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
-            À venir ({upcomingAppointments.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'past' && styles.tabActive]}
-          onPress={() => setActiveTab('past')}
-        >
-          <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>
-            Historique ({pastAppointments.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* Tabs */}
+        <View style={styles.tabs}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'upcoming' && styles.tabActive]}
+            onPress={() => setActiveTab('upcoming')}
+          >
+            <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
+              À venir ({upcomingAppointments.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'past' && styles.tabActive]}
+            onPress={() => setActiveTab('past')}
+          >
+            <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>
+              Historique ({pastAppointments.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {activeTab === 'upcoming' ? (
-          upcomingAppointments.length > 0 ? (
-            upcomingAppointments.map(renderAppointment)
+        {/* Content */}
+        <View style={styles.content}>
+          {activeTab === 'upcoming' ? (
+            upcomingAppointments.length > 0 ? (
+              upcomingAppointments.map((apt) => {
+                const statusStyle = getStatusStyle(apt.status);
+                return (
+                  <View key={apt.id} style={styles.appointmentCard}>
+                    {/* Status & Price */}
+                    <View style={styles.cardHeader}>
+                      <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                        <View style={[styles.statusDot, { backgroundColor: statusStyle.color }]} />
+                        <Text style={[styles.statusText, { color: statusStyle.color }]}>
+                          {statusStyle.label}
+                        </Text>
+                      </View>
+                      <Text style={styles.price}>{apt.price}€</Text>
+                    </View>
+                    
+                    {/* Info */}
+                    <View style={styles.cardBody}>
+                      <View style={styles.iconBox}>
+                        <Ionicons name="cut" size={24} color="#FFD700" />
+                      </View>
+                      <View style={styles.infoCol}>
+                        <Text style={styles.serviceName}>{apt.service}</Text>
+                        <Text style={styles.salonName}>{apt.salon_name}</Text>
+                        <Text style={styles.barberName}>avec {apt.barber_name}</Text>
+                      </View>
+                    </View>
+                    
+                    {/* Date/Time */}
+                    <View style={styles.dateRow}>
+                      <View style={styles.dateItem}>
+                        <Ionicons name="calendar-outline" size={16} color="#94a3b8" />
+                        <Text style={styles.dateText}>{formatDate(apt.date)}</Text>
+                      </View>
+                      <View style={styles.dateItem}>
+                        <Ionicons name="time-outline" size={16} color="#94a3b8" />
+                        <Text style={styles.dateText}>{apt.time}</Text>
+                      </View>
+                    </View>
+                    
+                    {/* Actions */}
+                    <View style={styles.actionsRow}>
+                      <TouchableOpacity style={styles.actionBtn}>
+                        <Ionicons name="navigate-outline" size={16} color="#fff" />
+                        <Text style={styles.actionBtnText}>Itinéraire</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.actionBtn, styles.cancelBtn]}
+                        onPress={() => cancelAppointment(apt.id)}
+                      >
+                        <Ionicons name="close-circle-outline" size={16} color="#ef4444" />
+                        <Text style={[styles.actionBtnText, styles.cancelBtnText]}>Annuler</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="calendar-outline" size={40} color="#64748b" />
+                <Text style={styles.emptyText}>Aucun RDV à venir</Text>
+                <TouchableOpacity style={styles.bookBtn} onPress={() => router.push('/(tabs)/booking')}>
+                  <Text style={styles.bookBtnText}>Réserver</Text>
+                </TouchableOpacity>
+              </View>
+            )
           ) : (
-            <View style={styles.emptySection}>
-              <Ionicons name="calendar-outline" size={48} color="#64748b" />
-              <Text style={styles.emptyText}>Aucun rendez-vous à venir</Text>
-              <TouchableOpacity 
-                style={styles.bookBtn}
-                onPress={() => router.push('/(tabs)/booking')}
-              >
-                <Text style={styles.bookBtnText}>Réserver maintenant</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        ) : (
-          pastAppointments.length > 0 ? (
-            pastAppointments.map(renderAppointment)
-          ) : (
-            <View style={styles.emptySection}>
-              <Ionicons name="time-outline" size={48} color="#64748b" />
-              <Text style={styles.emptyText}>Aucun historique</Text>
-            </View>
-          )
-        )}
-      </View>
-    </ScrollView>
+            pastAppointments.length > 0 ? (
+              pastAppointments.map((apt) => {
+                const statusStyle = getStatusStyle(apt.status);
+                return (
+                  <View key={apt.id} style={[styles.appointmentCard, styles.pastCard]}>
+                    <View style={styles.cardHeader}>
+                      <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                        <Text style={[styles.statusText, { color: statusStyle.color }]}>
+                          {statusStyle.label}
+                        </Text>
+                      </View>
+                      <Text style={styles.price}>{apt.price}€</Text>
+                    </View>
+                    <View style={styles.cardBody}>
+                      <View style={styles.iconBox}>
+                        <Ionicons name="cut" size={24} color="#64748b" />
+                      </View>
+                      <View style={styles.infoCol}>
+                        <Text style={styles.serviceName}>{apt.service}</Text>
+                        <Text style={styles.salonName}>{apt.salon_name}</Text>
+                        <Text style={styles.dateText}>{formatDate(apt.date)} à {apt.time}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="time-outline" size={40} color="#64748b" />
+                <Text style={styles.emptyText}>Aucun historique</Text>
+              </View>
+            )
+          )}
+        </View>
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -269,136 +275,152 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f172a',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  
+  // Header
   header: {
-    padding: 20,
-    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#FFD700',
-    marginTop: 4,
+    marginTop: 2,
   },
+  
+  // Tabs
   tabs: {
     flexDirection: 'row',
     marginHorizontal: 16,
     backgroundColor: '#1e293b',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 4,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 10,
+    borderRadius: 8,
     alignItems: 'center',
   },
   tabActive: {
     backgroundColor: '#FFD700',
   },
   tabText: {
-    color: '#64748b',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
+    color: '#94a3b8',
   },
   tabTextActive: {
     color: '#0f172a',
     fontWeight: '600',
   },
+  
+  // Content
   content: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
   },
+  
+  // Appointment Card
   appointmentCard: {
     backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  pastCard: {
+    opacity: 0.7,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   price: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFD700',
   },
   cardBody: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
+  iconBox: {
+    width: 44,
+    height: 44,
     backgroundColor: '#0f172a',
-    borderRadius: 12,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  appointmentDetails: {
-    marginLeft: 16,
+  infoCol: {
+    marginLeft: 12,
     flex: 1,
   },
   serviceName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#fff',
   },
   salonName: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#94a3b8',
-    marginTop: 2,
+    marginTop: 1,
   },
   barberName: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748b',
-    marginTop: 2,
+    marginTop: 1,
   },
-  dateTimeRow: {
+  dateRow: {
     flexDirection: 'row',
-    gap: 24,
-    marginBottom: 16,
-    paddingTop: 16,
+    gap: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#334155',
+    marginBottom: 12,
   },
-  dateTimeItem: {
+  dateItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  dateTimeText: {
+  dateText: {
+    fontSize: 12,
     color: '#94a3b8',
-    fontSize: 14,
   },
-  cardActions: {
+  actionsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   actionBtn: {
     flex: 1,
@@ -406,9 +428,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#334155',
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
   },
   cancelBtn: {
     backgroundColor: 'transparent',
@@ -416,57 +438,75 @@ const styles = StyleSheet.create({
     borderColor: '#ef4444',
   },
   actionBtnText: {
+    fontSize: 13,
     color: '#fff',
-    fontSize: 14,
     fontWeight: '500',
   },
   cancelBtnText: {
     color: '#ef4444',
   },
+  
+  // Empty State
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 16,
+    padding: 30,
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
   },
   emptyText: {
+    fontSize: 13,
     color: '#64748b',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  emptySection: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  loginBtn: {
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 20,
-  },
-  loginBtnText: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '600',
+    marginTop: 10,
   },
   bookBtn: {
     backgroundColor: '#FFD700',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 14,
   },
   bookBtnText: {
-    color: '#0f172a',
     fontSize: 14,
     fontWeight: '600',
+    color: '#0f172a',
+  },
+  
+  // Login Prompt
+  loginPrompt: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loginIcon: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#1e293b',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  loginTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  loginText: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  loginBtn: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  loginBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0f172a',
   },
 });
