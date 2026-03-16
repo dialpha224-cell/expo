@@ -7,17 +7,28 @@ const VideoPresentation = ({ isOpen, onClose }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const mainVideoRef = useRef(null);
-  const outroVideoRef = useRef(null);
   const audioRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       setPhase("intro");
+      setIsMuted(false);
+      // Start audio immediately
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
       // Start with intro, then main video after 3s
       const introTimer = setTimeout(() => {
         setPhase("main");
       }, 3000);
       return () => clearTimeout(introTimer);
+    } else {
+      // Stop audio when closing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }
   }, [isOpen]);
 
@@ -26,20 +37,19 @@ const VideoPresentation = ({ isOpen, onClose }) => {
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (mainVideoRef.current) mainVideoRef.current.muted = !isMuted;
-    if (audioRef.current) audioRef.current.muted = !isMuted;
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    if (mainVideoRef.current) mainVideoRef.current.muted = newMuted;
+    if (audioRef.current) audioRef.current.muted = newMuted;
   };
 
   const togglePlay = () => {
-    if (mainVideoRef.current) {
-      if (isPlaying) {
-        mainVideoRef.current.pause();
-        if (audioRef.current) audioRef.current.pause();
-      } else {
-        mainVideoRef.current.play();
-        if (audioRef.current) audioRef.current.play();
-      }
+    if (isPlaying) {
+      if (mainVideoRef.current) mainVideoRef.current.pause();
+      if (audioRef.current) audioRef.current.pause();
+    } else {
+      if (mainVideoRef.current) mainVideoRef.current.play();
+      if (audioRef.current) audioRef.current.play();
     }
     setIsPlaying(!isPlaying);
   };
@@ -78,6 +88,14 @@ const VideoPresentation = ({ isOpen, onClose }) => {
             {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
           </button>
         </div>
+
+        {/* Global Audio - Plays during all phases */}
+        <audio
+          ref={audioRef}
+          src="/afrocrown-voiceover.mp3"
+          muted={isMuted}
+          loop
+        />
 
         {/* PHASE 1: Intro with Logo */}
         <AnimatePresence>
@@ -179,12 +197,6 @@ const VideoPresentation = ({ isOpen, onClose }) => {
                 muted={isMuted}
                 onEnded={handleMainVideoEnd}
               />
-              <audio
-                ref={audioRef}
-                src="/afrocrown-voiceover.mp3"
-                autoPlay
-                muted={isMuted}
-              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -198,15 +210,29 @@ const VideoPresentation = ({ isOpen, onClose }) => {
               className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Background Video */}
-              <video
-                ref={outroVideoRef}
-                className="absolute inset-0 w-full h-full object-cover opacity-40"
-                src="/afrocrown-outro.mp4"
-                autoPlay
-                loop
-                muted
-              />
+              {/* Animated Background - Golden Particles */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A] via-[#1E293B] to-black">
+                {/* Floating particles */}
+                <div className="absolute inset-0 overflow-hidden">
+                  {[...Array(30)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-1 h-1 bg-[#FFD700] rounded-full animate-pulse"
+                      style={{
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 3}s`,
+                        animationDuration: `${2 + Math.random() * 3}s`,
+                        opacity: 0.3 + Math.random() * 0.5,
+                        boxShadow: '0 0 10px #FFD700'
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Ambient glow */}
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FFD700]/10 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#F59E0B]/10 rounded-full blur-3xl"></div>
+              </div>
 
               {/* Credits Overlay */}
               <div className="relative z-10 text-center">
@@ -226,7 +252,7 @@ const VideoPresentation = ({ isOpen, onClose }) => {
                   >
                     AFROCROWN TV
                   </h1>
-                  <div className="w-32 h-1 bg-gradient-to-r from-[#3B82F6] to-[#FFD700] mx-auto mb-8"></div>
+                  <div className="w-32 h-1 bg-gradient-to-r from-[#F59E0B] to-[#FFD700] mx-auto mb-8"></div>
                 </motion.div>
 
                 {/* Founder Section */}

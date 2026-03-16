@@ -7,7 +7,7 @@ const translations = {
     "nav.features": "Fonctionnalités",
     "nav.booking": "Réserver",
     "nav.marketplace": "Marketplace",
-    "nav.simulation": "Simulation Style",
+    "nav.simulation": "Simulation IA",
     "nav.trimconnect": "TrimConnect",
     "nav.appointments": "Mes RDV",
     "nav.admin": "Admin",
@@ -19,7 +19,7 @@ const translations = {
     "landing.badge": "TrimConnect Battle - Inscriptions ouvertes",
     "landing.hero.title1": "La Référence de la",
     "landing.hero.title2": "Coiffure Afro",
-    "landing.hero.subtitle": "Réservez, simulez votre coupe, découvrez les meilleurs produits et participez au plus grand concours de coiffure.",
+    "landing.hero.subtitle": "Réservez, simulez votre coupe avec l'IA, découvrez les meilleurs produits et participez au plus grand concours de coiffure.",
     "landing.hero.cta": "Réserver maintenant",
     "landing.hero.cta_admin": "Accéder au Dashboard Admin",
     "landing.hero.cta_salon": "Accéder à Mon Salon",
@@ -32,7 +32,7 @@ const translations = {
     // Features
     "landing.features.booking.title": "Réservation en ligne",
     "landing.features.booking.desc": "Réservez votre coupe en quelques clics, 24h/24",
-    "landing.features.ai.title": "Simulation Style",
+    "landing.features.ai.title": "Simulation IA",
     "landing.features.ai.desc": "Testez votre nouvelle coupe avant de passer au salon",
     "landing.features.marketplace.title": "Marketplace",
     "landing.features.marketplace.desc": "Découvrez les meilleurs produits pour vos cheveux",
@@ -149,8 +149,8 @@ const translations = {
     "trimconnect.current_battle": "Battle en cours",
     "trimconnect.previous_winners": "Gagnants précédents",
     
-    // Style Simulation Page
-    "simulation.title": "Simulation Style",
+    // AI Simulation Page
+    "simulation.title": "Simulation IA",
     "simulation.subtitle": "Essayez votre nouvelle coupe virtuellement",
     "simulation.upload_photo": "Télécharger une photo",
     "simulation.select_style": "Choisir un style",
@@ -204,7 +204,7 @@ const translations = {
     "nav.features": "Features",
     "nav.booking": "Book",
     "nav.marketplace": "Marketplace",
-    "nav.simulation": "Style Simulation",
+    "nav.simulation": "AI Simulation",
     "nav.trimconnect": "TrimConnect",
     "nav.appointments": "My Appointments",
     "nav.admin": "Admin",
@@ -229,7 +229,7 @@ const translations = {
     // Features
     "landing.features.booking.title": "Online Booking",
     "landing.features.booking.desc": "Book your haircut in a few clicks, 24/7",
-    "landing.features.ai.title": "Style Simulation",
+    "landing.features.ai.title": "AI Simulation",
     "landing.features.ai.desc": "Try your new haircut before visiting the salon",
     "landing.features.marketplace.title": "Marketplace",
     "landing.features.marketplace.desc": "Discover the best products for your hair",
@@ -346,8 +346,8 @@ const translations = {
     "trimconnect.current_battle": "Current Battle",
     "trimconnect.previous_winners": "Previous Winners",
     
-    // Style Simulation Page
-    "simulation.title": "Style Simulation",
+    // AI Simulation Page
+    "simulation.title": "AI Simulation",
     "simulation.subtitle": "Try your new haircut virtually",
     "simulation.upload_photo": "Upload a photo",
     "simulation.select_style": "Select a style",
@@ -401,7 +401,7 @@ const translations = {
     "nav.features": "Functies",
     "nav.booking": "Boeken",
     "nav.marketplace": "Marktplaats",
-    "nav.simulation": "Stijl Simulatie",
+    "nav.simulation": "AI Simulatie",
     "nav.trimconnect": "TrimConnect",
     "nav.appointments": "Mijn Afspraken",
     "nav.admin": "Admin",
@@ -449,7 +449,7 @@ const translations = {
     "nav.features": "Funciones",
     "nav.booking": "Reservar",
     "nav.marketplace": "Tienda",
-    "nav.simulation": "Simulación Estilo",
+    "nav.simulation": "Simulación IA",
     "nav.trimconnect": "TrimConnect",
     "nav.appointments": "Mis Citas",
     "nav.admin": "Admin",
