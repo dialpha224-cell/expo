@@ -24,7 +24,11 @@ import {
   ChevronRight,
   Sparkles,
   Coffee,
-  Cookie
+  Cookie,
+  Globe,
+  Building,
+  Search,
+  Filter
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,9 +39,17 @@ const BookingPage = () => {
   // Booking steps
   const [step, setStep] = useState(1);
   const [salons, setSalons] = useState([]);
+  const [filteredSalons, setFilteredSalons] = useState([]);
   const [barbers, setBarbers] = useState([]);
   const [haircuts, setHaircuts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Location filters
+  const [countries, setCountries] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Selected values
   const [selectedSalon, setSelectedSalon] = useState(null);
@@ -60,8 +72,24 @@ const BookingPage = () => {
   ];
 
   useEffect(() => {
-    fetchSalons();
+    fetchCountries();
   }, []);
+
+  useEffect(() => {
+    if (selectedCountry) {
+      fetchCities(selectedCountry);
+      fetchSalonsByCountry(selectedCountry);
+    } else {
+      setCities([]);
+      setFilteredSalons([]);
+    }
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    if (selectedCountry) {
+      filterSalons();
+    }
+  }, [selectedCity, searchQuery, salons]);
 
   useEffect(() => {
     if (selectedSalon) {
@@ -69,15 +97,55 @@ const BookingPage = () => {
     }
   }, [selectedSalon]);
 
-  const fetchSalons = async () => {
+  const fetchCountries = async () => {
     try {
-      const response = await axios.get(`${API}/salons`);
+      const response = await axios.get(`${API}/salons/locations/countries`);
+      setCountries(response.data);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCities = async (country) => {
+    try {
+      const response = await axios.get(`${API}/salons/locations/cities?country=${encodeURIComponent(country)}`);
+      setCities(response.data);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+    }
+  };
+
+  const fetchSalonsByCountry = async (country) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/salons/search?country=${encodeURIComponent(country)}`);
       setSalons(response.data);
+      setFilteredSalons(response.data);
     } catch (error) {
       console.error("Error fetching salons:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterSalons = () => {
+    let filtered = [...salons];
+    
+    if (selectedCity) {
+      filtered = filtered.filter(salon => salon.city === selectedCity);
+    }
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(salon => 
+        salon.name.toLowerCase().includes(query) ||
+        salon.address?.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredSalons(filtered);
   };
 
   const fetchSalonData = async (salonId) => {
@@ -90,7 +158,7 @@ const BookingPage = () => {
       setBarbers(barbersRes.data);
       setHaircuts(haircutsRes.data);
       setPremiumServices(premiumRes.data);
-      setIsPremium(false); // Reset premium choice when salon changes
+      setIsPremium(false);
     } catch (error) {
       console.error("Error fetching salon data:", error);
     }
@@ -98,7 +166,7 @@ const BookingPage = () => {
 
   const handleBooking = async () => {
     if (!selectedSalon || !selectedBarber || !selectedHaircut || !selectedDate || !selectedTime) {
-      toast.error("Veuillez completer toutes les etapes");
+      toast.error("Veuillez compléter toutes les étapes");
       return;
     }
 
@@ -119,7 +187,6 @@ const BookingPage = () => {
       });
 
       if (paymentMethod === "stripe") {
-        // Redirect to Stripe checkout
         const checkoutResponse = await axios.post(`${API}/payments/checkout`, {
           appointment_id: response.data.appointment_id,
           origin_url: window.location.origin
@@ -127,32 +194,31 @@ const BookingPage = () => {
         
         window.location.href = checkoutResponse.data.url;
       } else {
-        // Cash payment - show confirmation
         const premiumMsg = isPremium ? " (Premium avec boisson/snack)" : "";
-        toast.success(`Reservation confirmee${premiumMsg} ! Paiement a effectuer au salon.`);
+        toast.success(`Réservation confirmée${premiumMsg} ! Paiement à effectuer au salon.`);
         navigate(`/booking/confirmation/${response.data.appointment_id}`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Erreur lors de la reservation");
+      toast.error(error.response?.data?.detail || "Erreur lors de la réservation");
       console.error("Booking error:", error);
     }
   };
 
   const nextStep = () => {
     if (step === 1 && !selectedSalon) {
-      toast.error("Veuillez selectionner un salon");
+      toast.error("Veuillez sélectionner un salon");
       return;
     }
     if (step === 2 && !selectedHaircut) {
-      toast.error("Veuillez selectionner une coupe");
+      toast.error("Veuillez sélectionner une coupe");
       return;
     }
     if (step === 3 && !selectedBarber) {
-      toast.error("Veuillez selectionner un coiffeur");
+      toast.error("Veuillez sélectionner un coiffeur");
       return;
     }
     if (step === 4 && (!selectedDate || !selectedTime)) {
-      toast.error("Veuillez selectionner une date et une heure");
+      toast.error("Veuillez sélectionner une date et une heure");
       return;
     }
     setStep(step + 1);
@@ -177,10 +243,10 @@ const BookingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <a href="/" className="flex items-center gap-2">
-              <Scissors className="h-6 w-6 text-indigo-500" />
+              <Scissors className="h-6 w-6 text-[#FFD700]" />
               <span className="font-heading font-bold text-white">AfroCrown</span>
             </a>
-            <span className="text-slate-400">Reservation</span>
+            <span className="text-[#FFD700]">Réservation</span>
           </div>
         </div>
       </header>
@@ -189,7 +255,7 @@ const BookingPage = () => {
         {/* Back Link */}
         <a href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors">
           <ArrowLeft className="h-4 w-4" />
-          Retour a l'accueil
+          Retour à l'accueil
         </a>
 
         {/* Progress Steps */}
@@ -198,7 +264,7 @@ const BookingPage = () => {
             <div key={s.num} className="flex items-center">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${
                 step >= s.num 
-                  ? 'bg-indigo-600 text-white' 
+                  ? 'bg-[#FFD700] text-slate-900' 
                   : 'bg-slate-800 text-slate-500'
               }`}>
                 {step > s.num ? <Check className="h-5 w-5" /> : s.num}
@@ -210,7 +276,7 @@ const BookingPage = () => {
               </span>
               {index < steps.length - 1 && (
                 <ChevronRight className={`h-5 w-5 mx-2 ${
-                  step > s.num ? 'text-indigo-500' : 'text-slate-700'
+                  step > s.num ? 'text-[#FFD700]' : 'text-slate-700'
                 }`} />
               )}
             </div>
@@ -219,7 +285,7 @@ const BookingPage = () => {
 
         {/* Step Content */}
         <AnimatePresence mode="wait">
-          {/* Step 1: Select Salon */}
+          {/* Step 1: Select Salon with Country/City Filter */}
           {step === 1 && (
             <motion.div
               key="step1"
@@ -230,42 +296,146 @@ const BookingPage = () => {
             >
               <h2 className="text-2xl font-heading font-bold text-white">Choisissez votre salon</h2>
               
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+              {/* Location Filters */}
+              <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+                <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                  <Filter className="h-5 w-5 text-[#FFD700]" />
+                  Filtrer par localisation
+                </h3>
+                
+                <div className="grid md:grid-cols-3 gap-4">
+                  {/* Country Select */}
+                  <div>
+                    <label className="block text-slate-400 text-sm mb-2">
+                      <Globe className="h-4 w-4 inline mr-1" />
+                      Pays
+                    </label>
+                    <select
+                      value={selectedCountry}
+                      onChange={(e) => {
+                        setSelectedCountry(e.target.value);
+                        setSelectedCity("");
+                        setSelectedSalon(null);
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700] transition-colors"
+                      data-testid="country-select"
+                    >
+                      <option value="">Sélectionnez un pays</option>
+                      {countries.map((country) => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* City Select */}
+                  <div>
+                    <label className="block text-slate-400 text-sm mb-2">
+                      <Building className="h-4 w-4 inline mr-1" />
+                      Ville
+                    </label>
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      disabled={!selectedCountry}
+                      className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-3 focus:border-[#FFD700] focus:ring-1 focus:ring-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-testid="city-select"
+                    >
+                      <option value="">Toutes les villes</option>
+                      {cities.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Search */}
+                  <div>
+                    <label className="block text-slate-400 text-sm mb-2">
+                      <Search className="h-4 w-4 inline mr-1" />
+                      Rechercher
+                    </label>
+                    <Input
+                      placeholder="Nom du salon..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      disabled={!selectedCountry}
+                      className="bg-slate-900 border-slate-700 text-white disabled:opacity-50"
+                      data-testid="salon-search-input"
+                    />
+                  </div>
                 </div>
-              ) : salons.length === 0 ? (
+                
+                {selectedCountry && (
+                  <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
+                    <MapPin className="h-4 w-4 text-[#FFD700]" />
+                    {filteredSalons.length} salon{filteredSalons.length > 1 ? 's' : ''} trouvé{filteredSalons.length > 1 ? 's' : ''} 
+                    {selectedCity && ` à ${selectedCity}`}
+                    {!selectedCity && ` en ${selectedCountry}`}
+                  </div>
+                )}
+              </div>
+              
+              {/* Salons List */}
+              {!selectedCountry ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
-                  <p className="text-slate-400">Aucun salon disponible</p>
+                  <Globe className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+                  <p className="text-slate-400 text-lg">Sélectionnez d'abord un pays</p>
+                  <p className="text-slate-500 text-sm mt-2">Les salons disponibles s'afficheront ensuite</p>
+                </div>
+              ) : loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#FFD700]"></div>
+                </div>
+              ) : filteredSalons.length === 0 ? (
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+                  <MapPin className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+                  <p className="text-slate-400">Aucun salon trouvé</p>
+                  <p className="text-slate-500 text-sm mt-2">Essayez de modifier vos filtres</p>
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-4">
-                  {salons.map((salon) => (
+                  {filteredSalons.map((salon) => (
                     <div
                       key={salon.salon_id}
                       onClick={() => setSelectedSalon(salon)}
-                      className={`bg-slate-800 border rounded-xl p-6 cursor-pointer transition-all hover-lift ${
+                      className={`bg-slate-800 border rounded-xl overflow-hidden cursor-pointer transition-all hover-lift ${
                         selectedSalon?.salon_id === salon.salon_id
-                          ? 'border-indigo-500 ring-2 ring-indigo-500/20'
+                          ? 'border-[#FFD700] ring-2 ring-[#FFD700]/20'
                           : 'border-slate-700 hover:border-slate-600'
                       }`}
                       data-testid={`salon-option-${salon.salon_id}`}
                     >
-                      <h3 className="font-heading font-semibold text-white mb-2">{salon.name}</h3>
-                      <div className="flex items-center gap-2 text-slate-400 text-sm mb-2">
-                        <MapPin className="h-4 w-4" />
-                        {salon.address}
+                      {/* Salon Image */}
+                      <div className="h-32 bg-slate-700">
+                        {salon.image_url ? (
+                          <img src={salon.image_url} alt={salon.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800">
+                            <Scissors className="h-10 w-10 text-slate-600" />
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-slate-400 text-sm">
-                        <Star className="h-4 w-4 text-amber-500" />
-                        {salon.rating || 4.8} ({salon.total_reviews || 0} avis)
-                      </div>
-                      {selectedSalon?.salon_id === salon.salon_id && (
-                        <div className="mt-4 flex items-center gap-2 text-indigo-400">
-                          <Check className="h-4 w-4" />
-                          Selectionne
+                      
+                      <div className="p-4">
+                        <h3 className="font-heading font-semibold text-white mb-2">{salon.name}</h3>
+                        <div className="flex items-center gap-2 text-slate-400 text-sm mb-2">
+                          <MapPin className="h-4 w-4 text-[#FFD700]" />
+                          {salon.city}, {salon.country}
                         </div>
-                      )}
+                        <div className="flex items-center gap-2 text-slate-400 text-sm mb-2">
+                          <Building className="h-4 w-4" />
+                          {salon.address}
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                          <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                          {salon.rating || 4.8} ({salon.total_reviews || salon.review_count || 0} avis)
+                        </div>
+                        {selectedSalon?.salon_id === salon.salon_id && (
+                          <div className="mt-3 flex items-center gap-2 text-[#FFD700]">
+                            <Check className="h-4 w-4" />
+                            Sélectionné
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -282,10 +452,14 @@ const BookingPage = () => {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <h2 className="text-2xl font-heading font-bold text-white">Choisissez votre coupe</h2>
+              <div>
+                <h2 className="text-2xl font-heading font-bold text-white">Choisissez votre coupe</h2>
+                <p className="text-slate-400 mt-1">Coupes disponibles chez {selectedSalon?.name}</p>
+              </div>
               
               {haircuts.length === 0 ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+                  <Scissors className="h-12 w-12 text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-400">Aucune coupe disponible pour ce salon</p>
                 </div>
               ) : (
@@ -296,7 +470,7 @@ const BookingPage = () => {
                       onClick={() => setSelectedHaircut(haircut)}
                       className={`bg-slate-800 border rounded-xl overflow-hidden cursor-pointer transition-all hover-lift ${
                         selectedHaircut?.haircut_id === haircut.haircut_id
-                          ? 'border-indigo-500 ring-2 ring-indigo-500/20'
+                          ? 'border-[#FFD700] ring-2 ring-[#FFD700]/20'
                           : 'border-slate-700 hover:border-slate-600'
                       }`}
                       data-testid={`haircut-option-${haircut.haircut_id}`}
@@ -314,12 +488,18 @@ const BookingPage = () => {
                         <h3 className="font-heading font-semibold text-white mb-1">{haircut.name}</h3>
                         <p className="text-slate-400 text-sm mb-2 line-clamp-1">{haircut.description}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-indigo-400 font-bold">{haircut.price} EUR</span>
+                          <span className="text-[#FFD700] font-bold">{haircut.price} EUR</span>
                           <div className="flex items-center gap-1 text-slate-500 text-sm">
                             <Clock className="h-3 w-3" />
                             {haircut.duration_minutes} min
                           </div>
                         </div>
+                        {selectedHaircut?.haircut_id === haircut.haircut_id && (
+                          <div className="mt-3 flex items-center gap-2 text-[#FFD700]">
+                            <Check className="h-4 w-4" />
+                            Sélectionné
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -355,7 +535,7 @@ const BookingPage = () => {
                       onClick={() => setSelectedBarber(barber)}
                       className={`bg-slate-800 border rounded-xl p-5 cursor-pointer transition-all hover-lift ${
                         selectedBarber?.barber_id === barber.barber_id
-                          ? 'border-indigo-500 ring-2 ring-indigo-500/20'
+                          ? 'border-[#FFD700] ring-2 ring-[#FFD700]/20'
                           : 'border-slate-700 hover:border-slate-600'
                       }`}
                       data-testid={`barber-option-${barber.barber_id}`}
@@ -374,9 +554,9 @@ const BookingPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-heading font-semibold text-white text-lg">{barber.name}</h3>
-                          <p className="text-indigo-400 text-sm mt-0.5">{barber.specialty || barber.specialties?.join(", ") || "Coiffeur polyvalent"}</p>
+                          <p className="text-[#FFD700] text-sm mt-0.5">{barber.specialty || barber.specialties?.join(", ") || "Coiffeur polyvalent"}</p>
                           {barber.experience_years && (
-                            <p className="text-slate-500 text-sm mt-1">{barber.experience_years} ans d'experience</p>
+                            <p className="text-slate-500 text-sm mt-1">{barber.experience_years} ans d'expérience</p>
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             <div className="flex items-center gap-1">
@@ -389,8 +569,8 @@ const BookingPage = () => {
                         </div>
                         {selectedBarber?.barber_id === barber.barber_id && (
                           <div className="flex-shrink-0">
-                            <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
-                              <Check className="h-4 w-4 text-white" />
+                            <div className="w-6 h-6 rounded-full bg-[#FFD700] flex items-center justify-center">
+                              <Check className="h-4 w-4 text-slate-900" />
                             </div>
                           </div>
                         )}
@@ -416,7 +596,7 @@ const BookingPage = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
                   <h3 className="text-white font-medium mb-4 flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5 text-indigo-400" />
+                    <CalendarIcon className="h-5 w-5 text-[#FFD700]" />
                     Date
                   </h3>
                   <Calendar
@@ -431,7 +611,7 @@ const BookingPage = () => {
                 
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
                   <h3 className="text-white font-medium mb-4 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-indigo-400" />
+                    <Clock className="h-5 w-5 text-[#FFD700]" />
                     Heure
                   </h3>
                   <div className="grid grid-cols-3 gap-2">
@@ -441,7 +621,7 @@ const BookingPage = () => {
                         onClick={() => setSelectedTime(time)}
                         className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                           selectedTime === time
-                            ? 'bg-indigo-600 text-white'
+                            ? 'bg-[#FFD700] text-slate-900'
                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                         }`}
                         data-testid={`time-slot-${time}`}
@@ -456,7 +636,7 @@ const BookingPage = () => {
               <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
                 <h3 className="text-white font-medium mb-4">Notes (optionnel)</h3>
                 <Textarea
-                  placeholder="Decrivez vos attentes ou ajoutez des details..."
+                  placeholder="Décrivez vos attentes ou ajoutez des détails..."
                   value={clientNotes}
                   onChange={(e) => setClientNotes(e.target.value)}
                   className="bg-slate-900 border-slate-700 text-white"
@@ -475,7 +655,7 @@ const BookingPage = () => {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <h2 className="text-2xl font-heading font-bold text-white">Confirmez votre reservation</h2>
+              <h2 className="text-2xl font-heading font-bold text-white">Confirmez votre réservation</h2>
               
               {/* Premium Option */}
               {premiumServices.has_premium && (
@@ -498,7 +678,7 @@ const BookingPage = () => {
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className={`font-heading font-bold text-lg ${isPremium ? 'text-amber-400' : 'text-white'}`}>
-                            Reservation Premium
+                            Réservation Premium
                           </h3>
                           <span className={`text-lg font-bold ${isPremium ? 'text-amber-400' : 'text-slate-400'}`}>
                             +20%
@@ -508,7 +688,6 @@ const BookingPage = () => {
                           Profitez d'une boisson et d'un snack offerts pendant votre coupe !
                         </p>
                         
-                        {/* Show what's included */}
                         <div className="flex flex-wrap gap-3">
                           {premiumServices.drinks.length > 0 && (
                             <div className="flex items-center gap-2 text-sm">
@@ -544,7 +723,10 @@ const BookingPage = () => {
               <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-700">
                   <span className="text-slate-400">Salon</span>
-                  <span className="text-white font-medium">{selectedSalon?.name}</span>
+                  <div className="text-right">
+                    <span className="text-white font-medium">{selectedSalon?.name}</span>
+                    <p className="text-slate-500 text-sm">{selectedSalon?.city}, {selectedSalon?.country}</p>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-700">
                   <span className="text-slate-400">Coupe</span>
@@ -565,7 +747,7 @@ const BookingPage = () => {
                   <span className="text-white font-medium">{selectedTime}</span>
                 </div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-700">
-                  <span className="text-slate-400">Duree</span>
+                  <span className="text-slate-400">Durée</span>
                   <span className="text-white font-medium">{selectedHaircut?.duration_minutes} minutes</span>
                 </div>
                 {isPremium && (
@@ -581,7 +763,7 @@ const BookingPage = () => {
                 )}
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-white font-bold text-lg">Total</span>
-                  <span className="text-indigo-400 font-bold text-2xl">
+                  <span className="text-[#FFD700] font-bold text-2xl">
                     {isPremium 
                       ? ((selectedHaircut?.price || 0) * 1.20).toFixed(2)
                       : selectedHaircut?.price
@@ -598,12 +780,12 @@ const BookingPage = () => {
                     onClick={() => setPaymentMethod("cash")}
                     className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
                       paymentMethod === "cash"
-                        ? 'border-indigo-500 bg-indigo-500/10'
+                        ? 'border-[#FFD700] bg-[#FFD700]/10'
                         : 'border-slate-700 hover:border-slate-600'
                     }`}
                     data-testid="payment-cash"
                   >
-                    <Banknote className={`h-8 w-8 ${paymentMethod === "cash" ? 'text-indigo-400' : 'text-slate-400'}`} />
+                    <Banknote className={`h-8 w-8 ${paymentMethod === "cash" ? 'text-[#FFD700]' : 'text-slate-400'}`} />
                     <span className={paymentMethod === "cash" ? 'text-white' : 'text-slate-400'}>
                       Payer au salon
                     </span>
@@ -612,12 +794,12 @@ const BookingPage = () => {
                     onClick={() => setPaymentMethod("stripe")}
                     className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
                       paymentMethod === "stripe"
-                        ? 'border-indigo-500 bg-indigo-500/10'
+                        ? 'border-[#FFD700] bg-[#FFD700]/10'
                         : 'border-slate-700 hover:border-slate-600'
                     }`}
                     data-testid="payment-stripe"
                   >
-                    <CreditCard className={`h-8 w-8 ${paymentMethod === "stripe" ? 'text-indigo-400' : 'text-slate-400'}`} />
+                    <CreditCard className={`h-8 w-8 ${paymentMethod === "stripe" ? 'text-[#FFD700]' : 'text-slate-400'}`} />
                     <span className={paymentMethod === "stripe" ? 'text-white' : 'text-slate-400'}>
                       Payer en ligne
                     </span>
@@ -628,7 +810,7 @@ const BookingPage = () => {
               {!user && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
                   <p className="text-amber-400 text-sm">
-                    Vous n'etes pas connecte. Votre reservation sera enregistree sans historique.
+                    Vous n'êtes pas connecté. Votre réservation sera enregistrée sans historique.
                     <button onClick={login} className="underline ml-1">Se connecter</button>
                   </p>
                 </div>
@@ -652,7 +834,8 @@ const BookingPage = () => {
           {step < 5 ? (
             <Button
               onClick={nextStep}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              disabled={step === 1 && !selectedCountry}
+              className="bg-[#FFD700] hover:bg-[#FFC107] text-slate-900 font-bold disabled:opacity-50"
               data-testid="next-step-btn"
             >
               Continuer
@@ -661,10 +844,10 @@ const BookingPage = () => {
           ) : (
             <Button
               onClick={handleBooking}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="bg-[#FFD700] hover:bg-[#FFC107] text-slate-900 font-bold"
               data-testid="confirm-booking-btn"
             >
-              {paymentMethod === "stripe" ? "Payer maintenant" : "Confirmer la reservation"}
+              {paymentMethod === "stripe" ? "Payer maintenant" : "Confirmer la réservation"}
               <Check className="h-4 w-4 ml-2" />
             </Button>
           )}
