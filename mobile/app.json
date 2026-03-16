@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -46,7 +47,7 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#6366f1"
+          "color": "#FFD700"
         }
       ],
       [
@@ -58,7 +59,10 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api"
+      "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api",
+      "eas": {
+        "projectId": "afrocrown-mobile"
+      }
     }
   }
 }

@@ -226,11 +226,38 @@ Structure dans /app/mobile avec:
 - [x] Refactoring backend demarre: /backend/models/, /backend/utils/, /backend/services/
 - [x] Guide APK mobile mis a jour: /mobile/BUILD_APK.md
 
+## Nouvelles Fonctionnalites (Mars 2026 - Session 7)
+- [x] VIDEO ORIGINALE restauree (version avec intro couronne + branding)
+- [x] TESTS FRONTEND: 100% (18/18 tests passes - iteration_10)
+- [x] Theme or/jaune verifie (F59E0B, FBBF24)
+- [x] Selecteur de langue avec 6 langues fonctionnel
+- [x] Recherche salons par pays/ville fonctionnelle
+- [x] Toutes les pages principales chargent correctement
+- [x] REFACTORING BACKEND demarre:
+  - /backend/models/schemas.py - 450+ lignes de modeles Pydantic extraits
+  - /backend/services/database.py - Connexion MongoDB et collections
+  - /backend/utils/helpers.py - Fonctions utilitaires (hash, QR, etc.)
+- [x] GUIDE BUILD APK simplifie: /mobile/BUILD_APK.md
+- [x] Configuration app.json mise a jour pour EAS Build
+
 ## Next Tasks
 1. Tester manuellement la connexion Google avec dialpha224@gmail.com (verifier bouton Admin)
-2. Telecharger et deployer l'app mobile via Expo EAS (voir BUILD_APK.md)
-3. Remplacer la video demo YouTube par une vraie video de presentation AfroCrown
-4. Verifier domaine Resend pour envoi emails en production
-5. Refactoring server.py (4000+ lignes) en modules separes (backend/routes/*, backend/models/*)
-6. Etendre les traductions aux autres pages (Booking, Marketplace, TrimConnect, Dashboards)
+2. User: Telecharger et builder l'APK mobile via EAS (voir /mobile/BUILD_APK.md)
+3. Verifier domaine Resend pour envoi emails en production
+4. Continuer refactoring server.py (4000+ lignes) - migrer routes vers /backend/routes/
+5. Etendre les traductions aux autres pages (Booking, Marketplace, TrimConnect, Dashboards)
+
+## Mobile App - Instructions Build
+Voir `/mobile/BUILD_APK.md` pour les instructions completes.
+
+Commandes rapides:
+```bash
+cd mobile
+npm install
+npm install -g eas-cli@latest
+eas login
+eas build --platform android --profile preview
+```
+
+Le build prend ~15-20 min. Lien APK fourni a la fin.
 
