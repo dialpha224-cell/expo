@@ -194,6 +194,12 @@ Structure dans /app/mobile avec:
 - [x] Traductions de: navigation, hero section, stats, search section, footer
 - [x] Support RTL automatique pour l'arabe
 - [x] Simulation IA activee et connectee au backend (endpoint /api/ai/simulate-haircut)
+- [x] VIDEO PROMO generee avec Sora 2 AI (8 secondes, barbershop premium africain)
+- [x] NOUVELLE PALETTE AFRO: Tons dores (#D4A55C), bronze (#8B5A2B), terracotta (#C06040)
+- [x] EFFET FILIGRANE BARBER avec lueur subtile (faisceau anime, ciseaux stylises)
+- [x] Logo AfroCrown avec effet de halo dore
+- [x] Cartes et boutons avec dégradés chauds
+- [x] Animations CSS pour la lueur et le mouvement du filigrane
 
 ## Next Tasks
 1. Tester manuellement la connexion Google avec dialpha224@gmail.com (verifier bouton Admin)
