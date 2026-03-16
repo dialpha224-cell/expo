@@ -110,16 +110,28 @@ Structure dans /app/mobile avec:
 - [x] Push notifications backend
 - [x] Admin user management avec email
 
+## Nouvelles Fonctionnalites (Mars 2026 - Session 2)
+- [x] Pages de connexion dediees (/login/admin, /login/salon, /login/client)
+- [x] Carrousel "Coupes du Mois" sur landing page avec likes
+- [x] Gestion des coupes du mois par les salons (upload + publication)
+- [x] Programme de fidelite avec QR code client
+- [x] Scanner fidelite pour les salons
+- [x] Configuration des recompenses fidelite par salon (nombre de tampons, type de recompense)
+- [x] Recherche de salons par pays/ville avec geolocalisation
+- [x] API de localisation des salons (pays, villes, distance)
+
 ### P1 (Next)
 - [ ] Test manuel connexion Google (verifier bouton Admin)
-- [ ] Deploy mobile app (Expo EAS)
+- [ ] Deploy mobile app (Expo EAS) - instructions fournies
 - [ ] Real Stripe payment testing
 
 ### P2 (Medium)
 - [ ] Calendar view for appointments
 - [ ] Ecran tactile salon (vente via plateforme)
-- [ ] Client loyalty points
 - [ ] Full TrimConnect voting mechanism
+- [ ] Supprimer date de naissance du formulaire client
+- [ ] Reassignation clients entre coiffeurs
+- [ ] Scan QR code pour confirmation RDV (UI salon)
 
 ### P3 (Low)
 - [ ] Advanced statistics charts
@@ -127,9 +139,28 @@ Structure dans /app/mobile avec:
 - [ ] Video tutorials
 - [ ] Academy section
 
+## Endpoints API Ajoutes (Session 2)
+- `POST /api/salons/{salon_id}/monthly-cuts` - Ajouter une coupe du mois
+- `GET /api/salons/{salon_id}/monthly-cuts` - Liste coupes du mois d'un salon
+- `GET /api/monthly-cuts/featured` - Coupes du mois pour le carrousel
+- `POST /api/monthly-cuts/{cut_id}/like` - Liker une coupe
+- `DELETE /api/monthly-cuts/{cut_id}` - Supprimer une coupe
+- `GET /api/loyalty/my-cards` - Cartes fidelite de l'utilisateur
+- `GET /api/loyalty/card/{salon_id}` - Obtenir/creer carte fidelite
+- `POST /api/loyalty/scan` - Scanner QR code fidelite (salon)
+- `GET /api/salons/{salon_id}/loyalty-config` - Config fidelite salon
+- `PUT /api/salons/{salon_id}/loyalty-config` - Modifier config fidelite
+- `GET /api/loyalty/rewards` - Recompenses de l'utilisateur
+- `POST /api/loyalty/redeem/{reward_id}` - Utiliser une recompense
+- `PUT /api/salons/{salon_id}/location` - Mettre a jour localisation salon
+- `GET /api/salons/locations/countries` - Liste des pays
+- `GET /api/salons/locations/cities` - Liste des villes
+- `GET /api/salons/search` - Recherche salons par localisation
+- `GET /api/salons/nearby` - Salons a proximite
+
 ## Next Tasks
 1. Tester manuellement la connexion Google avec dialpha224@gmail.com
 2. Telecharger et deployer l'app mobile via Expo EAS
-3. Tester le scan QR code dans le dashboard salon
+3. Ajouter des salons avec localisations pour tester la recherche
 4. Verifier domaine Resend pour envoi emails en production
 5. Implementer ecran interactif salon

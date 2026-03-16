@@ -26,7 +26,11 @@ import {
   HelpCircle,
   Tag,
   Camera,
-  Sparkles
+  Sparkles,
+  Gift,
+  QrCode,
+  Image,
+  MapPin
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -54,6 +58,9 @@ import NotificationBell from "../components/NotificationBell";
 import PhotoUploader from "../components/PhotoUploader";
 import PromotionsManager from "../components/PromotionsManager";
 import PremiumServicesManager from "../components/PremiumServicesManager";
+import LoyaltyScanner from "../components/LoyaltyScanner";
+import LoyaltyConfigManager from "../components/LoyaltyConfigManager";
+import MonthlyCutsManager from "../components/MonthlyCutsManager";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -108,6 +115,8 @@ const SalonDashboard = () => {
     { icon: Users, label: "Coiffeurs", path: "/salon/barbers" },
     { icon: Calendar, label: "Rendez-vous", path: "/salon/appointments" },
     { icon: Scissors, label: "Coupes & Tarifs", path: "/salon/haircuts" },
+    { icon: Image, label: "Coupes du Mois", path: "/salon/monthly-cuts" },
+    { icon: Gift, label: "Programme Fidelite", path: "/salon/loyalty" },
     { icon: Tag, label: "Promotions", path: "/salon/promotions" },
     { icon: Sparkles, label: "Services Premium", path: "/salon/premium" },
     { icon: ShoppingBag, label: "Produits", path: "/salon/products" },
@@ -264,6 +273,8 @@ const SalonDashboard = () => {
             <Route path="barbers" element={<BarbersManagement salonId={selectedSalonId} />} />
             <Route path="appointments" element={<AppointmentsManagement salonId={selectedSalonId} />} />
             <Route path="haircuts" element={<HaircutsManagement salonId={selectedSalonId} />} />
+            <Route path="monthly-cuts" element={<MonthlyCutsPage salonId={selectedSalonId} />} />
+            <Route path="loyalty" element={<LoyaltyPage salonId={selectedSalonId} />} />
             <Route path="promotions" element={<PromotionsPage salonId={selectedSalonId} />} />
             <Route path="premium" element={<PremiumServicesPage salonId={selectedSalonId} />} />
             <Route path="products" element={<ProductsManagement />} />
@@ -1249,6 +1260,81 @@ const PremiumServicesPage = ({ salonId }) => {
   }
 
   return <PremiumServicesManager salonId={salonId} />;
+};
+
+// Monthly Cuts Page Component
+const MonthlyCutsPage = ({ salonId }) => {
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour gerer les coupes du mois.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6" data-testid="monthly-cuts-page">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white">Coupes du Mois</h1>
+          <p className="text-slate-400">Mettez en avant vos plus belles realisations</p>
+        </div>
+      </div>
+      <MonthlyCutsManager salonId={salonId} />
+    </div>
+  );
+};
+
+// Loyalty Program Page Component
+const LoyaltyPage = ({ salonId }) => {
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour gerer le programme fidelite.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6" data-testid="loyalty-page">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white">Programme Fidelite</h1>
+          <p className="text-slate-400">Fidelisez vos clients avec des recompenses</p>
+        </div>
+        <LoyaltyScanner salonId={salonId} />
+      </div>
+      
+      <div className="grid lg:grid-cols-2 gap-6">
+        <LoyaltyConfigManager salonId={salonId} />
+        
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <QrCode className="w-5 h-5 text-indigo-400" />
+            Comment ca marche ?
+          </h3>
+          <div className="space-y-4 text-slate-400 text-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">1</div>
+              <p>Le client presente son QR code (disponible dans l'app ou sur son compte)</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">2</div>
+              <p>Scannez le QR code apres chaque coupe avec le bouton "Scanner Fidelite"</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">3</div>
+              <p>Un tampon est automatiquement ajoute a la carte du client</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">★</div>
+              <p>Apres le nombre de tampons configure, le client gagne sa recompense !</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // Products Management Component

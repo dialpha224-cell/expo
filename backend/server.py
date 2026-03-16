@@ -685,6 +685,85 @@ class ReviewResponse(BaseModel):
     created_at: datetime
 
 # =============================================================================
+# MONTHLY CUTS (COUPES DU MOIS) MODELS
+# =============================================================================
+
+class MonthlyCutCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    image_url: str
+    haircut_id: Optional[str] = None
+
+class MonthlyCutResponse(BaseModel):
+    cut_id: str
+    salon_id: str
+    salon_name: str
+    barber_id: Optional[str] = None
+    barber_name: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    image_url: str
+    haircut_id: Optional[str] = None
+    haircut_name: Optional[str] = None
+    month: str  # "2025-03"
+    likes: int = 0
+    is_featured: bool = False
+    created_at: datetime
+
+# =============================================================================
+# LOYALTY PROGRAM MODELS
+# =============================================================================
+
+class LoyaltyCardResponse(BaseModel):
+    card_id: str
+    user_id: str
+    salon_id: str
+    salon_name: str
+    stamps: int = 0
+    max_stamps: int = 10
+    rewards_earned: int = 0
+    qr_code: str  # QR code data URL
+    created_at: datetime
+    updated_at: datetime
+
+class LoyaltyRewardConfig(BaseModel):
+    reward_type: str = "free_haircut"  # free_haircut, free_product, discount
+    reward_description: str = "Coupe gratuite"
+    max_stamps: int = 10
+
+class LoyaltyScanRequest(BaseModel):
+    qr_code_data: str  # User's QR code data
+
+class LoyaltyRewardResponse(BaseModel):
+    reward_id: str
+    user_id: str
+    salon_id: str
+    reward_type: str
+    reward_description: str
+    is_redeemed: bool = False
+    redeemed_at: Optional[datetime] = None
+    created_at: datetime
+
+# =============================================================================
+# SALON LOCATION MODELS
+# =============================================================================
+
+class SalonLocationUpdate(BaseModel):
+    country: str
+    city: str
+    address: str
+    postal_code: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+class SalonSearchQuery(BaseModel):
+    country: Optional[str] = None
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    radius_km: float = 10.0
+
+# =============================================================================
 # AUTH HELPERS
 # =============================================================================
 
@@ -3093,6 +3172,416 @@ async def get_salon_stats(salon_id: str, user: UserBase = Depends(require_salon_
         "total_revenue": total_revenue,
         "haircuts_count": len(haircuts)
     }
+
+# =============================================================================
+# HEALTH CHECK
+# =============================================================================
+
+# =============================================================================
+# MONTHLY CUTS (COUPES DU MOIS) ROUTES
+# =============================================================================
+
+@api_router.post("/salons/{salon_id}/monthly-cuts")
+async def create_monthly_cut(salon_id: str, cut: MonthlyCutCreate, user: UserBase = Depends(require_salon_owner)):
+    """Create a monthly cut showcase for the salon"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    salon = await db.salons.find_one({"salon_id": salon_id}, {"_id": 0})
+    if not salon:
+        raise HTTPException(status_code=404, detail="Salon not found")
+    
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    cut_id = f"cut_{uuid.uuid4().hex[:12]}"
+    cut_doc = {
+        "cut_id": cut_id,
+        "salon_id": salon_id,
+        "salon_name": salon.get("name"),
+        "title": cut.title,
+        "description": cut.description,
+        "image_url": cut.image_url,
+        "haircut_id": cut.haircut_id,
+        "month": current_month,
+        "likes": 0,
+        "is_featured": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Get haircut name if provided
+    if cut.haircut_id:
+        haircut = await db.haircuts.find_one({"haircut_id": cut.haircut_id}, {"_id": 0})
+        if haircut:
+            cut_doc["haircut_name"] = haircut.get("name")
+    
+    await db.monthly_cuts.insert_one(cut_doc)
+    if "_id" in cut_doc:
+        del cut_doc["_id"]
+    
+    return cut_doc
+
+@api_router.get("/salons/{salon_id}/monthly-cuts")
+async def get_salon_monthly_cuts(salon_id: str, month: Optional[str] = None):
+    """Get monthly cuts for a specific salon"""
+    query = {"salon_id": salon_id}
+    if month:
+        query["month"] = month
+    
+    cuts = await db.monthly_cuts.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return cuts
+
+@api_router.get("/monthly-cuts/featured")
+async def get_featured_monthly_cuts(limit: int = 20):
+    """Get featured monthly cuts for the landing page carousel"""
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    # Get cuts from current and last month
+    cuts = await db.monthly_cuts.find(
+        {"month": {"$gte": (datetime.now(timezone.utc) - timedelta(days=60)).strftime("%Y-%m")}},
+        {"_id": 0}
+    ).sort([("likes", -1), ("created_at", -1)]).to_list(limit)
+    
+    return cuts
+
+@api_router.post("/monthly-cuts/{cut_id}/like")
+async def like_monthly_cut(cut_id: str):
+    """Like a monthly cut"""
+    result = await db.monthly_cuts.update_one(
+        {"cut_id": cut_id},
+        {"$inc": {"likes": 1}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Cut not found")
+    return {"success": True}
+
+@api_router.delete("/monthly-cuts/{cut_id}")
+async def delete_monthly_cut(cut_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Delete a monthly cut"""
+    cut = await db.monthly_cuts.find_one({"cut_id": cut_id}, {"_id": 0})
+    if not cut:
+        raise HTTPException(status_code=404, detail="Cut not found")
+    
+    if user.role != "founder" and user.salon_id != cut.get("salon_id"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    await db.monthly_cuts.delete_one({"cut_id": cut_id})
+    return {"success": True}
+
+# =============================================================================
+# LOYALTY PROGRAM ROUTES
+# =============================================================================
+
+def generate_loyalty_qr(user_id: str, salon_id: str, card_id: str) -> str:
+    """Generate QR code for loyalty card"""
+    qr_data = f"AFROCROWN_LOYALTY:{card_id}:{user_id}:{salon_id}"
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#6366f1", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode()}"
+
+@api_router.get("/loyalty/my-cards")
+async def get_my_loyalty_cards(user: UserBase = Depends(require_auth)):
+    """Get all loyalty cards for the current user"""
+    cards = await db.loyalty_cards.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    
+    # Enrich with salon names
+    for card in cards:
+        salon = await db.salons.find_one({"salon_id": card.get("salon_id")}, {"_id": 0, "name": 1})
+        card["salon_name"] = salon.get("name") if salon else "Unknown"
+    
+    return cards
+
+@api_router.get("/loyalty/card/{salon_id}")
+async def get_or_create_loyalty_card(salon_id: str, user: UserBase = Depends(require_auth)):
+    """Get or create a loyalty card for a salon"""
+    # Check if card exists
+    card = await db.loyalty_cards.find_one(
+        {"user_id": user.user_id, "salon_id": salon_id},
+        {"_id": 0}
+    )
+    
+    if not card:
+        # Get salon config
+        salon = await db.salons.find_one({"salon_id": salon_id}, {"_id": 0})
+        if not salon:
+            raise HTTPException(status_code=404, detail="Salon not found")
+        
+        loyalty_config = await db.salon_loyalty_config.find_one({"salon_id": salon_id}, {"_id": 0})
+        max_stamps = loyalty_config.get("max_stamps", 10) if loyalty_config else 10
+        
+        card_id = f"loyalty_{uuid.uuid4().hex[:12]}"
+        qr_code = generate_loyalty_qr(user.user_id, salon_id, card_id)
+        
+        card = {
+            "card_id": card_id,
+            "user_id": user.user_id,
+            "salon_id": salon_id,
+            "salon_name": salon.get("name"),
+            "stamps": 0,
+            "max_stamps": max_stamps,
+            "rewards_earned": 0,
+            "qr_code": qr_code,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.loyalty_cards.insert_one(card)
+        if "_id" in card:
+            del card["_id"]
+    
+    return card
+
+@api_router.post("/loyalty/scan")
+async def scan_loyalty_card(scan: LoyaltyScanRequest, user: UserBase = Depends(require_salon_owner)):
+    """Salon scans a client's loyalty QR code to add a stamp"""
+    # Parse QR code
+    try:
+        parts = scan.qr_code_data.split(":")
+        if len(parts) != 4 or parts[0] != "AFROCROWN_LOYALTY":
+            raise ValueError("Invalid QR format")
+        card_id, client_user_id, salon_id = parts[1], parts[2], parts[3]
+    except:
+        raise HTTPException(status_code=400, detail="Invalid QR code")
+    
+    # Verify salon ownership
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="This QR code is for a different salon")
+    
+    # Get the card
+    card = await db.loyalty_cards.find_one({"card_id": card_id}, {"_id": 0})
+    if not card:
+        raise HTTPException(status_code=404, detail="Loyalty card not found")
+    
+    # Get salon config
+    loyalty_config = await db.salon_loyalty_config.find_one({"salon_id": salon_id}, {"_id": 0})
+    max_stamps = loyalty_config.get("max_stamps", 10) if loyalty_config else 10
+    reward_type = loyalty_config.get("reward_type", "free_haircut") if loyalty_config else "free_haircut"
+    reward_description = loyalty_config.get("reward_description", "Coupe gratuite") if loyalty_config else "Coupe gratuite"
+    
+    new_stamps = card.get("stamps", 0) + 1
+    reward_earned = False
+    
+    if new_stamps >= max_stamps:
+        # Create reward
+        reward_id = f"reward_{uuid.uuid4().hex[:12]}"
+        reward_doc = {
+            "reward_id": reward_id,
+            "user_id": client_user_id,
+            "salon_id": salon_id,
+            "card_id": card_id,
+            "reward_type": reward_type,
+            "reward_description": reward_description,
+            "is_redeemed": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.loyalty_rewards.insert_one(reward_doc)
+        
+        # Reset stamps and increment rewards earned
+        new_stamps = 0
+        reward_earned = True
+        
+        await db.loyalty_cards.update_one(
+            {"card_id": card_id},
+            {
+                "$set": {"stamps": new_stamps, "updated_at": datetime.now(timezone.utc).isoformat()},
+                "$inc": {"rewards_earned": 1}
+            }
+        )
+        
+        # Notify client
+        await create_notification(
+            client_user_id,
+            "loyalty_reward",
+            "Récompense fidélité gagnée !",
+            f"Félicitations ! Vous avez gagné: {reward_description}",
+            {"salon_id": salon_id, "reward_id": reward_id}
+        )
+    else:
+        await db.loyalty_cards.update_one(
+            {"card_id": card_id},
+            {"$set": {"stamps": new_stamps, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    # Get client info
+    client = await db.users.find_one({"user_id": client_user_id}, {"_id": 0, "name": 1, "email": 1})
+    
+    return {
+        "success": True,
+        "client_name": client.get("name") if client else "Client",
+        "stamps": new_stamps,
+        "max_stamps": max_stamps,
+        "reward_earned": reward_earned,
+        "reward_description": reward_description if reward_earned else None
+    }
+
+@api_router.get("/salons/{salon_id}/loyalty-config")
+async def get_salon_loyalty_config(salon_id: str):
+    """Get loyalty program configuration for a salon"""
+    config = await db.salon_loyalty_config.find_one({"salon_id": salon_id}, {"_id": 0})
+    if not config:
+        return {
+            "salon_id": salon_id,
+            "max_stamps": 10,
+            "reward_type": "free_haircut",
+            "reward_description": "Coupe gratuite",
+            "is_active": True
+        }
+    return config
+
+@api_router.put("/salons/{salon_id}/loyalty-config")
+async def update_salon_loyalty_config(salon_id: str, config: LoyaltyRewardConfig, user: UserBase = Depends(require_salon_owner)):
+    """Update loyalty program configuration"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    config_doc = {
+        "salon_id": salon_id,
+        "max_stamps": config.max_stamps,
+        "reward_type": config.reward_type,
+        "reward_description": config.reward_description,
+        "is_active": True,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.salon_loyalty_config.update_one(
+        {"salon_id": salon_id},
+        {"$set": config_doc},
+        upsert=True
+    )
+    
+    return config_doc
+
+@api_router.get("/loyalty/rewards")
+async def get_my_rewards(user: UserBase = Depends(require_auth)):
+    """Get all rewards for the current user"""
+    rewards = await db.loyalty_rewards.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    
+    # Enrich with salon names
+    for reward in rewards:
+        salon = await db.salons.find_one({"salon_id": reward.get("salon_id")}, {"_id": 0, "name": 1})
+        reward["salon_name"] = salon.get("name") if salon else "Unknown"
+    
+    return rewards
+
+@api_router.post("/loyalty/redeem/{reward_id}")
+async def redeem_reward(reward_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Salon redeems a client's reward"""
+    reward = await db.loyalty_rewards.find_one({"reward_id": reward_id}, {"_id": 0})
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+    
+    if reward.get("is_redeemed"):
+        raise HTTPException(status_code=400, detail="Reward already redeemed")
+    
+    if user.role != "founder" and user.salon_id != reward.get("salon_id"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    await db.loyalty_rewards.update_one(
+        {"reward_id": reward_id},
+        {"$set": {"is_redeemed": True, "redeemed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"success": True, "message": "Reward redeemed successfully"}
+
+# =============================================================================
+# SALON LOCATION & SEARCH ROUTES
+# =============================================================================
+
+@api_router.put("/salons/{salon_id}/location")
+async def update_salon_location(salon_id: str, location: SalonLocationUpdate, user: UserBase = Depends(require_salon_owner)):
+    """Update salon location details"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    update_data = {
+        "country": location.country,
+        "city": location.city,
+        "address": location.address,
+        "postal_code": location.postal_code,
+        "location": {
+            "type": "Point",
+            "coordinates": [location.longitude or 0, location.latitude or 0]
+        } if location.latitude and location.longitude else None
+    }
+    
+    # Remove None values
+    update_data = {k: v for k, v in update_data.items() if v is not None}
+    
+    await db.salons.update_one(
+        {"salon_id": salon_id},
+        {"$set": update_data}
+    )
+    
+    return {"success": True}
+
+@api_router.get("/salons/locations/countries")
+async def get_salon_countries():
+    """Get list of countries with salons"""
+    countries = await db.salons.distinct("country", {"is_active": True, "country": {"$ne": None}})
+    return sorted([c for c in countries if c])
+
+@api_router.get("/salons/locations/cities")
+async def get_salon_cities(country: Optional[str] = None):
+    """Get list of cities with salons, optionally filtered by country"""
+    query = {"is_active": True, "city": {"$ne": None}}
+    if country:
+        query["country"] = country
+    
+    cities = await db.salons.distinct("city", query)
+    return sorted([c for c in cities if c])
+
+@api_router.get("/salons/search")
+async def search_salons(
+    country: Optional[str] = None,
+    city: Optional[str] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    radius_km: float = 10.0,
+    limit: int = 50
+):
+    """Search salons by location"""
+    query = {"is_active": True}
+    
+    if country:
+        query["country"] = {"$regex": country, "$options": "i"}
+    if city:
+        query["city"] = {"$regex": city, "$options": "i"}
+    
+    salons = await db.salons.find(query, {"_id": 0}).to_list(limit)
+    
+    # If coordinates provided, sort by distance
+    if latitude and longitude:
+        import math
+        
+        def haversine_distance(lat1, lon1, lat2, lon2):
+            R = 6371  # Earth's radius in km
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+            c = 2 * math.asin(math.sqrt(a))
+            return R * c
+        
+        for salon in salons:
+            loc = salon.get("location", {})
+            if loc and loc.get("coordinates"):
+                salon_lon, salon_lat = loc["coordinates"]
+                salon["distance_km"] = round(haversine_distance(latitude, longitude, salon_lat, salon_lon), 2)
+            else:
+                salon["distance_km"] = 9999
+        
+        # Filter by radius and sort by distance
+        salons = [s for s in salons if s.get("distance_km", 9999) <= radius_km]
+        salons.sort(key=lambda x: x.get("distance_km", 9999))
+    
+    return salons
+
+@api_router.get("/salons/nearby")
+async def get_nearby_salons(latitude: float, longitude: float, radius_km: float = 10.0, limit: int = 20):
+    """Get salons near a location"""
+    return await search_salons(latitude=latitude, longitude=longitude, radius_km=radius_km, limit=limit)
 
 # =============================================================================
 # HEALTH CHECK

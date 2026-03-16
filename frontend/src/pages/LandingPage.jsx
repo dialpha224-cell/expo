@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth, API } from "../App";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
 import { 
@@ -18,7 +18,14 @@ import {
   LogOut,
   Mail,
   Lock,
-  X
+  X,
+  Heart,
+  MapPin,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Navigation,
+  Globe
 } from "lucide-react";
 import {
   Dialog,
@@ -26,6 +33,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 const LandingPage = () => {
   const { user, login, logout, loading, setUser } = useAuth();
@@ -35,6 +49,120 @@ const LandingPage = () => {
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
   const [loginLoading, setLoginLoading] = useState(false);
+  
+  // Monthly Cuts Carousel State
+  const [monthlyCuts, setMonthlyCuts] = useState([]);
+  const [currentCutIndex, setCurrentCutIndex] = useState(0);
+  const carouselRef = useRef(null);
+  
+  // Location Search State
+  const [countries, setCountries] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+
+  // Fetch monthly cuts and locations on mount
+  useEffect(() => {
+    fetchMonthlyCuts();
+    fetchCountries();
+  }, []);
+
+  // Auto-scroll carousel
+  useEffect(() => {
+    if (monthlyCuts.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentCutIndex((prev) => (prev + 1) % monthlyCuts.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [monthlyCuts.length]);
+
+  const fetchMonthlyCuts = async () => {
+    try {
+      const response = await axios.get(`${API}/monthly-cuts/featured`);
+      setMonthlyCuts(response.data);
+    } catch (error) {
+      console.log("No monthly cuts available");
+    }
+  };
+
+  const fetchCountries = async () => {
+    try {
+      const response = await axios.get(`${API}/salons/locations/countries`);
+      setCountries(response.data);
+    } catch (error) {
+      console.log("Error fetching countries");
+    }
+  };
+
+  const fetchCities = async (country) => {
+    try {
+      const response = await axios.get(`${API}/salons/locations/cities?country=${country}`);
+      setCities(response.data);
+    } catch (error) {
+      console.log("Error fetching cities");
+    }
+  };
+
+  const handleCountryChange = (country) => {
+    setSelectedCountry(country);
+    setSelectedCity("");
+    fetchCities(country);
+  };
+
+  const searchSalons = async () => {
+    setIsSearching(true);
+    try {
+      let url = `${API}/salons/search?`;
+      if (selectedCountry) url += `country=${selectedCountry}&`;
+      if (selectedCity) url += `city=${selectedCity}&`;
+      if (userLocation) {
+        url += `latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius_km=20`;
+      }
+      
+      const response = await axios.get(url);
+      setSearchResults(response.data);
+      setShowSearchResults(true);
+    } catch (error) {
+      toast.error("Erreur lors de la recherche");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          toast.success("Position detectee !");
+        },
+        (error) => {
+          toast.error("Impossible d'obtenir votre position");
+        }
+      );
+    } else {
+      toast.error("Geolocalisation non supportee");
+    }
+  };
+
+  const likeMonthlyCut = async (cutId) => {
+    try {
+      await axios.post(`${API}/monthly-cuts/${cutId}/like`);
+      setMonthlyCuts(prev => prev.map(cut => 
+        cut.cut_id === cutId ? { ...cut, likes: (cut.likes || 0) + 1 } : cut
+      ));
+    } catch (error) {
+      console.log("Error liking cut");
+    }
+  };
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -375,58 +503,261 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Salons Showcase */}
+      {/* Monthly Cuts Carousel - Coupes du Mois */}
+      {monthlyCuts.length > 0 && (
+        <section className="py-20 bg-slate-950">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <div className="inline-flex items-center gap-2 bg-amber-600/20 border border-amber-500/30 rounded-full px-4 py-2 mb-4">
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                <span className="text-sm text-amber-300">Selection du mois</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-heading font-bold text-white mb-4">
+                Les Plus Belles Coupes
+              </h2>
+              <p className="text-slate-400 max-w-2xl mx-auto">
+                Decouvrez les realisations exceptionnelles de nos salons partenaires ce mois-ci.
+              </p>
+            </motion.div>
+
+            {/* Carousel */}
+            <div className="relative" ref={carouselRef}>
+              <div className="overflow-hidden rounded-2xl">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentCutIndex}
+                    initial={{ opacity: 0, x: 100 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    transition={{ duration: 0.5 }}
+                    className="relative aspect-video md:aspect-[21/9] bg-slate-800 rounded-2xl overflow-hidden"
+                  >
+                    <img 
+                      src={monthlyCuts[currentCutIndex]?.image_url}
+                      alt={monthlyCuts[currentCutIndex]?.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                          {monthlyCuts[currentCutIndex]?.salon_name}
+                        </div>
+                        {monthlyCuts[currentCutIndex]?.haircut_name && (
+                          <div className="bg-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full">
+                            {monthlyCuts[currentCutIndex]?.haircut_name}
+                          </div>
+                        )}
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-heading font-bold text-white mb-2">
+                        {monthlyCuts[currentCutIndex]?.title}
+                      </h3>
+                      {monthlyCuts[currentCutIndex]?.description && (
+                        <p className="text-slate-300 text-sm md:text-base max-w-2xl">
+                          {monthlyCuts[currentCutIndex]?.description}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => likeMonthlyCut(monthlyCuts[currentCutIndex]?.cut_id)}
+                        className="mt-4 flex items-center gap-2 text-pink-400 hover:text-pink-300 transition-colors"
+                        data-testid="like-cut-btn"
+                      >
+                        <Heart className="w-5 h-5" />
+                        <span>{monthlyCuts[currentCutIndex]?.likes || 0} likes</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Navigation Arrows */}
+              {monthlyCuts.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentCutIndex((prev) => (prev - 1 + monthlyCuts.length) % monthlyCuts.length)}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-slate-800/80 hover:bg-slate-700 text-white p-3 rounded-full backdrop-blur-sm transition-colors"
+                    data-testid="carousel-prev-btn"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentCutIndex((prev) => (prev + 1) % monthlyCuts.length)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-800/80 hover:bg-slate-700 text-white p-3 rounded-full backdrop-blur-sm transition-colors"
+                    data-testid="carousel-next-btn"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+
+              {/* Dots */}
+              <div className="flex justify-center gap-2 mt-6">
+                {monthlyCuts.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentCutIndex(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentCutIndex ? "bg-indigo-500 w-8" : "bg-slate-600 hover:bg-slate-500"
+                    }`}
+                    data-testid={`carousel-dot-${index}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Salon Search by Location */}
       <section className="py-20 bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12"
           >
             <h2 className="text-3xl sm:text-4xl font-heading font-bold text-white mb-4">
-              Salons partenaires
+              Trouvez un Salon
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
-              Decouvrez les meilleurs salons de coiffure afro pres de chez vous.
+              Recherchez les meilleurs salons de coiffure afro par ville ou activez la geolocalisation.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300"
-                data-testid={`salon-card-${i}`}
-              >
-                <div className="h-48 bg-slate-700 relative">
-                  <img 
-                    src={`https://images.unsplash.com/photo-1549663369-22ac6b052faf?crop=entropy&cs=srgb&fm=jpg&q=85&w=400`}
-                    alt="Salon"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-heading font-semibold text-white">Salon Excellence {i}</h3>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                      <span className="text-white text-sm">4.9</span>
-                    </div>
-                  </div>
-                  <p className="text-slate-400 text-sm mb-4">Paris, France</p>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-slate-500" />
-                    <span className="text-slate-400 text-sm">5 coiffeurs</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          {/* Search Form */}
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 md:p-8 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-4 gap-4">
+              {/* Country Select */}
+              <div className="md:col-span-1">
+                <label className="block text-slate-400 text-sm mb-2">Pays</label>
+                <Select value={selectedCountry} onValueChange={handleCountryChange}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white" data-testid="country-select">
+                    <Globe className="w-4 h-4 mr-2 text-slate-400" />
+                    <SelectValue placeholder="Pays" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    {countries.map((country) => (
+                      <SelectItem key={country} value={country} className="text-white hover:bg-slate-600">
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* City Select */}
+              <div className="md:col-span-1">
+                <label className="block text-slate-400 text-sm mb-2">Ville</label>
+                <Select value={selectedCity} onValueChange={setSelectedCity} disabled={!selectedCountry}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white" data-testid="city-select">
+                    <MapPin className="w-4 h-4 mr-2 text-slate-400" />
+                    <SelectValue placeholder="Ville" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    {cities.map((city) => (
+                      <SelectItem key={city} value={city} className="text-white hover:bg-slate-600">
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Geolocation Button */}
+              <div className="md:col-span-1">
+                <label className="block text-slate-400 text-sm mb-2">Position</label>
+                <Button
+                  onClick={getUserLocation}
+                  variant="outline"
+                  className={`w-full border-slate-600 ${userLocation ? "bg-green-600/20 border-green-500 text-green-400" : "text-white hover:bg-slate-700"}`}
+                  data-testid="geolocation-btn"
+                >
+                  <Navigation className="w-4 h-4 mr-2" />
+                  {userLocation ? "Position OK" : "Me localiser"}
+                </Button>
+              </div>
+
+              {/* Search Button */}
+              <div className="md:col-span-1">
+                <label className="block text-slate-400 text-sm mb-2">&nbsp;</label>
+                <Button
+                  onClick={searchSalons}
+                  disabled={isSearching || (!selectedCountry && !userLocation)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700"
+                  data-testid="search-salons-btn"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  {isSearching ? "Recherche..." : "Rechercher"}
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {/* Search Results */}
+          {showSearchResults && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8"
+            >
+              {searchResults.length === 0 ? (
+                <p className="text-center text-slate-400 py-8">
+                  Aucun salon trouve dans cette zone. Essayez d'elargir votre recherche.
+                </p>
+              ) : (
+                <>
+                  <p className="text-slate-400 mb-6 text-center">
+                    {searchResults.length} salon{searchResults.length > 1 ? "s" : ""} trouve{searchResults.length > 1 ? "s" : ""}
+                  </p>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {searchResults.slice(0, 6).map((salon) => (
+                      <motion.div
+                        key={salon.salon_id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300 cursor-pointer"
+                        onClick={() => window.location.href = `/booking?salon=${salon.salon_id}`}
+                        data-testid={`search-result-${salon.salon_id}`}
+                      >
+                        <div className="h-40 bg-slate-700 relative">
+                          <img 
+                            src={salon.image_url || `https://images.unsplash.com/photo-1549663369-22ac6b052faf?w=400`}
+                            alt={salon.name}
+                            className="w-full h-full object-cover"
+                          />
+                          {salon.distance_km && salon.distance_km < 9999 && (
+                            <div className="absolute top-3 right-3 bg-slate-900/80 text-white text-xs font-medium px-2 py-1 rounded-full">
+                              {salon.distance_km} km
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-5">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-heading font-semibold text-white">{salon.name}</h3>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                              <span className="text-white text-sm">{salon.rating?.toFixed(1) || "Nouveau"}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-slate-400 text-sm">
+                            <MapPin className="h-3 w-3" />
+                            <span>{salon.city}{salon.country ? `, ${salon.country}` : ""}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
         </div>
       </section>
 
