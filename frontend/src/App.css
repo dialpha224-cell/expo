@@ -1,26 +1,27 @@
-/* AfroCrown App Styles - Afro-Inspired Color Palette */
+/* AfroCrown App Styles - Bright Afro-Blue Color Palette */
 
 :root {
-  /* Afro-Inspired Color Palette */
-  --afro-gold: #D4A55C;
-  --afro-amber: #C68B3E;
-  --afro-bronze: #8B5A2B;
-  --afro-terracotta: #C06040;
-  --afro-brown-dark: #3D2914;
-  --afro-brown-rich: #5C3A21;
-  --afro-cream: #F5E6D3;
-  --afro-black: #1A1A1A;
+  /* Bright Afro-Blue Color Palette */
+  --afro-gold: #FFD700;
+  --afro-amber: #FFC107;
+  --afro-bronze: #D4A55C;
+  --afro-blue: #3B82F6;
+  --afro-blue-light: #60A5FA;
+  --afro-blue-dark: #2563EB;
+  --afro-cyan: #22D3EE;
+  --afro-cream: #FFF8E7;
+  --afro-white: #FFFFFF;
   
   /* Gradient Accent Colors */
-  --accent-warm: linear-gradient(135deg, #D4A55C, #C68B3E);
-  --accent-rich: linear-gradient(135deg, #8B5A2B, #5C3A21);
-  --accent-glow: linear-gradient(135deg, #D4A55C 0%, #C06040 50%, #8B5A2B 100%);
+  --accent-warm: linear-gradient(135deg, #FFD700, #FFC107);
+  --accent-blue: linear-gradient(135deg, #3B82F6, #60A5FA);
+  --accent-mixed: linear-gradient(135deg, #FFD700 0%, #3B82F6 50%, #60A5FA 100%);
   
-  /* Background Colors */
-  --bg-primary: #0D0D0D;
-  --bg-secondary: #1A1410;
-  --bg-card: #251C14;
-  --bg-elevated: #2D221A;
+  /* Background Colors - Brighter */
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-card: #334155;
+  --bg-elevated: #475569;
 }
 
 .app-container {
@@ -28,32 +29,8 @@
   background-color: var(--bg-primary);
 }
 
-/* Landing Page Hero */
-.hero-section {
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(13, 13, 13, 0.7), rgba(13, 13, 13, 0.95));
-  z-index: 1;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 10;
-  text-align: center;
-  padding: 2rem;
-}
-
 /* =============================================================================
-   BARBER FILIGREE / SCISSORS GLOW ANIMATION
+   BARBER FILIGREE / SCISSORS GLOW ANIMATION - BRIGHTER
    ============================================================================= */
 
 .barber-filigree {
@@ -64,7 +41,7 @@
   z-index: 1;
 }
 
-/* Animated BARBER text watermark */
+/* Animated BARBER text watermark - BRIGHTER */
 .barber-filigree::before {
   content: 'BARBER';
   position: absolute;
@@ -76,15 +53,15 @@
   font-family: 'Arial Black', sans-serif;
   letter-spacing: 0.2em;
   color: transparent;
-  -webkit-text-stroke: 1px rgba(212, 165, 92, 0.08);
+  -webkit-text-stroke: 2px rgba(59, 130, 246, 0.15);
   text-shadow: 
-    0 0 60px rgba(212, 165, 92, 0.05),
-    0 0 120px rgba(212, 165, 92, 0.03);
+    0 0 80px rgba(59, 130, 246, 0.1),
+    0 0 120px rgba(255, 215, 0, 0.08);
   animation: barberTextGlow 6s ease-in-out infinite, barberTextFloat 12s ease-in-out infinite;
   white-space: nowrap;
 }
 
-/* Secondary scissors pattern overlay */
+/* Secondary pattern overlay with blue glow */
 .barber-filigree::after {
   content: '';
   position: absolute;
@@ -93,42 +70,43 @@
   transform: translate(-50%, -50%);
   width: 150%;
   height: 150%;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23D4A55C' stroke-width='0.2' opacity='0.06'%3E%3Cpath d='M30 50 L45 35 L60 50 L45 65 Z'/%3E%3Ccircle cx='45' cy='50' r='8'/%3E%3Cpath d='M55 30 Q70 50 55 70'/%3E%3Cpath d='M35 30 Q20 50 35 70'/%3E%3C/svg%3E");
-  background-size: 200px 200px;
-  background-repeat: repeat;
-  animation: scissorsPattern 20s linear infinite;
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(96, 165, 250, 0.08) 0%, transparent 60%);
+  animation: glowPulse 8s ease-in-out infinite;
 }
 
-/* BARBER text glow animation - makes letters illuminate */
+/* BARBER text glow animation - BRIGHTER with blue */
 @keyframes barberTextGlow {
   0%, 100% {
-    -webkit-text-stroke: 1px rgba(212, 165, 92, 0.06);
+    -webkit-text-stroke: 2px rgba(59, 130, 246, 0.12);
     text-shadow: 
-      0 0 40px rgba(212, 165, 92, 0.02),
-      0 0 80px rgba(212, 165, 92, 0.01);
+      0 0 60px rgba(59, 130, 246, 0.08),
+      0 0 100px rgba(255, 215, 0, 0.05);
     filter: blur(0px);
   }
   25% {
-    -webkit-text-stroke: 1px rgba(212, 165, 92, 0.12);
+    -webkit-text-stroke: 2px rgba(59, 130, 246, 0.2);
     text-shadow: 
-      0 0 60px rgba(212, 165, 92, 0.08),
-      0 0 100px rgba(212, 165, 92, 0.04),
-      0 0 140px rgba(212, 165, 92, 0.02);
+      0 0 80px rgba(59, 130, 246, 0.15),
+      0 0 120px rgba(96, 165, 250, 0.1),
+      0 0 160px rgba(255, 215, 0, 0.08);
     filter: blur(0.5px);
   }
   50% {
-    -webkit-text-stroke: 1px rgba(212, 165, 92, 0.15);
+    -webkit-text-stroke: 2px rgba(96, 165, 250, 0.25);
     text-shadow: 
-      0 0 80px rgba(212, 165, 92, 0.1),
-      0 0 120px rgba(212, 165, 92, 0.06),
-      0 0 160px rgba(212, 165, 92, 0.03);
+      0 0 100px rgba(59, 130, 246, 0.2),
+      0 0 140px rgba(96, 165, 250, 0.15),
+      0 0 180px rgba(255, 215, 0, 0.1);
     filter: blur(1px);
   }
   75% {
-    -webkit-text-stroke: 1px rgba(212, 165, 92, 0.1);
+    -webkit-text-stroke: 2px rgba(59, 130, 246, 0.18);
     text-shadow: 
-      0 0 50px rgba(212, 165, 92, 0.06),
-      0 0 90px rgba(212, 165, 92, 0.03);
+      0 0 70px rgba(59, 130, 246, 0.12),
+      0 0 110px rgba(255, 215, 0, 0.06);
     filter: blur(0.3px);
   }
 }
@@ -143,22 +121,17 @@
   }
 }
 
-/* Scissors pattern animation */
-@keyframes scissorsPattern {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-    opacity: 0.04;
+/* Glow pulse animation */
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.6;
   }
   50% {
-    opacity: 0.08;
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg);
-    opacity: 0.04;
+    opacity: 1;
   }
 }
 
-/* Scissors Icon Glow */
+/* Scissors Icon Glow - Blue */
 .scissors-glow {
   position: relative;
 }
@@ -166,8 +139,8 @@
 .scissors-glow::after {
   content: '';
   position: absolute;
-  inset: -10px;
-  background: radial-gradient(circle, rgba(212, 165, 92, 0.4) 0%, transparent 70%);
+  inset: -12px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, rgba(255, 215, 0, 0.3) 50%, transparent 70%);
   animation: scissorsGlow 3s ease-in-out infinite;
   z-index: -1;
   border-radius: 50%;
@@ -175,16 +148,16 @@
 
 @keyframes scissorsGlow {
   0%, 100% {
-    opacity: 0.4;
+    opacity: 0.5;
     transform: scale(1);
   }
   50% {
-    opacity: 0.7;
-    transform: scale(1.1);
+    opacity: 0.8;
+    transform: scale(1.15);
   }
 }
 
-/* Light Beam Effect */
+/* Light Beam Effect - Blue & Gold */
 .light-beam {
   position: absolute;
   top: 0;
@@ -192,8 +165,17 @@
   transform: translateX(-50%);
   width: 200%;
   height: 100%;
-  background: conic-gradient(from 180deg at 50% 0%, transparent 0deg, rgba(212, 165, 92, 0.03) 30deg, transparent 60deg, rgba(212, 165, 92, 0.02) 90deg, transparent 120deg);
-  animation: beamRotate 15s linear infinite;
+  background: conic-gradient(
+    from 180deg at 50% 0%, 
+    transparent 0deg, 
+    rgba(59, 130, 246, 0.08) 30deg, 
+    transparent 60deg, 
+    rgba(255, 215, 0, 0.06) 90deg, 
+    transparent 120deg,
+    rgba(96, 165, 250, 0.05) 150deg,
+    transparent 180deg
+  );
+  animation: beamRotate 20s linear infinite;
   pointer-events: none;
   z-index: 0;
 }
@@ -216,7 +198,7 @@
 .dashboard-sidebar {
   width: 280px;
   background-color: var(--bg-secondary);
-  border-right: 1px solid var(--afro-bronze);
+  border-right: 1px solid rgba(59, 130, 246, 0.3);
   position: fixed;
   height: 100vh;
   overflow-y: auto;
@@ -232,7 +214,7 @@
 .dashboard-header {
   height: 72px;
   background-color: var(--bg-primary);
-  border-bottom: 1px solid rgba(212, 165, 92, 0.2);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -290,8 +272,8 @@
 }
 
 .battle-card:hover {
-  border-color: var(--afro-gold);
-  box-shadow: 0 0 30px rgba(212, 165, 92, 0.2);
+  border-color: var(--afro-blue);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
 }
 
 .battle-vs-badge {
@@ -299,7 +281,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--accent-warm);
+  background: var(--accent-blue);
   padding: 0.5rem 1rem;
   border-radius: 9999px;
   font-weight: bold;
@@ -309,7 +291,7 @@
 
 .crown-icon {
   color: var(--afro-gold);
-  filter: drop-shadow(0 0 8px rgba(212, 165, 92, 0.5));
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
 }
 
 /* Product Grid */
@@ -342,24 +324,24 @@
 .stagger-4 { animation-delay: 0.4s; }
 .stagger-5 { animation-delay: 0.5s; }
 
-/* Glass Effect - Warm Tone */
+/* Glass Effect - Blue Tone */
 .glass {
-  background: rgba(37, 28, 20, 0.7);
+  background: rgba(30, 41, 59, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Glow Effects - Afro Warm */
+/* Glow Effects - Blue & Gold */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
 .glow-gold {
-  box-shadow: 0 0 20px rgba(212, 165, 92, 0.3);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
 }
 
-.glow-amber {
-  box-shadow: 0 0 20px rgba(198, 139, 62, 0.3);
-}
-
-.glow-bronze {
-  box-shadow: 0 0 20px rgba(139, 90, 43, 0.3);
+.glow-mixed {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(255, 215, 0, 0.2);
 }
 
 /* Card Hover States */
@@ -369,36 +351,48 @@
 
 .hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(212, 165, 92, 0.1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(59, 130, 246, 0.15);
 }
 
-/* Afro-themed Button Styles */
+/* Afro-Blue Button Styles */
 .btn-afro-primary {
-  background: var(--accent-warm);
+  background: linear-gradient(135deg, #3B82F6, #60A5FA);
   color: white;
   border: none;
   transition: all 0.3s ease;
 }
 
 .btn-afro-primary:hover {
-  box-shadow: 0 4px 20px rgba(212, 165, 92, 0.4);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-afro-gold {
+  background: linear-gradient(135deg, #FFD700, #FFC107);
+  color: #0F172A;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-afro-gold:hover {
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
   transform: translateY(-2px);
 }
 
 .btn-afro-secondary {
   background: transparent;
-  color: var(--afro-gold);
-  border: 1px solid var(--afro-gold);
+  color: var(--afro-blue-light);
+  border: 1px solid var(--afro-blue);
   transition: all 0.3s ease;
 }
 
 .btn-afro-secondary:hover {
-  background: rgba(212, 165, 92, 0.1);
+  background: rgba(59, 130, 246, 0.15);
 }
 
-/* Text Gradient - Afro */
+/* Text Gradient - Blue & Gold */
 .text-afro-gradient {
-  background: linear-gradient(135deg, var(--afro-gold) 0%, var(--afro-amber) 50%, var(--afro-terracotta) 100%);
+  background: linear-gradient(135deg, #FFD700 0%, #3B82F6 50%, #60A5FA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -412,15 +406,15 @@
 @keyframes pulseSubtle {
   0%, 100% {
     opacity: 1;
-    filter: drop-shadow(0 0 2px rgba(212, 165, 92, 0.3));
+    filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
   }
   50% {
     opacity: 0.9;
-    filter: drop-shadow(0 0 8px rgba(212, 165, 92, 0.5));
+    filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.6));
   }
 }
 
-/* Border Glow Animation */
+/* Border Glow Animation - Blue */
 .border-glow {
   position: relative;
 }
@@ -431,7 +425,7 @@
   inset: -2px;
   border-radius: inherit;
   padding: 2px;
-  background: linear-gradient(135deg, rgba(212, 165, 92, 0.5), rgba(198, 139, 62, 0.3), rgba(139, 90, 43, 0.5));
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -440,18 +434,35 @@
 
 @keyframes borderRotate {
   0% {
-    background: linear-gradient(0deg, rgba(212, 165, 92, 0.5), rgba(198, 139, 62, 0.3), rgba(139, 90, 43, 0.5));
+    background: linear-gradient(0deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
   }
   25% {
-    background: linear-gradient(90deg, rgba(212, 165, 92, 0.5), rgba(198, 139, 62, 0.3), rgba(139, 90, 43, 0.5));
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
   }
   50% {
-    background: linear-gradient(180deg, rgba(212, 165, 92, 0.5), rgba(198, 139, 62, 0.3), rgba(139, 90, 43, 0.5));
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
   }
   75% {
-    background: linear-gradient(270deg, rgba(212, 165, 92, 0.5), rgba(198, 139, 62, 0.3), rgba(139, 90, 43, 0.5));
+    background: linear-gradient(270deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
   }
   100% {
-    background: linear-gradient(360deg, rgba(212, 165, 92, 0.5), rgba(198, 139, 62, 0.3), rgba(139, 90, 43, 0.5));
+    background: linear-gradient(360deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
   }
+}
+
+/* Bright Card Style */
+.card-bright {
+  background: linear-gradient(145deg, #1E293B 0%, #334155 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.card-bright:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 
+    0 8px 25px rgba(59, 130, 246, 0.2),
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }

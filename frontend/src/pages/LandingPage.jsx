@@ -268,25 +268,25 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D]">
+    <div className="min-h-screen bg-[#0F172A]">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/90 backdrop-blur-xl border-b border-[#D4A55C]/20">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0F172A]/90 backdrop-blur-xl border-b border-[#3B82F6]/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
               <div className="scissors-glow">
-                <Scissors className="h-8 w-8 text-[#D4A55C]" />
+                <Scissors className="h-8 w-8 text-[#3B82F6]" />
               </div>
               <span className="text-xl font-heading font-bold text-white">AfroCrown</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors">{t("nav.features")}</a>
-              <a href="/booking" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors">{t("nav.booking")}</a>
-              <a href="/ai-simulation" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors">{t("nav.simulation")}</a>
-              <a href="/marketplace" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors">{t("nav.marketplace")}</a>
-              <a href="/trimconnect" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors">{t("nav.trimconnect")}</a>
+              <a href="#features" className="text-slate-300 hover:text-[#60A5FA] transition-colors">{t("nav.features")}</a>
+              <a href="/booking" className="text-slate-300 hover:text-[#60A5FA] transition-colors">{t("nav.booking")}</a>
+              <a href="/ai-simulation" className="text-slate-300 hover:text-[#60A5FA] transition-colors">{t("nav.simulation")}</a>
+              <a href="/marketplace" className="text-slate-300 hover:text-[#60A5FA] transition-colors">{t("nav.marketplace")}</a>
+              <a href="/trimconnect" className="text-slate-300 hover:text-[#60A5FA] transition-colors">{t("nav.trimconnect")}</a>
               {user && user.role === 'client' && (
-                <a href="/my-appointments" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors">{t("nav.appointments")}</a>
+                <a href="/my-appointments" className="text-slate-300 hover:text-[#60A5FA] transition-colors">{t("nav.appointments")}</a>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -295,7 +295,7 @@ const LandingPage = () => {
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <img 
-                      src={user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=4F46E5&color=fff`}
+                      src={user.picture || `https://ui-avatars.com/api/?name=${user.name}&background=3B82F6&color=fff`}
                       alt={user.name}
                       className="w-8 h-8 rounded-full"
                     />
@@ -305,7 +305,7 @@ const LandingPage = () => {
                   {(user.role === 'founder' || user.role === 'salon_owner') && (
                     <Button 
                       onClick={() => window.location.href = user.role === 'founder' ? '/founder' : '/salon'}
-                      className="bg-gradient-to-r from-[#D4A55C] to-[#C68B3E] hover:from-[#C68B3E] hover:to-[#8B5A2B] text-white"
+                      className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#2563EB] hover:to-[#3B82F6] text-white shadow-lg shadow-blue-500/25"
                       data-testid="dashboard-btn"
                     >
                       {user.role === 'founder' ? t("nav.admin") : t("nav.salon")}
@@ -314,7 +314,7 @@ const LandingPage = () => {
                   <Button 
                     onClick={logout}
                     variant="outline"
-                    className="border-[#D4A55C]/50 text-[#D4A55C] hover:bg-[#D4A55C]/10"
+                    className="border-[#3B82F6]/50 text-[#60A5FA] hover:bg-[#3B82F6]/10"
                     data-testid="logout-btn"
                   >
                     <LogOut className="h-4 w-4" />
@@ -323,7 +323,7 @@ const LandingPage = () => {
               ) : (
                 <Button 
                   onClick={() => setShowLoginDialog(true)}
-                  className="bg-gradient-to-r from-[#D4A55C] to-[#C68B3E] hover:from-[#C68B3E] hover:to-[#8B5A2B] text-white"
+                  className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#2563EB] hover:to-[#3B82F6] text-white shadow-lg shadow-blue-500/25"
                   data-testid="login-btn"
                 >
                   {t("nav.login")}
@@ -335,19 +335,19 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden bg-[#0D0D0D]">
+      <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden bg-[#0F172A]">
         {/* Barber Filigree with Glow Effect */}
         <div className="barber-filigree"></div>
         <div className="light-beam"></div>
         
-        {/* Background Image with Warm Overlay */}
+        {/* Background Image with Blue Overlay */}
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
             backgroundImage: `url('https://images.unsplash.com/photo-1546641082-f149d4c3c907?crop=entropy&cs=srgb&fm=jpg&q=85')`,
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0D0D0D]/85 via-[#1A1410]/90 to-[#0D0D0D]"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/80 via-[#1E293B]/85 to-[#0F172A]"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -357,9 +357,9 @@ const LandingPage = () => {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <div className="inline-flex items-center gap-2 bg-[#D4A55C]/15 border border-[#D4A55C]/30 rounded-full px-4 py-2 mb-8">
-              <Trophy className="h-4 w-4 text-[#D4A55C] pulse-subtle" />
-              <span className="text-sm text-[#D4A55C]">{t("landing.badge")}</span>
+            <div className="inline-flex items-center gap-2 bg-[#3B82F6]/20 border border-[#3B82F6]/40 rounded-full px-4 py-2 mb-8">
+              <Trophy className="h-4 w-4 text-[#FFD700] pulse-subtle" />
+              <span className="text-sm text-[#60A5FA]">{t("landing.badge")}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-heading font-extrabold text-white mb-6 tracking-tight">
@@ -369,7 +369,7 @@ const LandingPage = () => {
               </span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-[#B8A898] max-w-2xl mx-auto mb-10">
+            <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10">
               {t("landing.hero.subtitle")}
             </p>
 
@@ -377,7 +377,7 @@ const LandingPage = () => {
               {user ? (
                 <Button 
                   onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/booking'}
-                  className="bg-gradient-to-r from-[#D4A55C] to-[#C68B3E] hover:from-[#C68B3E] hover:to-[#8B5A2B] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-[#D4A55C]/25 transition-all duration-300"
+                  className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#2563EB] hover:to-[#3B82F6] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-blue-500/30 transition-all duration-300"
                   data-testid="go-dashboard-btn"
                 >
                   {user.role === 'founder' ? t("landing.hero.cta_admin") : user.role === 'salon_owner' ? t("landing.hero.cta_salon") : t("landing.hero.cta")}
@@ -386,7 +386,7 @@ const LandingPage = () => {
               ) : (
                 <Button 
                   onClick={() => window.location.href = '/booking'}
-                  className="bg-gradient-to-r from-[#D4A55C] to-[#C68B3E] hover:from-[#C68B3E] hover:to-[#8B5A2B] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-[#D4A55C]/25 transition-all duration-300"
+                  className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#2563EB] hover:to-[#3B82F6] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-blue-500/30 transition-all duration-300"
                   data-testid="get-started-btn"
                 >
                   {t("landing.hero.cta")}
@@ -395,7 +395,7 @@ const LandingPage = () => {
               )}
               <Button 
                 variant="outline"
-                className="border-[#D4A55C]/50 text-[#D4A55C] hover:bg-[#D4A55C]/10 py-6 px-8 rounded-xl text-lg transition-all duration-300"
+                className="border-[#FFD700]/60 text-[#FFD700] hover:bg-[#FFD700]/10 py-6 px-8 rounded-xl text-lg transition-all duration-300"
                 onClick={() => setIsVideoPlaying(true)}
                 data-testid="watch-video-btn"
               >
@@ -414,8 +414,8 @@ const LandingPage = () => {
           >
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-3xl sm:text-4xl font-heading font-bold text-[#D4A55C] mb-2">{stat.value}</div>
-                <div className="text-sm text-[#B8A898]">{stat.label}</div>
+                <div className="text-3xl sm:text-4xl font-heading font-bold text-[#60A5FA] mb-2">{stat.value}</div>
+                <div className="text-sm text-slate-400">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -423,7 +423,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-[#0D0D0D]">
+      <section id="features" className="py-20 bg-[#0F172A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0 }}
@@ -434,7 +434,7 @@ const LandingPage = () => {
             <h2 className="text-3xl sm:text-4xl font-heading font-bold text-white mb-4">
               Tout ce dont vous avez besoin
             </h2>
-            <p className="text-[#B8A898] max-w-2xl mx-auto">
+            <p className="text-slate-400 max-w-2xl mx-auto">
               Une plateforme complète pour les clients et les professionnels de la coiffure afro.
             </p>
           </motion.div>
@@ -447,14 +447,14 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-[#1A1410] border border-[#D4A55C]/20 rounded-xl p-6 hover:border-[#D4A55C]/50 transition-all duration-300 hover-lift"
+                className="bg-[#1E293B] border border-[#3B82F6]/20 rounded-xl p-6 hover:border-[#3B82F6]/50 transition-all duration-300 hover-lift"
                 data-testid={`feature-card-${index}`}
               >
-                <div className="w-12 h-12 bg-[#D4A55C]/15 rounded-lg flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-[#D4A55C]" />
+                <div className="w-12 h-12 bg-[#3B82F6]/15 rounded-lg flex items-center justify-center mb-4">
+                  <feature.icon className="h-6 w-6 text-[#3B82F6]" />
                 </div>
                 <h3 className="text-lg font-heading font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-[#B8A898] text-sm">{feature.description}</p>
+                <p className="text-[slate-300] text-sm">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -468,29 +468,29 @@ const LandingPage = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="relative bg-[#1A1410] rounded-2xl p-8 md:p-12 overflow-hidden border border-[#D4A55C]/20"
+            className="relative bg-[#1E293B] rounded-2xl p-8 md:p-12 overflow-hidden border border-[#3B82F6]/20"
           >
             {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4A55C]/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#C06040]/10 rounded-full blur-3xl"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#3B82F6]/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#FFD700]/10 rounded-full blur-3xl"></div>
 
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <Trophy className="h-8 w-8 text-[#D4A55C] pulse-subtle" />
-                  <span className="text-[#D4A55C] font-heading font-bold text-xl">TrimConnect Barber Battle</span>
+                  <Trophy className="h-8 w-8 text-[#3B82F6] pulse-subtle" />
+                  <span className="text-[#3B82F6] font-heading font-bold text-xl">TrimConnect Barber Battle</span>
                 </div>
                 <h2 className="text-2xl md:text-3xl font-heading font-bold text-white mb-4">
                   Le plus grand concours de coiffure afro
                 </h2>
-                <p className="text-[#B8A898] max-w-lg">
+                <p className="text-[slate-300] max-w-lg">
                   Montrez votre talent, gagnez des prix exceptionnels et rejoignez 
                   le Hall of Fame des meilleurs coiffeurs.
                 </p>
               </div>
               <div className="flex flex-col gap-4">
                 <Button 
-                  className="bg-gradient-to-r from-[#D4A55C] to-[#C68B3E] hover:from-[#C68B3E] hover:to-[#8B5A2B] text-white font-bold uppercase tracking-wider py-4 px-8 rounded-xl"
+                  className="bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#60A5FA] hover:to-[#2563EB] text-white font-bold uppercase tracking-wider py-4 px-8 rounded-xl"
                   style={{ boxShadow: '0 0 20px rgba(212, 165, 92, 0.3)' }}
                   onClick={() => window.location.href = '/trimconnect'}
                   data-testid="join-battle-btn"
@@ -499,7 +499,7 @@ const LandingPage = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  className="border-[#D4A55C]/50 text-[#D4A55C] hover:bg-[#D4A55C]/10"
+                  className="border-[#3B82F6]/50 text-[#3B82F6] hover:bg-[#3B82F6]/10"
                   onClick={() => window.location.href = '/trimconnect'}
                   data-testid="view-entries-btn"
                 >
@@ -512,7 +512,7 @@ const LandingPage = () => {
       </section>
 
       {/* Gallery Section - Client Photos */}
-      <section className="py-20 bg-[#0D0D0D]">
+      <section className="py-20 bg-[#0F172A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0 }}
@@ -520,14 +520,14 @@ const LandingPage = () => {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <div className="inline-flex items-center gap-2 bg-[#D4A55C]/15 border border-[#D4A55C]/30 rounded-full px-4 py-2 mb-4">
-              <Star className="h-4 w-4 text-[#D4A55C]" />
-              <span className="text-sm text-[#D4A55C]">{t("gallery.title")}</span>
+            <div className="inline-flex items-center gap-2 bg-[#3B82F6]/15 border border-[#3B82F6]/30 rounded-full px-4 py-2 mb-4">
+              <Star className="h-4 w-4 text-[#3B82F6]" />
+              <span className="text-sm text-[#3B82F6]">{t("gallery.title")}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-heading font-bold text-white mb-4">
               {t("gallery.title")}
             </h2>
-            <p className="text-[#B8A898] max-w-2xl mx-auto">
+            <p className="text-[slate-300] max-w-2xl mx-auto">
               {t("gallery.subtitle")}
             </p>
           </motion.div>
@@ -552,7 +552,7 @@ const LandingPage = () => {
                   alt={image.alt}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                   <p className="text-white text-sm font-medium">{image.alt}</p>
                 </div>
@@ -639,14 +639,14 @@ const LandingPage = () => {
                 <>
                   <button
                     onClick={() => setCurrentCutIndex((prev) => (prev - 1 + monthlyCuts.length) % monthlyCuts.length)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#1A1410]/80 hover:bg-[#D4A55C]/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors border border-[#D4A55C]/30"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#1E293B]/80 hover:bg-[#3B82F6]/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors border border-[#3B82F6]/30"
                     data-testid="carousel-prev-btn"
                   >
                     <ChevronLeft className="w-6 h-6" />
                   </button>
                   <button
                     onClick={() => setCurrentCutIndex((prev) => (prev + 1) % monthlyCuts.length)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#1A1410]/80 hover:bg-[#D4A55C]/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors border border-[#D4A55C]/30"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#1E293B]/80 hover:bg-[#3B82F6]/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors border border-[#3B82F6]/30"
                     data-testid="carousel-next-btn"
                   >
                     <ChevronRight className="w-6 h-6" />
@@ -661,7 +661,7 @@ const LandingPage = () => {
                     key={index}
                     onClick={() => setCurrentCutIndex(index)}
                     className={`w-2 h-2 rounded-full transition-all ${
-                      index === currentCutIndex ? "bg-[#D4A55C] w-8" : "bg-[#3D2914] hover:bg-[#5C3A21]"
+                      index === currentCutIndex ? "bg-[#3B82F6] w-8" : "bg-[#475569] hover:bg-[#64748B]"
                     }`}
                     data-testid={`carousel-dot-${index}`}
                   />
@@ -673,7 +673,7 @@ const LandingPage = () => {
       )}
 
       {/* Salon Search by Location */}
-      <section className="py-20 bg-[#0D0D0D]">
+      <section className="py-20 bg-[#0F172A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0 }}
@@ -684,25 +684,25 @@ const LandingPage = () => {
             <h2 className="text-3xl sm:text-4xl font-heading font-bold text-white mb-4">
               {t("landing.search.title")}
             </h2>
-            <p className="text-[#B8A898] max-w-2xl mx-auto">
+            <p className="text-[slate-300] max-w-2xl mx-auto">
               {t("landing.search.subtitle")}
             </p>
           </motion.div>
 
           {/* Search Form */}
-          <div className="bg-[#1A1410] border border-[#D4A55C]/20 rounded-2xl p-6 md:p-8 max-w-4xl mx-auto">
+          <div className="bg-[#1E293B] border border-[#3B82F6]/20 rounded-2xl p-6 md:p-8 max-w-4xl mx-auto">
             <div className="grid md:grid-cols-4 gap-4">
               {/* Country Select */}
               <div className="md:col-span-1">
-                <label className="block text-[#B8A898] text-sm mb-2">{t("landing.search.country")}</label>
+                <label className="block text-[slate-300] text-sm mb-2">{t("landing.search.country")}</label>
                 <Select value={selectedCountry} onValueChange={handleCountryChange}>
-                  <SelectTrigger className="bg-[#0D0D0D] border-[#D4A55C]/30 text-white" data-testid="country-select">
-                    <Globe className="w-4 h-4 mr-2 text-[#D4A55C]" />
+                  <SelectTrigger className="bg-[#0F172A] border-[#3B82F6]/30 text-white" data-testid="country-select">
+                    <Globe className="w-4 h-4 mr-2 text-[#3B82F6]" />
                     <SelectValue placeholder={t("landing.search.country")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1A1410] border-[#D4A55C]/30">
+                  <SelectContent className="bg-[#1E293B] border-[#3B82F6]/30">
                     {countries.map((country) => (
-                      <SelectItem key={country} value={country} className="text-white hover:bg-[#D4A55C]/20">
+                      <SelectItem key={country} value={country} className="text-white hover:bg-[#3B82F6]/20">
                         {country}
                       </SelectItem>
                     ))}
@@ -712,15 +712,15 @@ const LandingPage = () => {
 
               {/* City Select */}
               <div className="md:col-span-1">
-                <label className="block text-[#B8A898] text-sm mb-2">{t("landing.search.city")}</label>
+                <label className="block text-[slate-300] text-sm mb-2">{t("landing.search.city")}</label>
                 <Select value={selectedCity} onValueChange={setSelectedCity} disabled={!selectedCountry}>
-                  <SelectTrigger className="bg-[#0D0D0D] border-[#D4A55C]/30 text-white" data-testid="city-select">
-                    <MapPin className="w-4 h-4 mr-2 text-[#D4A55C]" />
+                  <SelectTrigger className="bg-[#0F172A] border-[#3B82F6]/30 text-white" data-testid="city-select">
+                    <MapPin className="w-4 h-4 mr-2 text-[#3B82F6]" />
                     <SelectValue placeholder={t("landing.search.city")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1A1410] border-[#D4A55C]/30">
+                  <SelectContent className="bg-[#1E293B] border-[#3B82F6]/30">
                     {cities.map((city) => (
-                      <SelectItem key={city} value={city} className="text-white hover:bg-[#D4A55C]/20">
+                      <SelectItem key={city} value={city} className="text-white hover:bg-[#3B82F6]/20">
                         {city}
                       </SelectItem>
                     ))}
@@ -730,11 +730,11 @@ const LandingPage = () => {
 
               {/* Geolocation Button */}
               <div className="md:col-span-1">
-                <label className="block text-[#B8A898] text-sm mb-2">Position</label>
+                <label className="block text-[slate-300] text-sm mb-2">Position</label>
                 <Button
                   onClick={getUserLocation}
                   variant="outline"
-                  className={`w-full ${userLocation ? "bg-[#D4A55C]/20 border-[#D4A55C] text-[#D4A55C]" : "border-[#D4A55C]/50 text-[#D4A55C] hover:bg-[#D4A55C]/10"}`}
+                  className={`w-full ${userLocation ? "bg-[#3B82F6]/20 border-[#3B82F6] text-[#3B82F6]" : "border-[#3B82F6]/50 text-[#3B82F6] hover:bg-[#3B82F6]/10"}`}
                   data-testid="geolocation-btn"
                 >
                   <Navigation className="w-4 h-4 mr-2" />
@@ -744,11 +744,11 @@ const LandingPage = () => {
 
               {/* Search Button */}
               <div className="md:col-span-1">
-                <label className="block text-[#B8A898] text-sm mb-2">&nbsp;</label>
+                <label className="block text-[slate-300] text-sm mb-2">&nbsp;</label>
                 <Button
                   onClick={searchSalons}
                   disabled={isSearching || (!selectedCountry && !userLocation)}
-                  className="w-full bg-gradient-to-r from-[#D4A55C] to-[#C68B3E] hover:from-[#C68B3E] hover:to-[#8B5A2B] text-white"
+                  className="w-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#60A5FA] hover:to-[#2563EB] text-white"
                   data-testid="search-salons-btn"
                 >
                   <Search className="w-4 h-4 mr-2" />
@@ -766,12 +766,12 @@ const LandingPage = () => {
               className="mt-8"
             >
               {searchResults.length === 0 ? (
-                <p className="text-center text-[#B8A898] py-8">
+                <p className="text-center text-[slate-300] py-8">
                   {t("landing.search.no_results")}. Essayez d'élargir votre recherche.
                 </p>
               ) : (
                 <>
-                  <p className="text-[#B8A898] mb-6 text-center">
+                  <p className="text-[slate-300] mb-6 text-center">
                     {searchResults.length} {t("landing.search.results")}
                   </p>
                   <div className="grid md:grid-cols-3 gap-6">
@@ -781,18 +781,18 @@ const LandingPage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="bg-[#1A1410] border border-[#D4A55C]/20 rounded-xl overflow-hidden hover:border-[#D4A55C]/50 transition-all duration-300 cursor-pointer hover-lift"
+                        className="bg-[#1E293B] border border-[#3B82F6]/20 rounded-xl overflow-hidden hover:border-[#3B82F6]/50 transition-all duration-300 cursor-pointer hover-lift"
                         onClick={() => window.location.href = `/booking?salon=${salon.salon_id}`}
                         data-testid={`search-result-${salon.salon_id}`}
                       >
-                        <div className="h-40 bg-[#2D221A] relative">
+                        <div className="h-40 bg-[#334155] relative">
                           <img 
                             src={salon.image_url || `https://images.unsplash.com/photo-1549663369-22ac6b052faf?w=400`}
                             alt={salon.name}
                             className="w-full h-full object-cover"
                           />
                           {salon.distance_km && salon.distance_km < 9999 && (
-                            <div className="absolute top-3 right-3 bg-[#0D0D0D]/80 text-[#D4A55C] text-xs font-medium px-2 py-1 rounded-full border border-[#D4A55C]/30">
+                            <div className="absolute top-3 right-3 bg-[#0F172A]/80 text-[#3B82F6] text-xs font-medium px-2 py-1 rounded-full border border-[#3B82F6]/30">
                               {salon.distance_km} km
                             </div>
                           )}
@@ -801,11 +801,11 @@ const LandingPage = () => {
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="font-heading font-semibold text-white">{salon.name}</h3>
                             <div className="flex items-center gap-1">
-                              <Star className="h-4 w-4 text-[#D4A55C] fill-[#D4A55C]" />
+                              <Star className="h-4 w-4 text-[#3B82F6] fill-[#3B82F6]" />
                               <span className="text-white text-sm">{salon.rating?.toFixed(1) || "Nouveau"}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 text-[#B8A898] text-sm">
+                          <div className="flex items-center gap-1 text-[slate-300] text-sm">
                             <MapPin className="h-3 w-3" />
                             <span>{salon.city}{salon.country ? `, ${salon.country}` : ""}</span>
                           </div>
@@ -821,24 +821,24 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0A0A0A] border-t border-[#D4A55C]/20 py-12">
+      <footer className="bg-[#0A0A0A] border-t border-[#3B82F6]/20 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-2">
               <div className="scissors-glow">
-                <Scissors className="h-6 w-6 text-[#D4A55C]" />
+                <Scissors className="h-6 w-6 text-[#3B82F6]" />
               </div>
               <span className="text-lg font-heading font-bold text-white">AfroCrown</span>
             </div>
             <div className="flex items-center gap-8">
-              <a href="#" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors text-sm">{t("footer.about")}</a>
-              <a href="#" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors text-sm">{t("footer.contact")}</a>
-              <a href="#" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors text-sm">{t("footer.terms")}</a>
-              <a href="#" className="text-[#B8A898] hover:text-[#D4A55C] transition-colors text-sm">{t("footer.privacy")}</a>
+              <a href="#" className="text-[slate-300] hover:text-[#3B82F6] transition-colors text-sm">{t("footer.about")}</a>
+              <a href="#" className="text-[slate-300] hover:text-[#3B82F6] transition-colors text-sm">{t("footer.contact")}</a>
+              <a href="#" className="text-[slate-300] hover:text-[#3B82F6] transition-colors text-sm">{t("footer.terms")}</a>
+              <a href="#" className="text-[slate-300] hover:text-[#3B82F6] transition-colors text-sm">{t("footer.privacy")}</a>
             </div>
-            <div className="text-[#B8A898]/60 text-sm text-center">
+            <div className="text-[slate-300]/60 text-sm text-center">
               <p className="mb-2">© 2024 AfroCrown. {t("footer.rights")}</p>
-              <p className="text-[#D4A55C] font-medium">Inspired by Kadj'</p>
+              <p className="text-[#3B82F6] font-medium">Inspired by Kadj'</p>
             </div>
           </div>
         </div>
@@ -858,7 +858,7 @@ const LandingPage = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-4xl aspect-video bg-[#0D0D0D] rounded-2xl overflow-hidden border border-[#D4A55C]/30"
+              className="relative w-full max-w-4xl aspect-video bg-[#0F172A] rounded-2xl overflow-hidden border border-[#3B82F6]/30"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -891,7 +891,7 @@ const LandingPage = () => {
 
       {/* Login Dialog */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="bg-[#1A1410] border-[#D4A55C]/30 max-w-md">
+        <DialogContent className="bg-[#1E293B] border-[#3B82F6]/30 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-white text-center text-xl">{t("auth.login")}</DialogTitle>
           </DialogHeader>
@@ -916,39 +916,39 @@ const LandingPage = () => {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#D4A55C]/30"></div>
+                <div className="w-full border-t border-[#3B82F6]/30"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-[#1A1410] text-[#B8A898]">{t("auth.or")}</span>
+                <span className="px-4 bg-[#1E293B] text-[slate-300]">{t("auth.or")}</span>
               </div>
             </div>
 
             {/* Email Login Form */}
             <form onSubmit={handleEmailLogin} className="space-y-4">
               <div>
-                <label className="text-sm text-[#B8A898] mb-1 block">{t("auth.email")}</label>
+                <label className="text-sm text-[slate-300] mb-1 block">{t("auth.email")}</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#D4A55C]/50" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#3B82F6]/50" />
                   <Input
                     type="email"
                     placeholder="votre@email.com"
                     value={loginForm.email}
                     onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-                    className="pl-10 bg-[#0D0D0D] border-[#D4A55C]/30 text-white focus:border-[#D4A55C]"
+                    className="pl-10 bg-[#0F172A] border-[#3B82F6]/30 text-white focus:border-[#3B82F6]"
                     data-testid="login-email-input"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-sm text-[#B8A898] mb-1 block">{t("auth.password")}</label>
+                <label className="text-sm text-[slate-300] mb-1 block">{t("auth.password")}</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#D4A55C]/50" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#3B82F6]/50" />
                   <Input
                     type="password"
                     placeholder="••••••••"
                     value={loginForm.password}
                     onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                    className="pl-10 bg-[#0D0D0D] border-[#D4A55C]/30 text-white focus:border-[#D4A55C]"
+                    className="pl-10 bg-[#0F172A] border-[#3B82F6]/30 text-white focus:border-[#3B82F6]"
                     data-testid="login-password-input"
                   />
                 </div>
@@ -956,14 +956,14 @@ const LandingPage = () => {
               <Button 
                 type="submit"
                 disabled={loginLoading}
-                className="w-full bg-gradient-to-r from-[#D4A55C] to-[#C68B3E] hover:from-[#C68B3E] hover:to-[#8B5A2B] text-white"
+                className="w-full bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] hover:from-[#60A5FA] hover:to-[#2563EB] text-white"
                 data-testid="email-login-submit"
               >
                 {loginLoading ? t("common.loading") : t("auth.submit")}
               </Button>
             </form>
 
-            <p className="text-center text-xs text-[#B8A898]/60">
+            <p className="text-center text-xs text-[slate-300]/60">
               {t("auth.no_account")}
             </p>
           </div>
@@ -972,12 +972,12 @@ const LandingPage = () => {
 
       {/* Password Change Dialog */}
       <Dialog open={showPasswordChange} onOpenChange={setShowPasswordChange}>
-        <DialogContent className="bg-[#1A1410] border-[#D4A55C]/30 max-w-md">
+        <DialogContent className="bg-[#1E293B] border-[#3B82F6]/30 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-white text-center text-xl">Changer votre mot de passe</DialogTitle>
           </DialogHeader>
           <div className="mt-4">
-            <p className="text-[#B8A898] text-sm mb-4 text-center">
+            <p className="text-[slate-300] text-sm mb-4 text-center">
               Pour des raisons de securite, veuillez definir un nouveau mot de passe.
             </p>
             <form onSubmit={handlePasswordChange} className="space-y-4">
