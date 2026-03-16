@@ -120,18 +120,26 @@ Structure dans /app/mobile avec:
 - [x] Recherche de salons par pays/ville avec geolocalisation
 - [x] API de localisation des salons (pays, villes, distance)
 
+## Nouvelles Fonctionnalites (Mars 2026 - Session 3)
+- [x] Reassignation des clients entre coiffeurs (modal + API)
+- [x] Scan QR code pour confirmation RDV (arrivee, debut, fin de coupe)
+- [x] Notification automatique de demande d'avis apres coupe terminee
+- [x] Import de site web salon existant (adaptation au format AfroCrown)
+- [x] Systeme de vote TrimConnect (3 votes max par utilisateur par concours)
+- [x] Galerie publique TrimConnect avec classement par votes
+- [x] Vente d'ecrans tactiles (3 modeles: Basic, Pro, Premium)
+- [x] Commande d'ecrans depuis le Marketplace
+
 ### P1 (Next)
 - [ ] Test manuel connexion Google (verifier bouton Admin)
 - [ ] Deploy mobile app (Expo EAS) - instructions fournies
 - [ ] Real Stripe payment testing
+- [ ] Ajouter localisations aux salons existants
 
 ### P2 (Medium)
 - [ ] Calendar view for appointments
-- [ ] Ecran tactile salon (vente via plateforme)
-- [ ] Full TrimConnect voting mechanism
-- [ ] Supprimer date de naissance du formulaire client
-- [ ] Reassignation clients entre coiffeurs
-- [ ] Scan QR code pour confirmation RDV (UI salon)
+- [ ] Finaliser le traitement automatique des imports de sites web
+- [ ] Envoyer des emails de confirmation apres commande d'ecrans
 
 ### P3 (Low)
 - [ ] Advanced statistics charts
@@ -157,6 +165,18 @@ Structure dans /app/mobile avec:
 - `GET /api/salons/locations/cities` - Liste des villes
 - `GET /api/salons/search` - Recherche salons par localisation
 - `GET /api/salons/nearby` - Salons a proximite
+
+## Endpoints API Ajoutes (Session 3)
+- `POST /api/appointments/{appointment_id}/reassign` - Reassigner un RDV
+- `GET /api/barbers/{barber_id}/available-colleagues` - Coiffeurs disponibles
+- `POST /api/appointments/scan-qr` - Scanner QR code RDV
+- `POST /api/salons/{salon_id}/import-website` - Importer site web salon
+- `POST /api/trimconnect/{entry_id}/vote` - Voter pour une participation
+- `DELETE /api/trimconnect/{entry_id}/vote` - Retirer son vote
+- `GET /api/trimconnect/my-votes` - Mes votes TrimConnect
+- `GET /api/trimconnect/public-gallery` - Galerie publique TrimConnect
+- `GET /api/shop/tactile-screens` - Liste des ecrans tactiles
+- `POST /api/shop/tactile-screens/order` - Commander un ecran
 
 ## Next Tasks
 1. Tester manuellement la connexion Google avec dialpha224@gmail.com

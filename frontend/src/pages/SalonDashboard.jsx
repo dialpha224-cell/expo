@@ -61,6 +61,9 @@ import PremiumServicesManager from "../components/PremiumServicesManager";
 import LoyaltyScanner from "../components/LoyaltyScanner";
 import LoyaltyConfigManager from "../components/LoyaltyConfigManager";
 import MonthlyCutsManager from "../components/MonthlyCutsManager";
+import AppointmentQRScanner from "../components/AppointmentQRScanner";
+import ReassignClientModal from "../components/ReassignClientModal";
+import WebsiteImporter from "../components/WebsiteImporter";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -778,6 +781,7 @@ const BarbersManagement = ({ salonId }) => {
 const AppointmentsManagement = ({ salonId }) => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reassignAppointment, setReassignAppointment] = useState(null);
 
   useEffect(() => {
     if (salonId) {
@@ -808,9 +812,19 @@ const AppointmentsManagement = ({ salonId }) => {
     }
   };
 
+  const requestReview = async (appointmentId) => {
+    try {
+      await axios.post(`${API}/appointments/${appointmentId}/request-review`, {}, { withCredentials: true });
+      toast.success("Demande d'avis envoyee au client");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
   const statusColors = {
     pending: "bg-amber-500/20 text-amber-400",
     confirmed: "bg-blue-500/20 text-blue-400",
+    in_progress: "bg-purple-500/20 text-purple-400",
     completed: "bg-green-500/20 text-green-400",
     cancelled: "bg-red-500/20 text-red-400"
   };
@@ -818,6 +832,7 @@ const AppointmentsManagement = ({ salonId }) => {
   const statusLabels = {
     pending: "En attente",
     confirmed: "Confirme",
+    in_progress: "En cours",
     completed: "Termine",
     cancelled: "Annule"
   };
@@ -832,9 +847,14 @@ const AppointmentsManagement = ({ salonId }) => {
 
   return (
     <div className="space-y-6" data-testid="appointments-management">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion des Rendez-vous</h1>
-        <p className="text-slate-400">{appointments.length} rendez-vous</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion des Rendez-vous</h1>
+          <p className="text-slate-400">{appointments.length} rendez-vous</p>
+        </div>
+        <div className="flex gap-3">
+          <AppointmentQRScanner salonId={salonId} onScanComplete={fetchAppointments} />
+        </div>
       </div>
 
       {loading ? (
@@ -853,6 +873,7 @@ const AppointmentsManagement = ({ salonId }) => {
               <thead className="bg-slate-900">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Client</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Coiffeur</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Date</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Heure</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase">Prix</th>
@@ -864,26 +885,52 @@ const AppointmentsManagement = ({ salonId }) => {
                 {appointments.map((apt) => (
                   <tr key={apt.appointment_id} data-testid={`appointment-row-${apt.appointment_id}`}>
                     <td className="px-6 py-4 text-white">{apt.client_name || "Client anonyme"}</td>
-                    <td className="px-6 py-4 text-slate-400">{apt.appointment_date}</td>
-                    <td className="px-6 py-4 text-slate-400">{apt.appointment_time}</td>
-                    <td className="px-6 py-4 text-white">{apt.total_price} EUR</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-300">{apt.barber_name || "-"}</span>
+                        {apt.status !== "completed" && apt.status !== "cancelled" && (
+                          <button
+                            onClick={() => setReassignAppointment(apt)}
+                            className="text-indigo-400 hover:text-indigo-300 text-xs underline"
+                            data-testid={`reassign-btn-${apt.appointment_id}`}
+                          >
+                            Reassigner
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-400">{apt.appointment_date || apt.date}</td>
+                    <td className="px-6 py-4 text-slate-400">{apt.appointment_time || apt.time}</td>
+                    <td className="px-6 py-4 text-white">{apt.total_price || apt.final_price} EUR</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs ${statusColors[apt.status]}`}>
                         {statusLabels[apt.status]}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <Select value={apt.status} onValueChange={(value) => updateStatus(apt.appointment_id, value)}>
-                        <SelectTrigger className="w-32 bg-slate-900 border-slate-700 text-white text-xs">
+                      <div className="flex items-center gap-2">
+                        <Select value={apt.status} onValueChange={(value) => updateStatus(apt.appointment_id, value)}>
+                          <SelectTrigger className="w-32 bg-slate-900 border-slate-700 text-white text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-800 border-slate-700">
                           <SelectItem value="pending">En attente</SelectItem>
                           <SelectItem value="confirmed">Confirme</SelectItem>
+                          <SelectItem value="in_progress">En cours</SelectItem>
                           <SelectItem value="completed">Termine</SelectItem>
                           <SelectItem value="cancelled">Annule</SelectItem>
                         </SelectContent>
                       </Select>
+                        {apt.status === "completed" && !apt.is_reviewed && (
+                          <button
+                            onClick={() => requestReview(apt.appointment_id)}
+                            className="text-xs bg-amber-600/20 text-amber-400 px-2 py-1 rounded hover:bg-amber-600/30"
+                            data-testid={`request-review-btn-${apt.appointment_id}`}
+                          >
+                            Demander avis
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -892,6 +939,14 @@ const AppointmentsManagement = ({ salonId }) => {
           </div>
         </div>
       )}
+
+      {/* Reassign Modal */}
+      <ReassignClientModal
+        appointment={reassignAppointment}
+        isOpen={!!reassignAppointment}
+        onClose={() => setReassignAppointment(null)}
+        onReassigned={fetchAppointments}
+      />
     </div>
   );
 };
@@ -1579,7 +1634,10 @@ const SalonSettings = ({ salon, onUpdate }) => {
 
   return (
     <div className="space-y-6" data-testid="salon-settings">
-      <h1 className="text-2xl font-heading font-bold text-white">Parametres du salon</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-heading font-bold text-white">Parametres du salon</h1>
+        <WebsiteImporter salonId={salon?.salon_id} />
+      </div>
       
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-2xl">
         <div className="space-y-4">

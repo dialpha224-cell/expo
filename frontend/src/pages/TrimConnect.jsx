@@ -37,6 +37,7 @@ const TrimConnect = () => {
   const [entries, setEntries] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [hallOfFame, setHallOfFame] = useState([]);
+  const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [newEntry, setNewEntry] = useState({
@@ -49,10 +50,16 @@ const TrimConnect = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      fetchMyVotes();
+    }
+  }, [user]);
+
   const fetchData = async () => {
     try {
       const [entriesRes, leaderboardRes, hofRes] = await Promise.all([
-        axios.get(`${API}/trimconnect/entries?status=approved`),
+        axios.get(`${API}/trimconnect/public-gallery`),
         axios.get(`${API}/trimconnect/leaderboard`),
         axios.get(`${API}/trimconnect/hall-of-fame`)
       ]);
@@ -63,6 +70,15 @@ const TrimConnect = () => {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMyVotes = async () => {
+    try {
+      const response = await axios.get(`${API}/trimconnect/my-votes`, { withCredentials: true });
+      setMyVotes(response.data);
+    } catch (error) {
+      console.log("Not logged in or error fetching votes");
     }
   };
 
@@ -94,18 +110,26 @@ const TrimConnect = () => {
       return;
     }
 
+    const hasVoted = myVotes.includes(entryId);
+
     try {
-      await axios.post(`${API}/trimconnect/vote`, { entry_id: entryId }, { withCredentials: true });
-      toast.success("Vote enregistre !");
+      if (hasVoted) {
+        await axios.delete(`${API}/trimconnect/${entryId}/vote`, { withCredentials: true });
+        setMyVotes(myVotes.filter(id => id !== entryId));
+        toast.success("Vote retire");
+      } else {
+        await axios.post(`${API}/trimconnect/${entryId}/vote`, {}, { withCredentials: true });
+        setMyVotes([...myVotes, entryId]);
+        toast.success("Vote enregistre !");
+      }
       fetchData();
     } catch (error) {
-      if (error.response?.data?.detail === "Already voted for this entry") {
-        toast.error("Vous avez deja vote pour cette participation");
-      } else {
-        toast.error("Erreur lors du vote");
-      }
+      toast.error(error.response?.data?.detail || "Erreur lors du vote");
     }
   };
+
+  const hasVoted = (entryId) => myVotes.includes(entryId);
+  const remainingVotes = 3 - myVotes.length;
 
   return (
     <div className="min-h-screen bg-slate-900">

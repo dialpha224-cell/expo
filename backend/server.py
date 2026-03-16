@@ -3584,6 +3584,275 @@ async def get_nearby_salons(latitude: float, longitude: float, radius_km: float 
     return await search_salons(latitude=latitude, longitude=longitude, radius_km=radius_km, limit=limit)
 
 # =============================================================================
+# BARBER CLIENT REASSIGNMENT
+# =============================================================================
+
+class ReassignClientRequest(BaseModel):
+    new_barber_id: str
+    reason: Optional[str] = None
+
+@api_router.post("/appointments/{appointment_id}/reassign")
+async def reassign_appointment(appointment_id: str, reassign: ReassignClientRequest, user: UserBase = Depends(require_salon_owner)):
+    """Reassign an appointment to a different barber"""
+    appointment = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    if user.role != "founder" and user.salon_id != appointment.get("salon_id"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    new_barber = await db.barbers.find_one({"barber_id": reassign.new_barber_id}, {"_id": 0})
+    if not new_barber:
+        raise HTTPException(status_code=404, detail="Barber not found")
+    
+    if not new_barber.get("is_available", True):
+        raise HTTPException(status_code=400, detail="Ce coiffeur n'est pas disponible")
+    
+    old_barber_id = appointment.get("barber_id")
+    old_barber = await db.barbers.find_one({"barber_id": old_barber_id}, {"_id": 0, "name": 1})
+    
+    await db.appointments.update_one(
+        {"appointment_id": appointment_id},
+        {"$set": {
+            "barber_id": reassign.new_barber_id,
+            "barber_name": new_barber.get("name"),
+            "reassigned_from": old_barber_id,
+            "reassign_reason": reassign.reason,
+            "reassigned_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if appointment.get("user_id"):
+        await create_notification(
+            appointment["user_id"],
+            "appointment_reassigned",
+            "Changement de coiffeur",
+            f"Votre RDV a ete reassigne de {old_barber.get('name', 'Unknown')} a {new_barber.get('name')}",
+            {"appointment_id": appointment_id, "reason": reassign.reason}
+        )
+    
+    return {"success": True, "new_barber": new_barber.get("name")}
+
+@api_router.get("/barbers/{barber_id}/available-colleagues")
+async def get_available_colleagues(barber_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Get available barbers in the same salon for reassignment"""
+    barber = await db.barbers.find_one({"barber_id": barber_id}, {"_id": 0})
+    if not barber:
+        raise HTTPException(status_code=404, detail="Barber not found")
+    
+    colleagues = await db.barbers.find({
+        "salon_id": barber.get("salon_id"),
+        "barber_id": {"$ne": barber_id},
+        "is_available": True
+    }, {"_id": 0}).to_list(50)
+    
+    return colleagues
+
+# =============================================================================
+# QR CODE APPOINTMENT CONFIRMATION
+# =============================================================================
+
+@api_router.post("/appointments/scan-qr")
+async def scan_appointment_qr(qr_data: dict, user: UserBase = Depends(require_salon_owner)):
+    """Scan a client's appointment QR code to confirm arrival/completion"""
+    qr_code = qr_data.get("qr_code", "")
+    action = qr_data.get("action", "confirm")
+    
+    if not qr_code.startswith("AFROCROWN:"):
+        raise HTTPException(status_code=400, detail="QR code invalide")
+    
+    appointment_id = qr_code.replace("AFROCROWN:", "")
+    
+    appointment = await db.appointments.find_one({"appointment_id": appointment_id}, {"_id": 0})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Rendez-vous non trouve")
+    
+    if user.role != "founder" and user.salon_id != appointment.get("salon_id"):
+        raise HTTPException(status_code=403, detail="Ce RDV appartient a un autre salon")
+    
+    client = await db.users.find_one({"user_id": appointment.get("user_id")}, {"_id": 0, "name": 1, "email": 1, "profile_photo_url": 1})
+    
+    update_data = {"qr_scanned_at": datetime.now(timezone.utc).isoformat()}
+    
+    if action == "confirm":
+        update_data["arrival_status"] = "arrived"
+        update_data["status"] = "confirmed"
+        message = "Client arrive et confirme"
+    elif action == "start":
+        update_data["status"] = "in_progress"
+        update_data["started_at"] = datetime.now(timezone.utc).isoformat()
+        message = "Coupe commencee"
+    elif action == "complete":
+        update_data["status"] = "completed"
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+        message = "Coupe terminee"
+        if appointment.get("user_id"):
+            await create_notification(
+                appointment["user_id"],
+                "review_request",
+                "Donnez votre avis !",
+                f"Votre coupe est terminee. Partagez votre experience !",
+                {"appointment_id": appointment_id}
+            )
+    else:
+        raise HTTPException(status_code=400, detail="Action invalide")
+    
+    await db.appointments.update_one({"appointment_id": appointment_id}, {"$set": update_data})
+    
+    return {
+        "success": True,
+        "message": message,
+        "appointment": {
+            "appointment_id": appointment_id,
+            "client_name": client.get("name") if client else appointment.get("client_name"),
+            "client_photo": client.get("profile_photo_url") if client else None,
+            "haircut_name": appointment.get("haircut_name"),
+            "barber_name": appointment.get("barber_name"),
+            "status": update_data.get("status", appointment.get("status")),
+            "date": appointment.get("date"),
+            "time": appointment.get("time")
+        }
+    }
+
+# =============================================================================
+# SALON WEBSITE IMPORT
+# =============================================================================
+
+class SalonWebsiteImportRequest(BaseModel):
+    website_url: str
+    import_services: bool = True
+    import_barbers: bool = True
+    import_gallery: bool = True
+
+@api_router.post("/salons/{salon_id}/import-website")
+async def import_salon_website(salon_id: str, import_req: SalonWebsiteImportRequest, user: UserBase = Depends(require_salon_owner)):
+    """Import data from an existing salon website"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    salon = await db.salons.find_one({"salon_id": salon_id}, {"_id": 0})
+    if not salon:
+        raise HTTPException(status_code=404, detail="Salon not found")
+    
+    import_id = f"import_{uuid.uuid4().hex[:12]}"
+    import_doc = {
+        "import_id": import_id,
+        "salon_id": salon_id,
+        "website_url": import_req.website_url,
+        "import_services": import_req.import_services,
+        "import_barbers": import_req.import_barbers,
+        "import_gallery": import_req.import_gallery,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.salon_imports.insert_one(import_doc)
+    await db.salons.update_one({"salon_id": salon_id}, {"$set": {"external_website": import_req.website_url}})
+    
+    return {
+        "success": True,
+        "import_id": import_id,
+        "message": "Import en cours. Notre equipe adaptera les donnees au format AfroCrown."
+    }
+
+# =============================================================================
+# TRIMCONNECT VOTING
+# =============================================================================
+
+@api_router.post("/trimconnect/{entry_id}/vote")
+async def vote_trimconnect_entry(entry_id: str, user: UserBase = Depends(require_auth)):
+    """Vote for a TrimConnect entry"""
+    entry = await db.trimconnect_entries.find_one({"entry_id": entry_id}, {"_id": 0})
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    
+    existing_vote = await db.trimconnect_votes.find_one({"entry_id": entry_id, "user_id": user.user_id})
+    if existing_vote:
+        raise HTTPException(status_code=400, detail="Vous avez deja vote pour cette participation")
+    
+    contest_id = entry.get("contest_id", "current")
+    user_votes_count = await db.trimconnect_votes.count_documents({"user_id": user.user_id, "contest_id": contest_id})
+    
+    if user_votes_count >= 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 votes par concours")
+    
+    vote_id = f"vote_{uuid.uuid4().hex[:12]}"
+    await db.trimconnect_votes.insert_one({
+        "vote_id": vote_id,
+        "entry_id": entry_id,
+        "user_id": user.user_id,
+        "contest_id": contest_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    await db.trimconnect_entries.update_one({"entry_id": entry_id}, {"$inc": {"votes": 1}})
+    
+    return {"success": True, "message": "Vote enregistre !"}
+
+@api_router.delete("/trimconnect/{entry_id}/vote")
+async def remove_trimconnect_vote(entry_id: str, user: UserBase = Depends(require_auth)):
+    """Remove a vote"""
+    result = await db.trimconnect_votes.delete_one({"entry_id": entry_id, "user_id": user.user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Vote non trouve")
+    await db.trimconnect_entries.update_one({"entry_id": entry_id}, {"$inc": {"votes": -1}})
+    return {"success": True}
+
+@api_router.get("/trimconnect/my-votes")
+async def get_my_trimconnect_votes(user: UserBase = Depends(require_auth)):
+    """Get entries the user has voted for"""
+    votes = await db.trimconnect_votes.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    return [v["entry_id"] for v in votes]
+
+@api_router.get("/trimconnect/public-gallery")
+async def get_trimconnect_public_gallery(contest_id: Optional[str] = None, limit: int = 50):
+    """Get public gallery for voting"""
+    query = {"is_approved": True}
+    if contest_id:
+        query["contest_id"] = contest_id
+    
+    entries = await db.trimconnect_entries.find(query, {"_id": 0}).sort([("votes", -1), ("created_at", -1)]).to_list(limit)
+    
+    for entry in entries:
+        if entry.get("salon_id"):
+            salon = await db.salons.find_one({"salon_id": entry["salon_id"]}, {"_id": 0, "name": 1})
+            entry["salon_name"] = salon.get("name") if salon else None
+        if entry.get("barber_id"):
+            barber = await db.barbers.find_one({"barber_id": entry["barber_id"]}, {"_id": 0, "name": 1, "profile_photo_url": 1})
+            entry["barber_name"] = barber.get("name") if barber else None
+            entry["barber_photo"] = barber.get("profile_photo_url") if barber else None
+    
+    return entries
+
+# =============================================================================
+# TACTILE SCREENS
+# =============================================================================
+
+@api_router.get("/shop/tactile-screens")
+async def get_tactile_screens():
+    """Get available tactile screens"""
+    return [
+        {"product_id": "screen_basic", "name": "Ecran Basic 15\"", "price": 299.00, "features": ["Affichage RDV", "Simulation IA"], "image_url": "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400"},
+        {"product_id": "screen_pro", "name": "Ecran Pro 22\"", "price": 499.00, "features": ["Affichage RDV", "Simulation IA HD", "WiFi"], "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400"},
+        {"product_id": "screen_premium", "name": "Ecran Premium 32\" 4K", "price": 899.00, "features": ["4K", "Borne sur pied", "Paiement CB"], "image_url": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400"}
+    ]
+
+@api_router.post("/shop/tactile-screens/order")
+async def order_tactile_screen(order: dict, user: UserBase = Depends(require_salon_owner)):
+    """Order a tactile screen"""
+    order_id = f"order_{uuid.uuid4().hex[:12]}"
+    await db.screen_orders.insert_one({
+        "order_id": order_id,
+        "user_id": user.user_id,
+        "salon_id": user.salon_id,
+        "product_id": order.get("product_id"),
+        "quantity": order.get("quantity", 1),
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"success": True, "order_id": order_id, "message": "Commande enregistree. Contact sous 24h."}
+
+# =============================================================================
 # HEALTH CHECK
 # =============================================================================
 

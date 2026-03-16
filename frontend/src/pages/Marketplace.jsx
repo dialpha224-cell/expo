@@ -11,28 +11,33 @@ import {
   ShoppingCart,
   Star,
   Scissors,
-  ArrowLeft
+  ArrowLeft,
+  Monitor
 } from "lucide-react";
 import { toast } from "sonner";
 
 const Marketplace = () => {
   const { user, login } = useAuth();
   const [products, setProducts] = useState([]);
+  const [tactileScreens, setTactileScreens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState([]);
+  const [showScreens, setShowScreens] = useState(false);
 
   const categories = [
     { value: "all", label: "Tous les produits" },
     { value: "hair_care", label: "Soins capillaires" },
     { value: "styling", label: "Coiffage" },
     { value: "tools", label: "Outils" },
-    { value: "accessories", label: "Accessoires" }
+    { value: "accessories", label: "Accessoires" },
+    { value: "screens", label: "Ecrans tactiles" }
   ];
 
   useEffect(() => {
     fetchProducts();
+    fetchTactileScreens();
   }, [selectedCategory]);
 
   const fetchProducts = async () => {
@@ -46,6 +51,31 @@ const Marketplace = () => {
       console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTactileScreens = async () => {
+    try {
+      const response = await axios.get(`${API}/shop/tactile-screens`);
+      setTactileScreens(response.data);
+    } catch (error) {
+      console.log("Error fetching screens");
+    }
+  };
+
+  const orderScreen = async (productId) => {
+    if (!user) {
+      login();
+      return;
+    }
+    try {
+      const response = await axios.post(`${API}/shop/tactile-screens/order`, 
+        { product_id: productId, quantity: 1 },
+        { withCredentials: true }
+      );
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la commande");
     }
   };
 
@@ -186,7 +216,60 @@ const Marketplace = () => {
         )}
 
         {/* Products Grid */}
-        {loading ? (
+        {selectedCategory === "screens" ? (
+          /* Tactile Screens Section */
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">Ecrans Tactiles pour Salons</h2>
+              <p className="text-slate-400">Modernisez votre salon avec nos ecrans connectes</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {tactileScreens.map((screen) => (
+                <motion.div
+                  key={screen.product_id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-indigo-500/50 transition-all"
+                  data-testid={`screen-${screen.product_id}`}
+                >
+                  <div className="h-48 bg-slate-700">
+                    <img 
+                      src={screen.image_url}
+                      alt={screen.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-bold text-white mb-2">{screen.name}</h3>
+                    <ul className="space-y-2 mb-4">
+                      {screen.features.map((feature, i) => (
+                        <li key={i} className="text-slate-400 text-sm flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-indigo-400">{screen.price} EUR</span>
+                      <Button
+                        onClick={() => orderScreen(screen.product_id)}
+                        className="bg-indigo-600 hover:bg-indigo-700"
+                        data-testid={`order-screen-${screen.product_id}`}
+                      >
+                        Commander
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center mt-8">
+              <p className="text-slate-400">
+                Livraison et installation incluses. Notre equipe vous contactera sous 24h apres la commande.
+              </p>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
           </div>
