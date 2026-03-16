@@ -201,6 +201,14 @@ Structure dans /app/mobile avec:
 - [x] Cartes et boutons avec dégradés chauds
 - [x] Animations CSS pour la lueur et le mouvement du filigrane
 
+## Nouvelles Fonctionnalites (Mars 2026 - Session 5)
+- [x] TEXTE "BARBER" en filigrane avec animation d'illumination (glow pulsant)
+- [x] VOIX OFF professionnelle generee avec OpenAI TTS HD (voix Onyx, francais)
+- [x] 4 PHOTOS clients generees par IA (miroir, coupe en cours, afro, waves)
+- [x] SECTION GALERIE ajoutee sur la landing page avec hover effects
+- [x] TRADUCTIONS ETENDUES: Marketplace, TrimConnect, Simulation IA, Booking, Appointments, Reviews
+- [x] Amelioration de l'effet de lueur (plus visible, animation subtile)
+
 ## Next Tasks
 1. Tester manuellement la connexion Google avec dialpha224@gmail.com (verifier bouton Admin)
 2. Telecharger et deployer l'app mobile via Expo EAS (voir BUILD_APK.md)

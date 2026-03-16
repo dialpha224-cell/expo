@@ -511,6 +511,57 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Gallery Section - Client Photos */}
+      <section className="py-20 bg-[#0D0D0D]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 bg-[#D4A55C]/15 border border-[#D4A55C]/30 rounded-full px-4 py-2 mb-4">
+              <Star className="h-4 w-4 text-[#D4A55C]" />
+              <span className="text-sm text-[#D4A55C]">{t("gallery.title")}</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-heading font-bold text-white mb-4">
+              {t("gallery.title")}
+            </h2>
+            <p className="text-[#B8A898] max-w-2xl mx-auto">
+              {t("gallery.subtitle")}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { src: "/gallery/client-mirror-1.png", alt: "Client satisfait devant miroir" },
+              { src: "/gallery/client-cutting-2.png", alt: "Coupe en cours" },
+              { src: "/gallery/client-afro-3.png", alt: "Client avec afro naturelle" },
+              { src: "/gallery/client-waves-4.png", alt: "Client avec 360 waves" }
+            ].map((image, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="relative group overflow-hidden rounded-xl aspect-square"
+              >
+                <img 
+                  src={image.src}
+                  alt={image.alt}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <p className="text-white text-sm font-medium">{image.alt}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Monthly Cuts Carousel - Coupes du Mois */}
       {monthlyCuts.length > 0 && (
         <section className="py-20 bg-[#0A0A0A]">
@@ -817,15 +868,22 @@ const LandingPage = () => {
               >
                 <X className="w-6 h-6" />
               </button>
-              <video
-                className="w-full h-full object-cover"
-                src="/afrocrown-demo.mp4"
-                autoPlay
-                loop
-                muted
-                playsInline
-                controls
-              />
+              <div className="relative w-full h-full">
+                <video
+                  className="w-full h-full object-cover"
+                  src="/afrocrown-demo.mp4"
+                  autoPlay
+                  loop
+                  playsInline
+                  controls
+                />
+                {/* Audio voiceover - plays with the video */}
+                <audio
+                  src="/afrocrown-voiceover.mp3"
+                  autoPlay
+                  className="hidden"
+                />
+              </div>
             </motion.div>
           </motion.div>
         )}
