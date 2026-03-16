@@ -237,9 +237,9 @@ const VideoPresentation = ({ isOpen, onClose }) => {
                   className="mb-12"
                 >
                   <p className="text-slate-400 text-lg tracking-widest mb-2">FONDÉE PAR</p>
-                  <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">KAZALI</h2>
-                  <p className="text-xl text-[#60A5FA] italic max-w-md mx-auto">
-                    "Un entrepreneur visionnaire qui apporte une nouvelle vision à l'industrie de la coiffure afro"
+                  <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">ALPHA DIALLO & KADJALI</h2>
+                  <p className="text-xl text-[#FBBF24] italic max-w-lg mx-auto">
+                    "Des entrepreneurs visionnaires qui révolutionnent l'industrie de la coiffure afro"
                   </p>
                 </motion.div>
 
@@ -252,11 +252,19 @@ const VideoPresentation = ({ isOpen, onClose }) => {
                 >
                   <div>
                     <p className="text-sm tracking-widest text-slate-500 mb-1">DIRECTION CRÉATIVE</p>
-                    <p className="text-lg">KAZALI</p>
+                    <p className="text-lg font-semibold">ALPHA DIALLO</p>
                   </div>
                   <div>
                     <p className="text-sm tracking-widest text-slate-500 mb-1">CONCEPT & VISION</p>
-                    <p className="text-lg">AFROCROWN STUDIOS</p>
+                    <p className="text-lg font-semibold">KADJALI</p>
+                  </div>
+                  <div>
+                    <p className="text-sm tracking-widest text-slate-500 mb-1">CINEMATOGRAPHIE</p>
+                    <p className="text-lg font-semibold">ALPHA DIALLO</p>
+                  </div>
+                  <div>
+                    <p className="text-sm tracking-widest text-slate-500 mb-1">PRODUCTION EXÉCUTIVE</p>
+                    <p className="text-lg font-semibold">KADJALI</p>
                   </div>
                   <div>
                     <p className="text-sm tracking-widest text-slate-500 mb-1">PRODUCTION</p>
@@ -292,14 +300,14 @@ const VideoPresentation = ({ isOpen, onClose }) => {
                   © 2024 AFROCROWN TV. Tous droits réservés.
                 </motion.p>
 
-                {/* Inspired by */}
+                {/* Created by */}
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 1, delay: 2.2 }}
                   className="mt-2 text-[#FFD700] text-sm font-medium"
                 >
-                  Inspired by Kadj'
+                  By Alpha Diallo & Kadjali
                 </motion.p>
               </div>
             </motion.div>

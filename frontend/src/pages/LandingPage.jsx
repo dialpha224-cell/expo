@@ -839,7 +839,7 @@ const LandingPage = () => {
             </div>
             <div className="text-[slate-300]/60 text-sm text-center">
               <p className="mb-2">© 2024 AfroCrown. {t("footer.rights")}</p>
-              <p className="text-[#F59E0B] font-medium">Inspired by Kadj'</p>
+              <p className="text-[#F59E0B] font-medium">By Alpha Diallo & Kadjali</p>
             </div>
           </div>
         </div>
