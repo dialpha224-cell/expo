@@ -15,7 +15,12 @@ import {
   Flame,
   Star,
   Upload,
-  Play
+  Play,
+  CreditCard,
+  Check,
+  Building,
+  UserPlus,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -32,6 +37,8 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 
+const PARTICIPATION_FEE = 50; // Frais de participation en EUR
+
 const TrimConnect = () => {
   const { user, login } = useAuth();
   const [entries, setEntries] = useState([]);
@@ -40,6 +47,10 @@ const TrimConnect = () => {
   const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [registrationStep, setRegistrationStep] = useState(1);
+  const [isRegisteredSalon, setIsRegisteredSalon] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
   const [newEntry, setNewEntry] = useState({
     title: "",
     description: "",
@@ -53,6 +64,7 @@ const TrimConnect = () => {
   useEffect(() => {
     if (user) {
       fetchMyVotes();
+      checkSalonRegistration();
     }
   }, [user]);
 
@@ -82,6 +94,48 @@ const TrimConnect = () => {
     }
   };
 
+  const checkSalonRegistration = () => {
+    // Check if user is a salon owner
+    if (user && (user.role === "salon_owner" || user.role === "founder")) {
+      setIsRegisteredSalon(true);
+    }
+  };
+
+  const handleParticipate = () => {
+    if (!user) {
+      login();
+      return;
+    }
+
+    if (isRegisteredSalon) {
+      // Salon inscrit - accès direct au formulaire
+      setShowSubmitDialog(true);
+    } else {
+      // Non inscrit - doit s'inscrire et payer
+      setShowRegisterDialog(true);
+      setRegistrationStep(1);
+    }
+  };
+
+  const handlePayParticipationFee = async () => {
+    setProcessingPayment(true);
+    try {
+      // Create Stripe checkout for participation fee
+      const response = await axios.post(`${API}/payments/trimconnect-fee`, {
+        origin_url: window.location.origin
+      }, { withCredentials: true });
+
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      toast.error("Erreur lors du paiement. Veuillez réessayer.");
+      console.error("Payment error:", error);
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   const submitEntry = async () => {
     if (!user) {
       login();
@@ -95,12 +149,12 @@ const TrimConnect = () => {
 
     try {
       await axios.post(`${API}/trimconnect/entries`, newEntry, { withCredentials: true });
-      toast.success("Participation soumise avec succes !");
+      toast.success("Participation soumise avec succès !");
       setShowSubmitDialog(false);
       setNewEntry({ title: "", description: "", image_url: "" });
       fetchData();
     } catch (error) {
-      toast.error("Erreur lors de la soumission");
+      toast.error(error.response?.data?.detail || "Erreur lors de la soumission");
     }
   };
 
@@ -110,17 +164,17 @@ const TrimConnect = () => {
       return;
     }
 
-    const hasVoted = myVotes.includes(entryId);
+    const hasVotedForEntry = myVotes.includes(entryId);
 
     try {
-      if (hasVoted) {
+      if (hasVotedForEntry) {
         await axios.delete(`${API}/trimconnect/${entryId}/vote`, { withCredentials: true });
         setMyVotes(myVotes.filter(id => id !== entryId));
-        toast.success("Vote retire");
+        toast.success("Vote retiré");
       } else {
         await axios.post(`${API}/trimconnect/${entryId}/vote`, {}, { withCredentials: true });
         setMyVotes([...myVotes, entryId]);
-        toast.success("Vote enregistre !");
+        toast.success("Vote enregistré !");
       }
       fetchData();
     } catch (error) {
@@ -129,7 +183,6 @@ const TrimConnect = () => {
   };
 
   const hasVoted = (entryId) => myVotes.includes(entryId);
-  const remainingVotes = 3 - myVotes.length;
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -139,7 +192,7 @@ const TrimConnect = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <a href="/" className="flex items-center gap-2">
-                <Scissors className="h-6 w-6 text-indigo-500" />
+                <Scissors className="h-6 w-6 text-[#FFD700]" />
                 <span className="font-heading font-bold text-white">AfroCrown</span>
               </a>
               <span className="text-slate-600">|</span>
@@ -152,57 +205,22 @@ const TrimConnect = () => {
               {user ? (
                 <>
                   <span className="text-slate-400 text-sm hidden sm:block">{user.name}</span>
-                  <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-amber-500 hover:bg-amber-600 text-slate-900" data-testid="submit-entry-btn">
-                        Participer
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-slate-800 border-slate-700">
-                      <DialogHeader>
-                        <DialogTitle className="text-white flex items-center gap-2">
-                          <Trophy className="h-5 w-5 text-amber-500" />
-                          Soumettre une participation
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 mt-4">
-                        <Input
-                          placeholder="Titre de votre creation"
-                          value={newEntry.title}
-                          onChange={(e) => setNewEntry({...newEntry, title: e.target.value})}
-                          className="bg-slate-900 border-slate-700 text-white"
-                          data-testid="entry-title-input"
-                        />
-                        <Textarea
-                          placeholder="Description (optionnel)"
-                          value={newEntry.description}
-                          onChange={(e) => setNewEntry({...newEntry, description: e.target.value})}
-                          className="bg-slate-900 border-slate-700 text-white"
-                          data-testid="entry-description-input"
-                        />
-                        <Input
-                          placeholder="URL de l'image"
-                          value={newEntry.image_url}
-                          onChange={(e) => setNewEntry({...newEntry, image_url: e.target.value})}
-                          className="bg-slate-900 border-slate-700 text-white"
-                          data-testid="entry-image-input"
-                        />
-                        <p className="text-slate-500 text-sm">
-                          Uploadez votre image sur un service externe et collez l'URL ici.
-                        </p>
-                        <Button 
-                          onClick={submitEntry}
-                          className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900"
-                          data-testid="submit-entry-confirm-btn"
-                        >
-                          Soumettre ma participation
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  {isRegisteredSalon && (
+                    <span className="hidden sm:flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                      <Check className="h-3 w-3" />
+                      Salon inscrit
+                    </span>
+                  )}
+                  <Button 
+                    onClick={handleParticipate}
+                    className="bg-amber-500 hover:bg-amber-600 text-slate-900" 
+                    data-testid="participate-btn"
+                  >
+                    {isRegisteredSalon ? "Participer" : "S'inscrire"}
+                  </Button>
                 </>
               ) : (
-                <Button onClick={login} className="bg-indigo-600 hover:bg-indigo-700" data-testid="login-btn">
+                <Button onClick={login} className="bg-[#FFD700] hover:bg-[#FFC107] text-slate-900" data-testid="login-btn">
                   Connexion
                 </Button>
               )}
@@ -215,7 +233,7 @@ const TrimConnect = () => {
       <section className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-amber-500/10 to-transparent"></div>
         <div className="absolute top-0 left-1/4 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-[#FFD700]/20 rounded-full blur-3xl"></div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
@@ -233,7 +251,7 @@ const TrimConnect = () => {
             
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-extrabold text-white mb-6">
               TrimConnect
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">
                 Barber Battle
               </span>
             </h1>
@@ -243,17 +261,35 @@ const TrimConnect = () => {
               gagnez des prix exceptionnels et rejoignez le Hall of Fame.
             </p>
 
+            {/* Participation Info Cards */}
+            <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-8">
+              <div className="bg-slate-800/50 border border-green-500/30 rounded-xl p-4">
+                <Building className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                <h3 className="text-white font-bold mb-1">Salons Inscrits</h3>
+                <p className="text-slate-400 text-sm mb-2">Participation gratuite et illimitée</p>
+                <span className="inline-block bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full">
+                  Accès direct
+                </span>
+              </div>
+              <div className="bg-slate-800/50 border border-amber-500/30 rounded-xl p-4">
+                <UserPlus className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                <h3 className="text-white font-bold mb-1">Nouveaux Participants</h3>
+                <p className="text-slate-400 text-sm mb-2">Frais d'inscription unique</p>
+                <span className="inline-block bg-amber-500/20 text-amber-400 text-xs px-3 py-1 rounded-full">
+                  {PARTICIPATION_FEE} EUR
+                </span>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              {!user && (
-                <Button 
-                  onClick={login}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold uppercase tracking-wider py-6 px-8 rounded-xl"
-                  style={{ boxShadow: '0 0 20px rgba(245, 158, 11, 0.3)' }}
-                  data-testid="join-now-btn"
-                >
-                  Participer maintenant
-                </Button>
-              )}
+              <Button 
+                onClick={handleParticipate}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold uppercase tracking-wider py-6 px-8 rounded-xl"
+                style={{ boxShadow: '0 0 20px rgba(245, 158, 11, 0.3)' }}
+                data-testid="join-now-btn"
+              >
+                {user && isRegisteredSalon ? "Soumettre une création" : "Participer maintenant"}
+              </Button>
               <a href="#leaderboard">
                 <Button 
                   variant="outline"
@@ -268,11 +304,132 @@ const TrimConnect = () => {
         </div>
       </section>
 
+      {/* Registration Dialog for Non-Registered Users */}
+      <Dialog open={showRegisterDialog} onOpenChange={setShowRegisterDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Inscription TrimConnect
+            </DialogTitle>
+          </DialogHeader>
+          
+          {registrationStep === 1 && (
+            <div className="space-y-6 mt-4">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                <AlertCircle className="h-8 w-8 text-amber-400 mx-auto mb-3" />
+                <h3 className="text-white font-bold text-center mb-2">Frais de participation</h3>
+                <p className="text-slate-400 text-center text-sm mb-4">
+                  Pour participer au concours TrimConnect, des frais d'inscription uniques sont requis.
+                </p>
+                <div className="text-center">
+                  <span className="text-4xl font-bold text-amber-400">{PARTICIPATION_FEE} EUR</span>
+                  <p className="text-slate-500 text-xs mt-1">Paiement unique - Accès à toutes les éditions</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <span>Participation illimitée aux concours</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <span>Visibilité auprès de milliers de clients</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <span>Chance de gagner des prix exclusifs</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <span>Badge "Participant TrimConnect" sur votre profil</span>
+                </div>
+              </div>
+
+              <Button 
+                onClick={handlePayParticipationFee}
+                disabled={processingPayment}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-6"
+                data-testid="pay-fee-btn"
+              >
+                {processingPayment ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-slate-900 mr-2"></div>
+                    Traitement...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5 mr-2" />
+                    Payer {PARTICIPATION_FEE} EUR
+                  </>
+                )}
+              </Button>
+
+              <p className="text-slate-500 text-xs text-center">
+                Paiement sécurisé par Stripe. Vous serez redirigé pour finaliser le paiement.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Submit Entry Dialog for Registered Salons */}
+      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Soumettre une participation
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {isRegisteredSalon && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-400" />
+                <span className="text-green-400 text-sm">Salon inscrit - Participation gratuite</span>
+              </div>
+            )}
+            <Input
+              placeholder="Titre de votre création"
+              value={newEntry.title}
+              onChange={(e) => setNewEntry({...newEntry, title: e.target.value})}
+              className="bg-slate-900 border-slate-700 text-white"
+              data-testid="entry-title-input"
+            />
+            <Textarea
+              placeholder="Description (optionnel)"
+              value={newEntry.description}
+              onChange={(e) => setNewEntry({...newEntry, description: e.target.value})}
+              className="bg-slate-900 border-slate-700 text-white"
+              data-testid="entry-description-input"
+            />
+            <Input
+              placeholder="URL de l'image"
+              value={newEntry.image_url}
+              onChange={(e) => setNewEntry({...newEntry, image_url: e.target.value})}
+              className="bg-slate-900 border-slate-700 text-white"
+              data-testid="entry-image-input"
+            />
+            <p className="text-slate-500 text-sm">
+              Uploadez votre image sur un service externe et collez l'URL ici.
+            </p>
+            <Button 
+              onClick={submitEntry}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900"
+              data-testid="submit-entry-confirm-btn"
+            >
+              Soumettre ma participation
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Back Link */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <a href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="h-4 w-4" />
-          Retour a l'accueil
+          Retour à l'accueil
         </a>
       </div>
 
@@ -280,13 +437,13 @@ const TrimConnect = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <Tabs defaultValue="entries" className="space-y-8">
           <TabsList className="bg-slate-800 border border-slate-700">
-            <TabsTrigger value="entries" className="data-[state=active]:bg-indigo-600">
+            <TabsTrigger value="entries" className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-slate-900">
               Participations
             </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="data-[state=active]:bg-indigo-600">
+            <TabsTrigger value="leaderboard" className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-slate-900">
               Classement
             </TabsTrigger>
-            <TabsTrigger value="hall-of-fame" className="data-[state=active]:bg-indigo-600">
+            <TabsTrigger value="hall-of-fame" className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-slate-900">
               Hall of Fame
             </TabsTrigger>
           </TabsList>
@@ -301,15 +458,13 @@ const TrimConnect = () => {
               <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
                 <Trophy className="h-12 w-12 text-slate-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-white mb-2">Aucune participation</h3>
-                <p className="text-slate-400 mb-4">Soyez le premier a participer !</p>
-                {user && (
-                  <Button 
-                    onClick={() => setShowSubmitDialog(true)}
-                    className="bg-amber-500 hover:bg-amber-600 text-slate-900"
-                  >
-                    Participer
-                  </Button>
-                )}
+                <p className="text-slate-400 mb-4">Soyez le premier à participer !</p>
+                <Button 
+                  onClick={handleParticipate}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-900"
+                >
+                  Participer
+                </Button>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -319,7 +474,7 @@ const TrimConnect = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="battle-card bg-slate-800 border border-slate-700 rounded-xl overflow-hidden"
+                    className="battle-card bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-amber-500/50 transition-colors"
                     data-testid={`entry-card-${entry.entry_id}`}
                   >
                     <div className="h-64 bg-slate-700 relative">
@@ -355,12 +510,15 @@ const TrimConnect = () => {
                         </div>
                         <Button
                           onClick={() => vote(entry.entry_id)}
-                          variant="outline"
-                          className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                          variant={hasVoted(entry.entry_id) ? "default" : "outline"}
+                          className={hasVoted(entry.entry_id) 
+                            ? "bg-amber-500 text-slate-900 hover:bg-amber-600" 
+                            : "border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                          }
                           data-testid={`vote-btn-${entry.entry_id}`}
                         >
-                          <ThumbsUp className="h-4 w-4 mr-2" />
-                          Voter
+                          <ThumbsUp className={`h-4 w-4 mr-2 ${hasVoted(entry.entry_id) ? 'fill-current' : ''}`} />
+                          {hasVoted(entry.entry_id) ? 'Voté' : 'Voter'}
                         </Button>
                       </div>
                     </div>
@@ -427,7 +585,7 @@ const TrimConnect = () => {
             <div className="text-center mb-8">
               <Crown className="h-12 w-12 text-amber-500 mx-auto mb-4" />
               <h2 className="text-2xl font-heading font-bold text-white">Hall of Fame</h2>
-              <p className="text-slate-400">Les gagnants des editions precedentes</p>
+              <p className="text-slate-400">Les gagnants des éditions précédentes</p>
             </div>
             
             {hallOfFame.length === 0 ? (

@@ -5,6 +5,7 @@ import axios from "axios";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import { LanguageProvider } from "./context/LanguageContext";
+import PageTransition from "./components/PageTransition";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
@@ -147,40 +148,42 @@ function AppRouter() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      {/* Login Pages - Specific URLs for each user type */}
-      <Route path="/login/admin" element={<LoginAdmin />} />
-      <Route path="/login/salon" element={<LoginSalon />} />
-      <Route path="/login/client" element={<LoginClient />} />
-      <Route
-        path="/founder/*"
-        element={
-          <ProtectedRoute requiredRoles={["founder"]}>
-            <FounderDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/salon/*"
-        element={
-          <ProtectedRoute requiredRoles={["salon_owner", "founder"]}>
-            <SalonDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/marketplace" element={<Marketplace />} />
-      <Route path="/trimconnect" element={<TrimConnect />} />
-      <Route path="/booking" element={<BookingPage />} />
-      <Route path="/booking/confirmation/:appointmentId" element={<BookingConfirmation />} />
-      <Route path="/ai-simulation" element={<AISimulation />} />
-      <Route path="/my-appointments" element={<MyAppointments />} />
-      <Route path="/setup-password" element={<SetupPassword />} />
-      <Route path="/salon/screen/:salonId" element={<SalonLiveScreen />} />
-      <Route path="/payment/success" element={<PaymentSuccess />} />
-      <Route path="/payment/cancel" element={<PaymentCancel />} />
-    </Routes>
+    <PageTransition>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        {/* Login Pages - Specific URLs for each user type */}
+        <Route path="/login/admin" element={<LoginAdmin />} />
+        <Route path="/login/salon" element={<LoginSalon />} />
+        <Route path="/login/client" element={<LoginClient />} />
+        <Route
+          path="/founder/*"
+          element={
+            <ProtectedRoute requiredRoles={["founder"]}>
+              <FounderDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/salon/*"
+          element={
+            <ProtectedRoute requiredRoles={["salon_owner", "founder"]}>
+              <SalonDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/trimconnect" element={<TrimConnect />} />
+        <Route path="/booking" element={<BookingPage />} />
+        <Route path="/booking/confirmation/:appointmentId" element={<BookingConfirmation />} />
+        <Route path="/ai-simulation" element={<AISimulation />} />
+        <Route path="/my-appointments" element={<MyAppointments />} />
+        <Route path="/setup-password" element={<SetupPassword />} />
+        <Route path="/salon/screen/:salonId" element={<SalonLiveScreen />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route path="/payment/cancel" element={<PaymentCancel />} />
+      </Routes>
+    </PageTransition>
   );
 }
 

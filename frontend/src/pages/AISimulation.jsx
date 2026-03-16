@@ -405,25 +405,41 @@ const AISimulation = () => {
         <div className="mb-10 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 rounded-2xl p-6 border border-slate-700 overflow-hidden">
           <div className="flex flex-col lg:flex-row items-center gap-8">
             
-            {/* Main Display */}
+            {/* Main Display with 360° */}
             <div className="relative flex-shrink-0">
               <div className="text-center mb-3">
-                <span className="text-[#FFD700] text-sm font-medium">Aperçu du Style</span>
+                <span className="text-[#FFD700] text-sm font-medium">
+                  Vue 360° - {rotationLabels[rotationAngle]}
+                </span>
               </div>
               
               <div className="relative w-80 h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-slate-700 to-slate-800 border-4 border-[#FFD700]/30 shadow-2xl shadow-[#FFD700]/10">
                 <AnimatePresence mode="wait">
                   {mannequinStyle ? (
-                    <motion.img
-                      key={mannequinStyle.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
-                      src={mannequinStyle.thumbnail}
-                      alt={mannequinStyle.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <motion.div
+                      key={`${mannequinStyle.id}-${rotationAngle}`}
+                      initial={{ opacity: 0, rotateY: -90 }}
+                      animate={{ opacity: 1, rotateY: 0 }}
+                      exit={{ opacity: 0, rotateY: 90 }}
+                      transition={{ duration: 0.4 }}
+                      className="w-full h-full"
+                    >
+                      <img
+                        src={mannequinStyle.thumbnail}
+                        alt={mannequinStyle.name}
+                        className="w-full h-full object-cover"
+                        style={{
+                          transform: `scaleX(${rotationAngle === 90 || rotationAngle === 270 ? -1 : 1})`,
+                          filter: rotationAngle === 180 ? 'brightness(0.9)' : 'none'
+                        }}
+                      />
+                      {/* Overlay for back view */}
+                      {rotationAngle === 180 && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent flex items-end justify-center pb-20">
+                          <span className="text-white/50 text-sm">Vue de dos</span>
+                        </div>
+                      )}
+                    </motion.div>
                   ) : (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -439,22 +455,69 @@ const AISimulation = () => {
                 
                 {mannequinStyle && (
                   <div className="absolute bottom-3 left-3 right-3">
-                    <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3">
-                      <p className="text-[#FFD700] font-bold">{mannequinStyle.name}</p>
-                      <p className="text-slate-400 text-sm">{mannequinStyle.description}</p>
-                      <span className="inline-block mt-1 px-2 py-0.5 bg-[#FFD700]/20 rounded text-[#FFD700] text-xs">
-                        {mannequinStyle.category}
-                      </span>
+                    <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-[#FFD700] font-bold">{mannequinStyle.name}</p>
+                        <span className="inline-block px-2 py-0.5 bg-[#FFD700]/20 rounded text-[#FFD700] text-xs">
+                          {mannequinStyle.category}
+                        </span>
+                      </div>
+                      <div className="bg-[#FFD700] text-slate-900 text-xs font-bold px-2 py-1 rounded">
+                        {rotationLabels[rotationAngle]}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
+              
+              {/* 360° Rotation Controls */}
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <button 
+                  onClick={() => setRotationAngle(prev => prev <= 0 ? 270 : prev - 90)}
+                  disabled={!mannequinStyle}
+                  className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Tourner à gauche"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                </button>
+                
+                {/* Rotation indicator dots */}
+                <div className="flex items-center gap-2">
+                  {[0, 90, 180, 270].map((angle) => (
+                    <button
+                      key={angle}
+                      onClick={() => mannequinStyle && setRotationAngle(angle)}
+                      disabled={!mannequinStyle}
+                      className={`w-3 h-3 rounded-full transition-all ${
+                        rotationAngle === angle 
+                          ? 'bg-[#FFD700] scale-125' 
+                          : 'bg-slate-600 hover:bg-slate-500'
+                      } disabled:opacity-30`}
+                      title={rotationLabels[angle]}
+                    />
+                  ))}
+                </div>
+                
+                <button 
+                  onClick={() => setRotationAngle(prev => prev >= 270 ? 0 : prev + 90)}
+                  disabled={!mannequinStyle}
+                  className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Tourner à droite"
+                >
+                  <RotateCw className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <p className="text-center text-slate-500 text-xs mt-2">
+                Utilisez les flèches pour voir la coupe à 360°
+              </p>
               
               {mannequinStyle && (
                 <button 
                   onClick={() => {
                     setMannequinStyle(null);
                     setSelectedStyle("");
+                    setRotationAngle(0);
                   }}
                   className="mt-3 w-full text-center text-sm text-slate-400 hover:text-white transition-colors flex items-center justify-center gap-1"
                 >
