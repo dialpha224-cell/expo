@@ -1,27 +1,23 @@
-/* AfroCrown App Styles - Bright Afro-Blue Color Palette */
+/* AfroCrown App Styles - Gold & Orange Afro Theme */
 
 :root {
-  /* Bright Afro-Blue Color Palette */
+  /* Gold & Orange Afro Color Palette */
   --afro-gold: #FFD700;
-  --afro-amber: #FFC107;
-  --afro-bronze: #D4A55C;
-  --afro-blue: #3B82F6;
-  --afro-blue-light: #60A5FA;
-  --afro-blue-dark: #2563EB;
-  --afro-cyan: #22D3EE;
-  --afro-cream: #FFF8E7;
-  --afro-white: #FFFFFF;
+  --afro-orange: #F59E0B;
+  --afro-amber: #FBBF24;
+  --afro-yellow: #FCD34D;
+  --afro-bronze: #D97706;
+  --afro-dark: #0F172A;
+  --afro-darker: #020617;
   
   /* Gradient Accent Colors */
-  --accent-warm: linear-gradient(135deg, #FFD700, #FFC107);
-  --accent-blue: linear-gradient(135deg, #3B82F6, #60A5FA);
-  --accent-mixed: linear-gradient(135deg, #FFD700 0%, #3B82F6 50%, #60A5FA 100%);
+  --accent-gold: linear-gradient(135deg, #FFD700, #F59E0B);
+  --accent-orange: linear-gradient(135deg, #F59E0B, #D97706);
   
-  /* Background Colors - Brighter */
+  /* Background Colors */
   --bg-primary: #0F172A;
   --bg-secondary: #1E293B;
-  --bg-card: #334155;
-  --bg-elevated: #475569;
+  --bg-card: #1E293B;
 }
 
 .app-container {
@@ -30,7 +26,7 @@
 }
 
 /* =============================================================================
-   BARBER FILIGREE / SCISSORS GLOW ANIMATION - BRIGHTER
+   BARBER FILIGREE - GOLD ILLUMINATION
    ============================================================================= */
 
 .barber-filigree {
@@ -41,27 +37,28 @@
   z-index: 1;
 }
 
-/* Animated BARBER text watermark - BRIGHTER */
+/* Animated BARBER text watermark - GOLD GLOW */
 .barber-filigree::before {
   content: 'BARBER';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-15deg);
-  font-size: 20vw;
+  font-size: 22vw;
   font-weight: 900;
   font-family: 'Arial Black', sans-serif;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.15em;
   color: transparent;
-  -webkit-text-stroke: 2px rgba(59, 130, 246, 0.15);
+  -webkit-text-stroke: 2px rgba(255, 215, 0, 0.15);
   text-shadow: 
-    0 0 80px rgba(59, 130, 246, 0.1),
-    0 0 120px rgba(255, 215, 0, 0.08);
-  animation: barberTextGlow 6s ease-in-out infinite, barberTextFloat 12s ease-in-out infinite;
+    0 0 80px rgba(255, 215, 0, 0.15),
+    0 0 120px rgba(245, 158, 11, 0.1),
+    0 0 160px rgba(251, 191, 36, 0.08);
+  animation: barberGoldGlow 5s ease-in-out infinite, barberTextFloat 15s ease-in-out infinite;
   white-space: nowrap;
 }
 
-/* Secondary pattern overlay with blue glow */
+/* Gold ambient glow overlay */
 .barber-filigree::after {
   content: '';
   position: absolute;
@@ -71,42 +68,42 @@
   width: 150%;
   height: 150%;
   background: 
-    radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(96, 165, 250, 0.08) 0%, transparent 60%);
-  animation: glowPulse 8s ease-in-out infinite;
+    radial-gradient(ellipse at 30% 30%, rgba(255, 215, 0, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 70%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(251, 191, 36, 0.06) 0%, transparent 60%);
+  animation: goldPulse 6s ease-in-out infinite;
 }
 
-/* BARBER text glow animation - BRIGHTER with blue */
-@keyframes barberTextGlow {
+/* BARBER text GOLD glow animation */
+@keyframes barberGoldGlow {
   0%, 100% {
-    -webkit-text-stroke: 2px rgba(59, 130, 246, 0.12);
+    -webkit-text-stroke: 2px rgba(255, 215, 0, 0.1);
     text-shadow: 
-      0 0 60px rgba(59, 130, 246, 0.08),
-      0 0 100px rgba(255, 215, 0, 0.05);
+      0 0 60px rgba(255, 215, 0, 0.08),
+      0 0 100px rgba(245, 158, 11, 0.05);
     filter: blur(0px);
   }
   25% {
-    -webkit-text-stroke: 2px rgba(59, 130, 246, 0.2);
+    -webkit-text-stroke: 2px rgba(255, 215, 0, 0.2);
     text-shadow: 
-      0 0 80px rgba(59, 130, 246, 0.15),
-      0 0 120px rgba(96, 165, 250, 0.1),
-      0 0 160px rgba(255, 215, 0, 0.08);
+      0 0 80px rgba(255, 215, 0, 0.18),
+      0 0 120px rgba(245, 158, 11, 0.12),
+      0 0 160px rgba(251, 191, 36, 0.08);
     filter: blur(0.5px);
   }
   50% {
-    -webkit-text-stroke: 2px rgba(96, 165, 250, 0.25);
+    -webkit-text-stroke: 3px rgba(255, 215, 0, 0.3);
     text-shadow: 
-      0 0 100px rgba(59, 130, 246, 0.2),
-      0 0 140px rgba(96, 165, 250, 0.15),
-      0 0 180px rgba(255, 215, 0, 0.1);
+      0 0 100px rgba(255, 215, 0, 0.25),
+      0 0 150px rgba(245, 158, 11, 0.18),
+      0 0 200px rgba(251, 191, 36, 0.12);
     filter: blur(1px);
   }
   75% {
-    -webkit-text-stroke: 2px rgba(59, 130, 246, 0.18);
+    -webkit-text-stroke: 2px rgba(255, 215, 0, 0.18);
     text-shadow: 
-      0 0 70px rgba(59, 130, 246, 0.12),
-      0 0 110px rgba(255, 215, 0, 0.06);
+      0 0 70px rgba(255, 215, 0, 0.12),
+      0 0 110px rgba(245, 158, 11, 0.08);
     filter: blur(0.3px);
   }
 }
@@ -121,17 +118,17 @@
   }
 }
 
-/* Glow pulse animation */
-@keyframes glowPulse {
+/* Gold pulse animation */
+@keyframes goldPulse {
   0%, 100% {
-    opacity: 0.6;
+    opacity: 0.5;
   }
   50% {
-    opacity: 1;
+    opacity: 0.9;
   }
 }
 
-/* Scissors Icon Glow - Blue */
+/* Scissors Icon Glow - GOLD */
 .scissors-glow {
   position: relative;
 }
@@ -140,24 +137,24 @@
   content: '';
   position: absolute;
   inset: -12px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, rgba(255, 215, 0, 0.3) 50%, transparent 70%);
-  animation: scissorsGlow 3s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.5) 0%, rgba(245, 158, 11, 0.3) 50%, transparent 70%);
+  animation: scissorsGoldGlow 3s ease-in-out infinite;
   z-index: -1;
   border-radius: 50%;
 }
 
-@keyframes scissorsGlow {
+@keyframes scissorsGoldGlow {
   0%, 100% {
     opacity: 0.5;
     transform: scale(1);
   }
   50% {
-    opacity: 0.8;
-    transform: scale(1.15);
+    opacity: 0.9;
+    transform: scale(1.2);
   }
 }
 
-/* Light Beam Effect - Blue & Gold */
+/* Light Beam Effect - GOLD */
 .light-beam {
   position: absolute;
   top: 0;
@@ -168,14 +165,14 @@
   background: conic-gradient(
     from 180deg at 50% 0%, 
     transparent 0deg, 
-    rgba(59, 130, 246, 0.08) 30deg, 
+    rgba(255, 215, 0, 0.06) 30deg, 
     transparent 60deg, 
-    rgba(255, 215, 0, 0.06) 90deg, 
+    rgba(245, 158, 11, 0.05) 90deg, 
     transparent 120deg,
-    rgba(96, 165, 250, 0.05) 150deg,
+    rgba(251, 191, 36, 0.04) 150deg,
     transparent 180deg
   );
-  animation: beamRotate 20s linear infinite;
+  animation: beamRotate 25s linear infinite;
   pointer-events: none;
   z-index: 0;
 }
@@ -198,7 +195,7 @@
 .dashboard-sidebar {
   width: 280px;
   background-color: var(--bg-secondary);
-  border-right: 1px solid rgba(59, 130, 246, 0.3);
+  border-right: 1px solid rgba(255, 215, 0, 0.2);
   position: fixed;
   height: 100vh;
   overflow-y: auto;
@@ -211,93 +208,10 @@
   min-height: 100vh;
 }
 
-.dashboard-header {
-  height: 72px;
-  background-color: var(--bg-primary);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 40;
-}
-
-.dashboard-content {
-  padding: 2rem;
-}
-
 /* Stats Grid */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-}
-
-/* Bento Grid */
-.bento-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 1.5rem;
-}
-
-.bento-item-full {
-  grid-column: span 12;
-}
-
-.bento-item-8 {
-  grid-column: span 12;
-}
-
-.bento-item-4 {
-  grid-column: span 12;
-}
-
-@media (min-width: 768px) {
-  .bento-item-8 {
-    grid-column: span 8;
-  }
-  .bento-item-4 {
-    grid-column: span 4;
-  }
-}
-
-/* TrimConnect Battle Styles */
-.battle-card {
-  position: relative;
-  overflow: hidden;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.battle-card:hover {
-  border-color: var(--afro-blue);
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
-}
-
-.battle-vs-badge {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--accent-blue);
-  padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  font-weight: bold;
-  color: white;
-  z-index: 10;
-}
-
-.crown-icon {
-  color: var(--afro-gold);
-  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
-}
-
-/* Product Grid */
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
@@ -317,31 +231,20 @@
   }
 }
 
-/* Animations */
-.stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-.stagger-5 { animation-delay: 0.5s; }
-
-/* Glass Effect - Blue Tone */
+/* Glass Effect */
 .glass {
   background: rgba(30, 41, 59, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Glow Effects - Blue & Gold */
-.glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-}
-
+/* Glow Effects - GOLD */
 .glow-gold {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
 }
 
-.glow-mixed {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(255, 215, 0, 0.2);
+.glow-orange {
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
 }
 
 /* Card Hover States */
@@ -351,48 +254,26 @@
 
 .hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 215, 0, 0.15);
 }
 
-/* Afro-Blue Button Styles */
-.btn-afro-primary {
-  background: linear-gradient(135deg, #3B82F6, #60A5FA);
-  color: white;
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.btn-afro-primary:hover {
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
-  transform: translateY(-2px);
-}
-
-.btn-afro-gold {
-  background: linear-gradient(135deg, #FFD700, #FFC107);
+/* Gold Button Styles */
+.btn-gold {
+  background: linear-gradient(135deg, #FFD700, #F59E0B);
   color: #0F172A;
   border: none;
+  font-weight: 600;
   transition: all 0.3s ease;
 }
 
-.btn-afro-gold:hover {
-  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+.btn-gold:hover {
+  box-shadow: 0 4px 25px rgba(255, 215, 0, 0.5);
   transform: translateY(-2px);
 }
 
-.btn-afro-secondary {
-  background: transparent;
-  color: var(--afro-blue-light);
-  border: 1px solid var(--afro-blue);
-  transition: all 0.3s ease;
-}
-
-.btn-afro-secondary:hover {
-  background: rgba(59, 130, 246, 0.15);
-}
-
-/* Text Gradient - Blue & Gold */
-.text-afro-gradient {
-  background: linear-gradient(135deg, #FFD700 0%, #3B82F6 50%, #60A5FA 100%);
+/* Text Gradient - GOLD */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FFD700 0%, #F59E0B 50%, #FBBF24 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -400,21 +281,21 @@
 
 /* Subtle Pulse Animation for Icons */
 .pulse-subtle {
-  animation: pulseSubtle 2s ease-in-out infinite;
+  animation: pulseGold 2s ease-in-out infinite;
 }
 
-@keyframes pulseSubtle {
+@keyframes pulseGold {
   0%, 100% {
     opacity: 1;
-    filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.4));
   }
   50% {
     opacity: 0.9;
-    filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.6));
+    filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.7));
   }
 }
 
-/* Border Glow Animation - Blue */
+/* Border Glow Animation - GOLD */
 .border-glow {
   position: relative;
 }
@@ -425,44 +306,8 @@
   inset: -2px;
   border-radius: inherit;
   padding: 2px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.6), rgba(245, 158, 11, 0.4), rgba(251, 191, 36, 0.6));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: borderRotate 4s linear infinite;
-}
-
-@keyframes borderRotate {
-  0% {
-    background: linear-gradient(0deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
-  }
-  25% {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
-  }
-  50% {
-    background: linear-gradient(180deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
-  }
-  75% {
-    background: linear-gradient(270deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
-  }
-  100% {
-    background: linear-gradient(360deg, rgba(59, 130, 246, 0.6), rgba(255, 215, 0, 0.4), rgba(96, 165, 250, 0.6));
-  }
-}
-
-/* Bright Card Style */
-.card-bright {
-  background: linear-gradient(145deg, #1E293B 0%, #334155 100%);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.card-bright:hover {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 
-    0 8px 25px rgba(59, 130, 246, 0.2),
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
