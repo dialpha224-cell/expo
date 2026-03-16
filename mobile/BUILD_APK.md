@@ -1,75 +1,129 @@
-# 📱 AfroCrown - Générer l'APK Android
+# AfroCrown - Generer l'APK Android
 
-## Prérequis
-- Node.js 18+ installé
+## Prerequis
+- Node.js 18+ installe
 - Compte Expo gratuit : https://expo.dev/signup
 
 ---
 
-## 🚀 Étapes pour générer l'APK
+## Etapes pour generer l'APK
 
-### 1. Téléchargez le code
+### 1. Telechargez le code
 Cliquez sur **"Save to GitHub"** dans Emergent, puis :
 ```bash
 git clone https://github.com/VOTRE_USERNAME/VOTRE_REPO.git
 cd VOTRE_REPO/mobile
 ```
 
-### 2. Installez les dépendances
+### 2. Supprimez les fichiers de cache (important!)
+```bash
+rm -rf node_modules
+rm -f package-lock.json
+rm -f yarn.lock
+```
+
+### 3. Installez les dependances avec npm
 ```bash
 npm install
 ```
 
-### 3. Installez EAS CLI
+### 4. Installez EAS CLI globalement
 ```bash
-npm install -g eas-cli
+npm install -g eas-cli@latest
 ```
 
-### 4. Connectez-vous à Expo
+### 5. Connectez-vous a Expo
 ```bash
 eas login
 ```
 Entrez votre email et mot de passe Expo.
 
-### 5. Configurez le projet (première fois uniquement)
+### 6. Configurez le projet EAS
 ```bash
 eas build:configure
 ```
-- Choisissez **Android** quand demandé
-- Acceptez les paramètres par défaut
+- Quand demande si vous voulez creer un nouveau projet: **Oui**
+- Choisissez **Android** comme plateforme
 
-### 6. Générez l'APK
+Cette commande va automatiquement:
+- Creer un projet dans votre compte Expo
+- Mettre a jour `app.json` avec le bon `projectId`
+- Configurer les permissions necessaires
+
+### 7. Generez l'APK
 ```bash
 eas build --platform android --profile preview
 ```
 
-⏱️ **Temps estimé : 15-20 minutes**
+**Temps estime : 15-20 minutes**
 
-### 7. Téléchargez l'APK
-Une fois le build terminé, vous recevrez un **lien de téléchargement** :
+### 8. Telechargez l'APK
+Une fois le build termine, vous recevrez un lien :
 ```
-✔ Build finished
-🤖 Android build: https://expo.dev/artifacts/eas/xxxxx.apk
+Build finished
+Android build: https://expo.dev/artifacts/eas/xxxxx.apk
 ```
 
-Cliquez sur le lien pour télécharger l'APK sur votre téléphone.
+Cliquez sur le lien pour telecharger l'APK.
 
 ---
 
-## 📲 Installer l'APK sur Android
+## Installer l'APK sur Android
 
-1. Téléchargez l'APK sur votre téléphone
-2. Ouvrez le fichier téléchargé
-3. Si demandé, autorisez l'installation d'applications inconnues
+1. Telechargez l'APK sur votre telephone (ou envoyez-le par email)
+2. Ouvrez le fichier telecharge
+3. Autorisez l'installation d'applications de sources inconnues si demande
 4. Installez et lancez AfroCrown !
 
 ---
 
-## 🍎 Pour iOS (App Store)
+## Problemes courants
 
-Pour publier sur l'App Store, vous avez besoin :
-- Un compte Apple Developer ($99/an) : https://developer.apple.com
-- Un Mac pour finaliser le build
+### "Error: Cannot determine which native SDK version your project uses"
+**Solution:**
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### "npm ci failed" lors du build
+**Solution:**
+Assurez-vous d'utiliser `npm install` et non `npm ci` localement.
+Le fichier `package-lock.json` sera regenere correctement.
+
+### "Not logged in"
+```bash
+eas logout
+eas login
+```
+
+### "Project not configured" ou "Missing projectId"
+```bash
+eas build:configure
+```
+Cela va creer automatiquement un projet et configurer le projectId.
+
+### L'app affiche "Welcome to Expo" au lieu d'AfroCrown
+Verifiez que vous etes dans le bon dossier `/mobile` et que le build utilise bien le code source.
+
+---
+
+## Commandes utiles
+
+| Commande | Description |
+|----------|-------------|
+| `eas build --platform android --profile preview` | APK de test |
+| `eas build --platform android --profile production` | AAB pour Play Store |
+| `eas whoami` | Voir le compte connecte |
+| `eas project:info` | Info sur le projet |
+
+---
+
+## Pour iOS (App Store)
+
+Prerequis:
+- Compte Apple Developer ($99/an): https://developer.apple.com
+- Mac pour finaliser
 
 ```bash
 eas build --platform ios --profile production
@@ -77,35 +131,6 @@ eas build --platform ios --profile production
 
 ---
 
-## 🔧 Commandes utiles
-
-| Commande | Description |
-|----------|-------------|
-| `eas build --platform android --profile preview` | APK de test |
-| `eas build --platform android --profile production` | AAB pour Play Store |
-| `eas build --platform ios --profile preview` | Build iOS simulateur |
-| `eas build --platform ios --profile production` | Build iOS App Store |
-| `eas submit --platform android` | Publier sur Play Store |
-| `eas submit --platform ios` | Publier sur App Store |
-
----
-
-## ❓ Problèmes courants
-
-### "Not logged in"
-```bash
-eas login
-```
-
-### "Project not configured"
-```bash
-eas build:configure
-```
-
-### "Build failed - Gradle error"
-Vérifiez que `eas.json` existe dans le dossier mobile.
-
----
-
-## 📞 Support Expo
-https://docs.expo.dev/build/introduction/
+## Support
+- Documentation Expo: https://docs.expo.dev/build/introduction/
+- Forum Expo: https://forums.expo.dev/

@@ -1765,6 +1765,80 @@ async def list_salons():
             s["created_at"] = datetime.fromisoformat(s["created_at"])
     return [SalonResponse(**s) for s in salons]
 
+# =============================================================================
+# SALON SEARCH & LOCATION ROUTES (MUST BE BEFORE /salons/{salon_id})
+# =============================================================================
+
+@api_router.get("/salons/locations/countries")
+async def get_salon_countries():
+    """Get list of countries with salons"""
+    countries = await db.salons.distinct("country", {"country": {"$ne": None, "$exists": True}})
+    return sorted([c for c in countries if c])
+
+@api_router.get("/salons/locations/cities")
+async def get_salon_cities(country: Optional[str] = None):
+    """Get list of cities with salons, optionally filtered by country"""
+    query = {"city": {"$ne": None, "$exists": True}}
+    if country:
+        query["country"] = country
+    
+    cities = await db.salons.distinct("city", query)
+    return sorted([c for c in cities if c])
+
+@api_router.get("/salons/search")
+async def search_salons(
+    country: Optional[str] = None,
+    city: Optional[str] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    radius_km: float = 10.0,
+    limit: int = 50
+):
+    """Search salons by location"""
+    import math
+    
+    query = {}
+    
+    if country:
+        query["country"] = {"$regex": country, "$options": "i"}
+    if city:
+        query["city"] = {"$regex": city, "$options": "i"}
+    
+    salons = await db.salons.find(query, {"_id": 0}).to_list(limit)
+    
+    # If coordinates provided, sort by distance
+    if latitude and longitude:
+        def haversine_distance(lat1, lon1, lat2, lon2):
+            R = 6371  # Earth's radius in km
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+            c = 2 * math.asin(math.sqrt(a))
+            return R * c
+        
+        for salon in salons:
+            loc = salon.get("location", {})
+            if loc and loc.get("coordinates"):
+                salon_lon, salon_lat = loc["coordinates"]
+                salon["distance_km"] = round(haversine_distance(latitude, longitude, salon_lat, salon_lon), 2)
+            else:
+                salon["distance_km"] = 9999
+        
+        # Filter by radius and sort by distance
+        salons = [s for s in salons if s.get("distance_km", 9999) <= radius_km]
+        salons.sort(key=lambda x: x.get("distance_km", 9999))
+    
+    return salons
+
+@api_router.get("/salons/nearby")
+async def get_nearby_salons(latitude: float, longitude: float, radius_km: float = 10.0, limit: int = 20):
+    """Get salons near a location"""
+    return await search_salons(latitude=latitude, longitude=longitude, radius_km=radius_km, limit=limit)
+
+# =============================================================================
+# SALON DETAIL ROUTES (Dynamic routes AFTER static routes)
+# =============================================================================
+
 @api_router.get("/salons/{salon_id}", response_model=SalonResponse)
 async def get_salon(salon_id: str):
     """Get salon details"""
@@ -3516,72 +3590,6 @@ async def update_salon_location(salon_id: str, location: SalonLocationUpdate, us
     )
     
     return {"success": True}
-
-@api_router.get("/salons/locations/countries")
-async def get_salon_countries():
-    """Get list of countries with salons"""
-    countries = await db.salons.distinct("country", {"country": {"$ne": None, "$exists": True}})
-    return sorted([c for c in countries if c])
-
-@api_router.get("/salons/locations/cities")
-async def get_salon_cities(country: Optional[str] = None):
-    """Get list of cities with salons, optionally filtered by country"""
-    query = {"city": {"$ne": None, "$exists": True}}
-    if country:
-        query["country"] = country
-    
-    cities = await db.salons.distinct("city", query)
-    return sorted([c for c in cities if c])
-
-@api_router.get("/salons/search")
-async def search_salons(
-    country: Optional[str] = None,
-    city: Optional[str] = None,
-    latitude: Optional[float] = None,
-    longitude: Optional[float] = None,
-    radius_km: float = 10.0,
-    limit: int = 50
-):
-    """Search salons by location"""
-    query = {}
-    
-    if country:
-        query["country"] = {"$regex": country, "$options": "i"}
-    if city:
-        query["city"] = {"$regex": city, "$options": "i"}
-    
-    salons = await db.salons.find(query, {"_id": 0}).to_list(limit)
-    
-    # If coordinates provided, sort by distance
-    if latitude and longitude:
-        import math
-        
-        def haversine_distance(lat1, lon1, lat2, lon2):
-            R = 6371  # Earth's radius in km
-            dlat = math.radians(lat2 - lat1)
-            dlon = math.radians(lon2 - lon1)
-            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
-            c = 2 * math.asin(math.sqrt(a))
-            return R * c
-        
-        for salon in salons:
-            loc = salon.get("location", {})
-            if loc and loc.get("coordinates"):
-                salon_lon, salon_lat = loc["coordinates"]
-                salon["distance_km"] = round(haversine_distance(latitude, longitude, salon_lat, salon_lon), 2)
-            else:
-                salon["distance_km"] = 9999
-        
-        # Filter by radius and sort by distance
-        salons = [s for s in salons if s.get("distance_km", 9999) <= radius_km]
-        salons.sort(key=lambda x: x.get("distance_km", 9999))
-    
-    return salons
-
-@api_router.get("/salons/nearby")
-async def get_nearby_salons(latitude: float, longitude: float, radius_km: float = 10.0, limit: int = 20):
-    """Get salons near a location"""
-    return await search_salons(latitude=latitude, longitude=longitude, radius_km=radius_km, limit=limit)
 
 # =============================================================================
 # BARBER CLIENT REASSIGNMENT

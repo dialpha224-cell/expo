@@ -58,17 +58,7 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api",
-      "eas": {
-        "projectId": "afrocrown-mobile"
-      }
-    },
-    "owner": "kadjalioudiallo",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/afrocrown-mobile"
+      "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api"
     }
   }
 }

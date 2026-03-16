@@ -72,9 +72,8 @@ export default function RootLayout() {
         return;
       }
 
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id',
-      });
+      // Note: projectId sera configure automatiquement par EAS
+      const token = await Notifications.getExpoPushTokenAsync();
       
       setExpoPushToken(token.data);
       
