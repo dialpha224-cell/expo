@@ -1,82 +1,116 @@
-# AfroCrown - Guide de Build APK Android
+# AfroCrown - Build APK Android
 
-## Methode Rapide (EAS Cloud Build)
-
-### Prerequis
+## Prérequis
+- Node.js 18+ installé
 - Compte Expo gratuit: https://expo.dev/signup
-- Node.js 18+ installe
 
-### Etapes
+---
 
-```bash
-# 1. Cloner le projet depuis GitHub
+## Instructions Windows (PowerShell)
+
+### Étape 1: Cloner le projet
+```powershell
+# Si vous avez déjà le projet, passez à l'étape 2
 git clone https://github.com/VOTRE_USERNAME/VOTRE_REPO.git
 cd VOTRE_REPO/mobile
+```
 
-# 2. Installer les dependances
+### Étape 2: Installer les dépendances
+```powershell
+cd mobile
 npm install
+```
 
-# 3. Installer EAS CLI
+### Étape 3: Installer EAS CLI
+```powershell
 npm install -g eas-cli@latest
+```
 
-# 4. Se connecter a Expo
+### Étape 4: Se connecter à Expo
+```powershell
 eas login
+```
+Entrez vos identifiants Expo (email/mot de passe)
 
-# 5. Configurer le projet (premiere fois uniquement)
+### Étape 5: Configurer le projet (première fois)
+```powershell
 eas build:configure
+```
+Répondez "Yes" aux questions
 
-# 6. Lancer le build APK
+### Étape 6: Lancer le build APK
+```powershell
 eas build --platform android --profile preview
-```
-
-### Resultat
-Apres 15-20 minutes, vous recevrez un lien pour telecharger l'APK:
-```
-Build finished
-Android build: https://expo.dev/artifacts/eas/xxxxx.apk
 ```
 
 ---
 
-## Resolution des Problemes
-
-### Erreur "npm ci failed"
-```bash
-rm -rf node_modules package-lock.json
-npm install
-eas build --platform android --profile preview --clear-cache
+## Résultat attendu
+Après 15-20 minutes, vous recevrez un message comme:
+```
+✔ Build finished
+🤖 Android build: https://expo.dev/artifacts/eas/XXXXX.apk
 ```
 
-### Erreur "Not logged in"
-```bash
-eas logout
-eas login
-eas whoami
-```
-
-### Erreur de dependances
-```bash
-npx expo install --fix
-npm install
-```
+Cliquez sur le lien pour télécharger l'APK.
 
 ---
 
 ## Installation sur Android
-1. Telechargez l'APK sur votre telephone
+1. Téléchargez l'APK sur votre téléphone
 2. Ouvrez le fichier APK
-3. Autorisez l'installation depuis sources inconnues si demande
+3. Autorisez "Sources inconnues" si demandé
 4. Installez et lancez AfroCrown!
 
 ---
 
-## Commandes Utiles
-```bash
-eas whoami          # Voir le compte connecte
-eas build:list      # Voir les builds en cours
-eas build:cancel    # Annuler un build
+## Résolution des problèmes
+
+### Erreur "npm not found"
+Installez Node.js: https://nodejs.org/
+
+### Erreur "eas: command not found"
+```powershell
+npm install -g eas-cli@latest
 ```
 
+### Erreur "Not logged in"
+```powershell
+eas logout
+eas login
+```
+
+### Erreur de dépendances
+```powershell
+Remove-Item -Recurse -Force node_modules
+Remove-Item package-lock.json -ErrorAction SilentlyContinue
+npm install
+```
+
+### Erreur "expo-cli deprecated"
+Utilisez EAS CLI (pas expo-cli):
+```powershell
+npm uninstall -g expo-cli
+npm install -g eas-cli@latest
+```
+
+---
+
+## Commandes utiles
+```powershell
+eas whoami          # Voir le compte connecté
+eas build:list      # Voir les builds en cours
+eas build:cancel    # Annuler un build
+npx expo doctor     # Diagnostiquer les problèmes
+```
+
+---
+
+## Configuration actuelle
+- **API Backend**: https://salon-dashboard-48.preview.emergentagent.com/api
+- **Package**: com.afrocrown.mobile
+- **Version**: 1.0.0
+
 ## Support
-- Documentation: https://docs.expo.dev/build/introduction/
-- Forum: https://forums.expo.dev/
+- Documentation Expo: https://docs.expo.dev/
+- Forum Expo: https://forums.expo.dev/
