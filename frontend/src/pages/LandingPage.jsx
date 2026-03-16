@@ -5,6 +5,7 @@ import { Input } from "../components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
+import { useLanguage, LanguageSelector } from "../context/LanguageContext";
 import { 
   Scissors, 
   Calendar, 
@@ -43,6 +44,7 @@ import {
 
 const LandingPage = () => {
   const { user, login, logout, loading, setUser } = useAuth();
+  const { t } = useLanguage();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -259,10 +261,10 @@ const LandingPage = () => {
   ];
 
   const stats = [
-    { value: "500+", label: "Salons partenaires" },
-    { value: "10K+", label: "Clients satisfaits" },
-    { value: "50+", label: "Styles disponibles" },
-    { value: "4.9", label: "Note moyenne" }
+    { value: "500+", label: t("landing.stats.salons") },
+    { value: "10K+", label: t("landing.stats.clients") },
+    { value: "50+", label: t("landing.stats.styles") },
+    { value: "4.9", label: t("landing.stats.rating") }
   ];
 
   return (
@@ -276,16 +278,17 @@ const LandingPage = () => {
               <span className="text-xl font-heading font-bold text-white">AfroCrown</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-slate-400 hover:text-white transition-colors">Fonctionnalites</a>
-              <a href="/booking" className="text-slate-400 hover:text-white transition-colors">Reserver</a>
-              <a href="/ai-simulation" className="text-slate-400 hover:text-white transition-colors">Simulation IA</a>
-              <a href="/marketplace" className="text-slate-400 hover:text-white transition-colors">Marketplace</a>
-              <a href="/trimconnect" className="text-slate-400 hover:text-white transition-colors">TrimConnect</a>
+              <a href="#features" className="text-slate-400 hover:text-white transition-colors">{t("nav.features")}</a>
+              <a href="/booking" className="text-slate-400 hover:text-white transition-colors">{t("nav.booking")}</a>
+              <a href="/ai-simulation" className="text-slate-400 hover:text-white transition-colors">{t("nav.simulation")}</a>
+              <a href="/marketplace" className="text-slate-400 hover:text-white transition-colors">{t("nav.marketplace")}</a>
+              <a href="/trimconnect" className="text-slate-400 hover:text-white transition-colors">{t("nav.trimconnect")}</a>
               {user && user.role === 'client' && (
-                <a href="/my-appointments" className="text-slate-400 hover:text-white transition-colors">Mes RDV</a>
+                <a href="/my-appointments" className="text-slate-400 hover:text-white transition-colors">{t("nav.appointments")}</a>
               )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
               {user ? (
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -303,7 +306,7 @@ const LandingPage = () => {
                       className="bg-indigo-600 hover:bg-indigo-700"
                       data-testid="dashboard-btn"
                     >
-                      {user.role === 'founder' ? 'Admin' : 'Mon Salon'}
+                      {user.role === 'founder' ? t("nav.admin") : t("nav.salon")}
                     </Button>
                   )}
                   <Button 
@@ -321,7 +324,7 @@ const LandingPage = () => {
                   className="bg-indigo-600 hover:bg-indigo-700"
                   data-testid="login-btn"
                 >
-                  Connexion
+                  {t("nav.login")}
                 </Button>
               )}
             </div>
@@ -350,19 +353,18 @@ const LandingPage = () => {
           >
             <div className="inline-flex items-center gap-2 bg-indigo-600/20 border border-indigo-500/30 rounded-full px-4 py-2 mb-8">
               <Trophy className="h-4 w-4 text-amber-500" />
-              <span className="text-sm text-indigo-300">TrimConnect Battle - Inscriptions ouvertes</span>
+              <span className="text-sm text-indigo-300">{t("landing.badge")}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-heading font-extrabold text-white mb-6 tracking-tight">
-              La Reference de la
+              {t("landing.hero.title1")}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-amber-400">
-                Coiffure Afro
+                {t("landing.hero.title2")}
               </span>
             </h1>
 
             <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-              Reservez, simulez votre coupe avec l'IA, decouvrez les meilleurs produits 
-              et participez au plus grand concours de coiffure.
+              {t("landing.hero.subtitle")}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -372,7 +374,7 @@ const LandingPage = () => {
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-indigo-500/25"
                   data-testid="go-dashboard-btn"
                 >
-                  {user.role === 'founder' ? 'Acceder au Dashboard Admin' : user.role === 'salon_owner' ? 'Acceder a Mon Salon' : 'Reserver maintenant'}
+                  {user.role === 'founder' ? t("landing.hero.cta_admin") : user.role === 'salon_owner' ? t("landing.hero.cta_salon") : t("landing.hero.cta")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               ) : (
@@ -381,7 +383,7 @@ const LandingPage = () => {
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-indigo-500/25"
                   data-testid="get-started-btn"
                 >
-                  Reserver maintenant
+                  {t("landing.hero.cta")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               )}
@@ -392,7 +394,7 @@ const LandingPage = () => {
                 data-testid="watch-video-btn"
               >
                 <Play className="mr-2 h-5 w-5" />
-                Voir la demo
+                {t("landing.hero.demo")}
               </Button>
             </div>
           </motion.div>
@@ -775,12 +777,49 @@ const LandingPage = () => {
               <a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">CGU</a>
               <a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">Confidentialite</a>
             </div>
-            <div className="text-slate-500 text-sm">
-              2024 AfroCrown. Tous droits reserves.
+            <div className="text-slate-500 text-sm text-center">
+              <p className="mb-2">© 2024 AfroCrown. {t("footer.rights")}</p>
+              <p className="text-indigo-400 font-medium">Inspired by Kadj'</p>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Video Modal */}
+      <AnimatePresence>
+        {isVideoPlaying && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setIsVideoPlaying(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-4xl aspect-video bg-slate-900 rounded-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setIsVideoPlaying(false)}
+                className="absolute top-4 right-4 z-10 bg-slate-800/80 hover:bg-slate-700 text-white p-2 rounded-full transition-colors"
+                data-testid="close-video-btn"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                title="AfroCrown Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Login Dialog */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>

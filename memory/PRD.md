@@ -185,9 +185,21 @@ Structure dans /app/mobile avec:
 - [x] Tests backend: 12/12 passes (recherche salons)
 - [x] Tests frontend: 100% (flow recherche landing page)
 
+## Nouvelles Fonctionnalites (Mars 2026 - Session 4)
+- [x] Modal video demo sur la landing page (bouton "Voir la demo")
+- [x] Footer avec "Inspired by Kadj'" en anglais
+- [x] Accents corriges sur tout le site (Reference -> Référence, Reservez -> Réservez, decouvrez -> découvrez)
+- [x] Support multi-langues complet (6 langues): Français, English, Nederlands, Español, العربية, Deutsch
+- [x] Selecteur de langue moderne dans la navbar avec drapeaux
+- [x] Traductions de: navigation, hero section, stats, search section, footer
+- [x] Support RTL automatique pour l'arabe
+- [x] Simulation IA activee et connectee au backend (endpoint /api/ai/simulate-haircut)
+
 ## Next Tasks
 1. Tester manuellement la connexion Google avec dialpha224@gmail.com (verifier bouton Admin)
 2. Telecharger et deployer l'app mobile via Expo EAS (voir BUILD_APK.md)
-3. Activer la simulation IA (connecter frontend au backend existant)
+3. Remplacer la video demo YouTube par une vraie video de presentation AfroCrown
 4. Verifier domaine Resend pour envoi emails en production
-5. Refactoring server.py (4000+ lignes) en modules separes
+5. Refactoring server.py (4000+ lignes) en modules separes (backend/routes/*, backend/models/*)
+6. Etendre les traductions aux autres pages (Booking, Marketplace, TrimConnect, Dashboards)
+

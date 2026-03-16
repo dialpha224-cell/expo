@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from
 import axios from "axios";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
+import { LanguageProvider } from "./context/LanguageContext";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
@@ -290,10 +291,12 @@ function App() {
   return (
     <div className="app-container">
       <BrowserRouter>
-        <AuthProvider>
-          <AppRouter />
-          <Toaster position="top-right" richColors />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <AppRouter />
+            <Toaster position="top-right" richColors />
+          </AuthProvider>
+        </LanguageProvider>
       </BrowserRouter>
     </div>
   );
