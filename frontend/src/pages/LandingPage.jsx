@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { toast } from "sonner";
 import { useLanguage, LanguageSelector } from "../context/LanguageContext";
+import VideoPresentation from "../components/VideoPresentation";
 import { 
   Scissors, 
   Calendar, 
@@ -844,50 +845,11 @@ const LandingPage = () => {
         </div>
       </footer>
 
-      {/* Video Modal */}
-      <AnimatePresence>
-        {isVideoPlaying && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
-            onClick={() => setIsVideoPlaying(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-4xl aspect-video bg-[#0F172A] rounded-2xl overflow-hidden border border-[#3B82F6]/30"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setIsVideoPlaying(false)}
-                className="absolute top-4 right-4 z-10 bg-slate-800/80 hover:bg-slate-700 text-white p-2 rounded-full transition-colors"
-                data-testid="close-video-btn"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <div className="relative w-full h-full">
-                <video
-                  className="w-full h-full object-cover"
-                  src="/afrocrown-demo.mp4"
-                  autoPlay
-                  loop
-                  playsInline
-                  controls
-                />
-                {/* Audio voiceover - plays with the video */}
-                <audio
-                  src="/afrocrown-voiceover.mp3"
-                  autoPlay
-                  className="hidden"
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Video Presentation with Intro, Main Video and Credits */}
+      <VideoPresentation 
+        isOpen={isVideoPlaying} 
+        onClose={() => setIsVideoPlaying(false)} 
+      />
 
       {/* Login Dialog */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>

@@ -209,6 +209,23 @@ Structure dans /app/mobile avec:
 - [x] TRADUCTIONS ETENDUES: Marketplace, TrimConnect, Simulation IA, Booking, Appointments, Reviews
 - [x] Amelioration de l'effet de lueur (plus visible, animation subtile)
 
+## Nouvelles Fonctionnalites (Mars 2026 - Session 6)
+- [x] LANDING PAGE LUMINEUSE avec palette BLEU + OR (#3B82F6, #FFD700)
+- [x] Filigrane BARBER en bleu avec lueur animee
+- [x] 19 PAYS EUROPEENS avec 33 salons au total
+- [x] VIDEO PRESENTATION COMPLETE avec 3 phases:
+  - Phase 1: INTRO avec logo couronne + "AFROCROWN" + "AFROCROWN TV"
+  - Phase 2: VIDEO DEMO du barbershop + voix off
+  - Phase 3: GENERIQUE DE FIN style cinema:
+    * "AFROCROWN TV"
+    * "FONDEE PAR KAZALI"
+    * "Un entrepreneur visionnaire qui apporte une nouvelle vision"
+    * Credits: Direction Creative, Concept & Vision, Production
+    * Logo final + "Inspired by Kadj'"
+- [x] Composant VideoPresentation.jsx avec controles play/pause/mute
+- [x] Refactoring backend demarre: /backend/models/, /backend/utils/, /backend/services/
+- [x] Guide APK mobile mis a jour: /mobile/BUILD_APK.md
+
 ## Next Tasks
 1. Tester manuellement la connexion Google avec dialpha224@gmail.com (verifier bouton Admin)
 2. Telecharger et deployer l'app mobile via Expo EAS (voir BUILD_APK.md)
