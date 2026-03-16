@@ -131,15 +131,16 @@ Structure dans /app/mobile avec:
 - [x] Commande d'ecrans depuis le Marketplace
 
 ### P1 (Next)
-- [ ] Test manuel connexion Google (verifier bouton Admin)
-- [ ] Deploy mobile app (Expo EAS) - instructions fournies
+- [ ] Test manuel connexion Google (verifier bouton Admin) - EN ATTENTE VALIDATION USER
+- [ ] Deploy mobile app (Expo EAS) - Instructions mises a jour dans BUILD_APK.md
 - [ ] Real Stripe payment testing
-- [ ] Ajouter localisations aux salons existants
+- [ ] Activer simulation IA (connecter frontend existant au backend)
 
 ### P2 (Medium)
-- [ ] Calendar view for appointments
+- [ ] Calendar view for appointments (composant existe, a integrer)
 - [ ] Finaliser le traitement automatique des imports de sites web
 - [ ] Envoyer des emails de confirmation apres commande d'ecrans
+- [ ] Refactoring server.py en modules (backend/routes/*, backend/models/*)
 
 ### P3 (Low)
 - [ ] Advanced statistics charts
@@ -178,9 +179,15 @@ Structure dans /app/mobile avec:
 - `GET /api/shop/tactile-screens` - Liste des ecrans tactiles
 - `POST /api/shop/tactile-screens/order` - Commander un ecran
 
+## Bug Fixes (Mars 2026 - Session 4)
+- [x] Bug routage backend: Routes statiques `/api/salons/search`, `/api/salons/locations/*` interceptees par route dynamique `/api/salons/{salon_id}` - CORRIGE en deplacant les routes statiques AVANT la route dynamique
+- [x] Salons mis a jour avec donnees de localisation (country, city, coordinates)
+- [x] Tests backend: 12/12 passes (recherche salons)
+- [x] Tests frontend: 100% (flow recherche landing page)
+
 ## Next Tasks
-1. Tester manuellement la connexion Google avec dialpha224@gmail.com
-2. Telecharger et deployer l'app mobile via Expo EAS
-3. Ajouter des salons avec localisations pour tester la recherche
+1. Tester manuellement la connexion Google avec dialpha224@gmail.com (verifier bouton Admin)
+2. Telecharger et deployer l'app mobile via Expo EAS (voir BUILD_APK.md)
+3. Activer la simulation IA (connecter frontend au backend existant)
 4. Verifier domaine Resend pour envoi emails en production
-5. Implementer ecran interactif salon
+5. Refactoring server.py (4000+ lignes) en modules separes
