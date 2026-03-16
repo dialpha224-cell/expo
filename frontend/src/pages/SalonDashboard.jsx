@@ -64,6 +64,7 @@ import MonthlyCutsManager from "../components/MonthlyCutsManager";
 import AppointmentQRScanner from "../components/AppointmentQRScanner";
 import ReassignClientModal from "../components/ReassignClientModal";
 import WebsiteImporter from "../components/WebsiteImporter";
+import AppointmentCalendar from "../components/AppointmentCalendar";
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -117,6 +118,7 @@ const SalonDashboard = () => {
     { icon: LayoutDashboard, label: "Tableau de bord", path: "/salon" },
     { icon: Users, label: "Coiffeurs", path: "/salon/barbers" },
     { icon: Calendar, label: "Rendez-vous", path: "/salon/appointments" },
+    { icon: Calendar, label: "Calendrier", path: "/salon/calendar" },
     { icon: Scissors, label: "Coupes & Tarifs", path: "/salon/haircuts" },
     { icon: Image, label: "Coupes du Mois", path: "/salon/monthly-cuts" },
     { icon: Gift, label: "Programme Fidelite", path: "/salon/loyalty" },
@@ -275,6 +277,7 @@ const SalonDashboard = () => {
             <Route index element={<SalonOverview salonId={selectedSalonId} />} />
             <Route path="barbers" element={<BarbersManagement salonId={selectedSalonId} />} />
             <Route path="appointments" element={<AppointmentsManagement salonId={selectedSalonId} />} />
+            <Route path="calendar" element={<CalendarPage salonId={selectedSalonId} />} />
             <Route path="haircuts" element={<HaircutsManagement salonId={selectedSalonId} />} />
             <Route path="monthly-cuts" element={<MonthlyCutsPage salonId={selectedSalonId} />} />
             <Route path="loyalty" element={<LoyaltyPage salonId={selectedSalonId} />} />
@@ -1388,6 +1391,36 @@ const LoyaltyPage = ({ salonId }) => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Calendar Page Component
+const CalendarPage = ({ salonId }) => {
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+
+  if (!salonId) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
+        <p className="text-slate-400">Selectionnez un salon pour voir le calendrier.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6" data-testid="calendar-page">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white">Calendrier</h1>
+          <p className="text-slate-400">Vue mensuelle de vos rendez-vous</p>
+        </div>
+        <AppointmentQRScanner salonId={salonId} />
+      </div>
+      
+      <AppointmentCalendar 
+        salonId={salonId} 
+        onSelectAppointment={setSelectedAppointment}
+      />
     </div>
   );
 };

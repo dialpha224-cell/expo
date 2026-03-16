@@ -3520,13 +3520,13 @@ async def update_salon_location(salon_id: str, location: SalonLocationUpdate, us
 @api_router.get("/salons/locations/countries")
 async def get_salon_countries():
     """Get list of countries with salons"""
-    countries = await db.salons.distinct("country", {"is_active": True, "country": {"$ne": None}})
+    countries = await db.salons.distinct("country", {"country": {"$ne": None, "$exists": True}})
     return sorted([c for c in countries if c])
 
 @api_router.get("/salons/locations/cities")
 async def get_salon_cities(country: Optional[str] = None):
     """Get list of cities with salons, optionally filtered by country"""
-    query = {"is_active": True, "city": {"$ne": None}}
+    query = {"city": {"$ne": None, "$exists": True}}
     if country:
         query["country"] = country
     
@@ -3543,7 +3543,7 @@ async def search_salons(
     limit: int = 50
 ):
     """Search salons by location"""
-    query = {"is_active": True}
+    query = {}
     
     if country:
         query["country"] = {"$regex": country, "$options": "i"}
@@ -3735,6 +3735,65 @@ async def import_salon_website(salon_id: str, import_req: SalonWebsiteImportRequ
         raise HTTPException(status_code=404, detail="Salon not found")
     
     import_id = f"import_{uuid.uuid4().hex[:12]}"
+    
+    # Try to scrape the website
+    scraped_data = {}
+    try:
+        import httpx
+        from bs4 import BeautifulSoup
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(import_req.website_url, follow_redirects=True)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
+                # Extract title
+                title = soup.find('title')
+                scraped_data['title'] = title.text.strip() if title else None
+                
+                # Extract description
+                meta_desc = soup.find('meta', {'name': 'description'})
+                scraped_data['description'] = meta_desc.get('content', '').strip() if meta_desc else None
+                
+                # Extract phone numbers
+                import re
+                phone_pattern = r'[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}'
+                phones = re.findall(phone_pattern, response.text)
+                scraped_data['phones'] = list(set([p.strip() for p in phones if len(p) > 8]))[:3]
+                
+                # Extract emails
+                email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+                emails = re.findall(email_pattern, response.text)
+                scraped_data['emails'] = list(set(emails))[:3]
+                
+                # Extract images
+                images = []
+                for img in soup.find_all('img', src=True)[:20]:
+                    src = img['src']
+                    if src.startswith('http') and not 'logo' in src.lower() and not 'icon' in src.lower():
+                        images.append(src)
+                scraped_data['images'] = images[:10]
+                
+                # Extract prices (basic pattern)
+                price_pattern = r'(\d{1,3}(?:[.,]\d{2})?)\s*(?:€|EUR|euros?)'
+                prices = re.findall(price_pattern, response.text, re.IGNORECASE)
+                scraped_data['prices'] = [float(p.replace(',', '.')) for p in prices[:10]]
+                
+                # Extract service-like text
+                services = []
+                for heading in soup.find_all(['h2', 'h3', 'h4']):
+                    text = heading.text.strip().lower()
+                    if any(word in text for word in ['coupe', 'coiffure', 'barbe', 'soin', 'service', 'tarif', 'prix']):
+                        services.append(heading.text.strip())
+                scraped_data['services'] = services[:15]
+                
+                scraped_data['status'] = 'completed'
+                logger.info(f"Website scraping completed for {import_req.website_url}")
+    except Exception as scrape_err:
+        logger.error(f"Website scraping error: {scrape_err}")
+        scraped_data['status'] = 'failed'
+        scraped_data['error'] = str(scrape_err)
+    
     import_doc = {
         "import_id": import_id,
         "salon_id": salon_id,
@@ -3742,17 +3801,55 @@ async def import_salon_website(salon_id: str, import_req: SalonWebsiteImportRequ
         "import_services": import_req.import_services,
         "import_barbers": import_req.import_barbers,
         "import_gallery": import_req.import_gallery,
-        "status": "pending",
+        "scraped_data": scraped_data,
+        "status": scraped_data.get('status', 'pending'),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.salon_imports.insert_one(import_doc)
     await db.salons.update_one({"salon_id": salon_id}, {"$set": {"external_website": import_req.website_url}})
     
+    # If scraping succeeded, update salon with extracted data
+    if scraped_data.get('status') == 'completed':
+        update_fields = {}
+        if scraped_data.get('description') and not salon.get('description'):
+            update_fields['description'] = scraped_data['description']
+        if scraped_data.get('phones') and not salon.get('phone'):
+            update_fields['phone'] = scraped_data['phones'][0]
+        
+        if update_fields:
+            await db.salons.update_one({"salon_id": salon_id}, {"$set": update_fields})
+        
+        # Create haircuts from extracted prices if services import is enabled
+        if import_req.import_services and scraped_data.get('services'):
+            for i, service in enumerate(scraped_data['services'][:8]):
+                price = scraped_data['prices'][i] if i < len(scraped_data.get('prices', [])) else 20
+                haircut_id = f"haircut_{uuid.uuid4().hex[:12]}"
+                await db.haircuts.update_one(
+                    {"salon_id": salon_id, "name": service},
+                    {"$setOnInsert": {
+                        "haircut_id": haircut_id,
+                        "salon_id": salon_id,
+                        "name": service,
+                        "price": price,
+                        "duration": 30,
+                        "is_active": True,
+                        "imported": True,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }},
+                    upsert=True
+                )
+    
     return {
         "success": True,
         "import_id": import_id,
-        "message": "Import en cours. Notre equipe adaptera les donnees au format AfroCrown."
+        "status": scraped_data.get('status', 'pending'),
+        "message": "Import termine !" if scraped_data.get('status') == 'completed' else "Import en cours de traitement.",
+        "extracted": {
+            "services_found": len(scraped_data.get('services', [])),
+            "images_found": len(scraped_data.get('images', [])),
+            "prices_found": len(scraped_data.get('prices', []))
+        } if scraped_data.get('status') == 'completed' else None
     }
 
 # =============================================================================
@@ -3841,16 +3938,82 @@ async def get_tactile_screens():
 async def order_tactile_screen(order: dict, user: UserBase = Depends(require_salon_owner)):
     """Order a tactile screen"""
     order_id = f"order_{uuid.uuid4().hex[:12]}"
-    await db.screen_orders.insert_one({
+    product_id = order.get("product_id")
+    quantity = order.get("quantity", 1)
+    
+    # Get product info
+    screens = {
+        "screen_basic": {"name": "Ecran Basic 15\"", "price": 299.00},
+        "screen_pro": {"name": "Ecran Pro 22\"", "price": 499.00},
+        "screen_premium": {"name": "Ecran Premium 32\" 4K", "price": 899.00}
+    }
+    
+    product = screens.get(product_id, {"name": "Ecran", "price": 0})
+    total = product["price"] * quantity
+    
+    order_doc = {
         "order_id": order_id,
         "user_id": user.user_id,
         "salon_id": user.salon_id,
-        "product_id": order.get("product_id"),
-        "quantity": order.get("quantity", 1),
+        "product_id": product_id,
+        "product_name": product["name"],
+        "quantity": quantity,
+        "total_price": total,
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    return {"success": True, "order_id": order_id, "message": "Commande enregistree. Contact sous 24h."}
+    }
+    await db.screen_orders.insert_one(order_doc)
+    
+    # Get user and salon info for email
+    user_info = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "email": 1, "name": 1})
+    salon_info = await db.salons.find_one({"salon_id": user.salon_id}, {"_id": 0, "name": 1, "address": 1})
+    
+    # Send confirmation email
+    if user_info and user_info.get("email"):
+        try:
+            resend_key = os.getenv("RESEND_API_KEY")
+            if resend_key:
+                import resend
+                resend.api_key = resend_key
+                
+                email_html = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+                        <h1 style="margin: 0;">AfroCrown</h1>
+                        <p style="margin: 10px 0 0; opacity: 0.9;">Confirmation de commande</p>
+                    </div>
+                    <div style="background: #1e293b; color: #e2e8f0; padding: 30px; border-radius: 0 0 12px 12px;">
+                        <p>Bonjour {user_info.get('name', 'Cher client')},</p>
+                        <p>Nous avons bien recu votre commande d'ecran tactile.</p>
+                        
+                        <div style="background: #334155; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3 style="color: #a5b4fc; margin-top: 0;">Details de la commande</h3>
+                            <p><strong>Numero:</strong> {order_id}</p>
+                            <p><strong>Produit:</strong> {product['name']}</p>
+                            <p><strong>Quantite:</strong> {quantity}</p>
+                            <p><strong>Total:</strong> {total} EUR</p>
+                            <p><strong>Salon:</strong> {salon_info.get('name', '-') if salon_info else '-'}</p>
+                        </div>
+                        
+                        <p>Notre equipe vous contactera sous 24h pour confirmer les details de livraison et d'installation.</p>
+                        
+                        <p style="margin-top: 30px;">Merci de votre confiance!</p>
+                        <p>L'equipe AfroCrown</p>
+                    </div>
+                </div>
+                """
+                
+                resend.Emails.send({
+                    "from": "AfroCrown <onboarding@resend.dev>",
+                    "to": user_info["email"],
+                    "subject": f"Confirmation commande ecran #{order_id}",
+                    "html": email_html
+                })
+                logger.info(f"Order confirmation email sent to {user_info['email']}")
+        except Exception as email_err:
+            logger.error(f"Failed to send order email: {email_err}")
+    
+    return {"success": True, "order_id": order_id, "message": "Commande enregistree. Vous recevrez un email de confirmation."}
 
 # =============================================================================
 # HEALTH CHECK
