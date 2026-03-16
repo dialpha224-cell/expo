@@ -30,12 +30,16 @@ const AISimulation = () => {
   const [rotationAngle, setRotationAngle] = useState(0);
   const carouselRef = useRef(null);
 
+  // 5 vues: Face, Droite, Dos, Gauche, Dessus
   const rotationLabels = {
     0: "Face",
-    90: "Profil Droit",
-    180: "Dos",
-    270: "Profil Gauche"
+    1: "Profil Droit",
+    2: "Dos",
+    3: "Profil Gauche",
+    4: "Dessus"
   };
+  
+  const rotationAngles = [0, 1, 2, 3, 4];
 
   // 30 styles de coiffure avec barbe - Images générées par IA avec cape AfroCrown
   const haircutStyles = [
@@ -422,21 +426,28 @@ const AISimulation = () => {
                       animate={{ opacity: 1, rotateY: 0 }}
                       exit={{ opacity: 0, rotateY: 90 }}
                       transition={{ duration: 0.4 }}
-                      className="w-full h-full"
+                      className="w-full h-full relative"
                     >
                       <img
                         src={mannequinStyle.thumbnail}
                         alt={mannequinStyle.name}
                         className="w-full h-full object-cover"
                         style={{
-                          transform: `scaleX(${rotationAngle === 90 || rotationAngle === 270 ? -1 : 1})`,
-                          filter: rotationAngle === 180 ? 'brightness(0.9)' : 'none'
+                          transform: rotationAngle === 1 ? 'scaleX(-1)' : 
+                                     rotationAngle === 3 ? 'scaleX(1)' : 'none',
+                          filter: rotationAngle === 2 ? 'brightness(0.85)' : 
+                                  rotationAngle === 4 ? 'brightness(1.1) saturate(0.9)' : 'none'
                         }}
                       />
-                      {/* Overlay for back view */}
-                      {rotationAngle === 180 && (
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent flex items-end justify-center pb-20">
-                          <span className="text-white/50 text-sm">Vue de dos</span>
+                      {/* Overlay pour chaque vue */}
+                      {rotationAngle === 2 && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end justify-center pb-20">
+                          <span className="text-white/70 text-sm font-medium">Vue de dos</span>
+                        </div>
+                      )}
+                      {rotationAngle === 4 && (
+                        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 to-transparent flex items-start justify-center pt-6">
+                          <span className="text-white/70 text-sm font-medium">Vue du dessus</span>
                         </div>
                       )}
                     </motion.div>
@@ -471,9 +482,9 @@ const AISimulation = () => {
               </div>
               
               {/* 360° Rotation Controls */}
-              <div className="mt-4 flex items-center justify-center gap-4">
+              <div className="mt-4 flex items-center justify-center gap-3">
                 <button 
-                  onClick={() => setRotationAngle(prev => prev <= 0 ? 270 : prev - 90)}
+                  onClick={() => setRotationAngle(prev => prev <= 0 ? 4 : prev - 1)}
                   disabled={!mannequinStyle}
                   className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Tourner à gauche"
@@ -481,25 +492,38 @@ const AISimulation = () => {
                   <RotateCcw className="h-5 w-5" />
                 </button>
                 
-                {/* Rotation indicator dots */}
-                <div className="flex items-center gap-2">
-                  {[0, 90, 180, 270].map((angle) => (
+                {/* 5 Rotation indicator dots */}
+                <div className="flex items-center gap-1.5">
+                  {rotationAngles.map((angle) => (
                     <button
                       key={angle}
                       onClick={() => mannequinStyle && setRotationAngle(angle)}
                       disabled={!mannequinStyle}
-                      className={`w-3 h-3 rounded-full transition-all ${
+                      className={`flex flex-col items-center transition-all ${
                         rotationAngle === angle 
-                          ? 'bg-[#FFD700] scale-125' 
-                          : 'bg-slate-600 hover:bg-slate-500'
+                          ? 'scale-110' 
+                          : 'opacity-60 hover:opacity-100'
                       } disabled:opacity-30`}
                       title={rotationLabels[angle]}
-                    />
+                    >
+                      <div className={`w-3 h-3 rounded-full ${
+                        rotationAngle === angle 
+                          ? 'bg-[#FFD700]' 
+                          : 'bg-slate-600'
+                      }`} />
+                      <span className={`text-[8px] mt-0.5 ${
+                        rotationAngle === angle 
+                          ? 'text-[#FFD700]' 
+                          : 'text-slate-500'
+                      }`}>
+                        {rotationLabels[angle].split(' ')[0]}
+                      </span>
+                    </button>
                   ))}
                 </div>
                 
                 <button 
-                  onClick={() => setRotationAngle(prev => prev >= 270 ? 0 : prev + 90)}
+                  onClick={() => setRotationAngle(prev => prev >= 4 ? 0 : prev + 1)}
                   disabled={!mannequinStyle}
                   className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Tourner à droite"
@@ -509,7 +533,7 @@ const AISimulation = () => {
               </div>
               
               <p className="text-center text-slate-500 text-xs mt-2">
-                Utilisez les flèches pour voir la coupe à 360°
+                5 vues disponibles : Face, Droite, Dos, Gauche, Dessus
               </p>
               
               {mannequinStyle && (
