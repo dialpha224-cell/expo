@@ -12,12 +12,12 @@ export default function TabsLayout() {
           borderTopColor: '#334155',
           paddingBottom: 8,
           paddingTop: 8,
-          height: 70,
+          height: 75,
         },
-        tabBarActiveTintColor: '#818cf8',
+        tabBarActiveTintColor: '#FFD700',
         tabBarInactiveTintColor: '#64748b',
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '500',
         },
       }}
@@ -35,7 +35,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="booking"
         options={{
-          title: 'Reserver',
+          title: 'Réserver',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar" size={size} color={color} />
           ),
@@ -46,7 +46,16 @@ export default function TabsLayout() {
         options={{
           title: 'Simulation',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="camera" size={size} color={color} />
+            <Ionicons name="sparkles" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="trimconnect"
+        options={{
+          title: 'Concours',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trophy" size={size} color={color} />
           ),
         }}
       />
@@ -56,6 +65,15 @@ export default function TabsLayout() {
           title: 'Shop',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Mes RDV',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="time" size={size} color={color} />
           ),
         }}
       />

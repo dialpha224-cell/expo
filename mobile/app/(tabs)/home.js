@@ -85,20 +85,30 @@ export default function HomeScreen() {
           style={styles.actionCard}
           onPress={() => router.push('/(tabs)/booking')}
         >
-          <View style={[styles.actionIcon, { backgroundColor: '#6366f1' }]}>
-            <Ionicons name="calendar" size={24} color="#fff" />
+          <View style={[styles.actionIcon, { backgroundColor: '#FFD700' }]}>
+            <Ionicons name="calendar" size={24} color="#0f172a" />
           </View>
-          <Text style={styles.actionText}>Reserver</Text>
+          <Text style={styles.actionText}>Réserver</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.actionCard}
           onPress={() => router.push('/(tabs)/simulation')}
         >
-          <View style={[styles.actionIcon, { backgroundColor: '#f59e0b' }]}>
-            <Ionicons name="camera" size={24} color="#fff" />
+          <View style={[styles.actionIcon, { backgroundColor: '#6366f1' }]}>
+            <Ionicons name="sparkles" size={24} color="#fff" />
           </View>
           <Text style={styles.actionText}>Simulation IA</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionCard}
+          onPress={() => router.push('/(tabs)/trimconnect')}
+        >
+          <View style={[styles.actionIcon, { backgroundColor: '#f59e0b' }]}>
+            <Ionicons name="trophy" size={24} color="#fff" />
+          </View>
+          <Text style={styles.actionText}>Concours</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 

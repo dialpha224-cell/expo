@@ -6,12 +6,15 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Image,
-  Alert
+  Alert,
+  Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../_layout';
+
+const { width } = Dimensions.get('window');
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -26,10 +29,30 @@ export default function BookingScreen() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // Filtres pays/ville
+  const [countries, setCountries] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(null);
 
   useEffect(() => {
-    fetchSalons();
+    fetchCountries();
   }, []);
+
+  useEffect(() => {
+    if (selectedCountry) {
+      fetchCities(selectedCountry);
+      setSalons([]);
+      setSelectedCity(null);
+    }
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    if (selectedCity) {
+      fetchSalons();
+    }
+  }, [selectedCity]);
 
   useEffect(() => {
     if (selectedSalon) {
@@ -38,9 +61,34 @@ export default function BookingScreen() {
     }
   }, [selectedSalon]);
 
+  const fetchCountries = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/salons/locations/countries`);
+      setCountries(response.data);
+    } catch (error) {
+      console.log('Error fetching countries:', error);
+      // Fallback data
+      setCountries(['Belgique', 'France', 'Pays-Bas']);
+    }
+  };
+
+  const fetchCities = async (country) => {
+    try {
+      const response = await axios.get(`${API_URL}/salons/locations/cities?country=${country}`);
+      setCities(response.data);
+    } catch (error) {
+      console.log('Error fetching cities:', error);
+      setCities(['Bruxelles', 'Anvers', 'Gand']);
+    }
+  };
+
   const fetchSalons = async () => {
     try {
-      const response = await axios.get(`${API_URL}/salons`);
+      const params = new URLSearchParams();
+      if (selectedCountry) params.append('country', selectedCountry);
+      if (selectedCity) params.append('city', selectedCity);
+      
+      const response = await axios.get(`${API_URL}/salons?${params.toString()}`);
       setSalons(response.data);
     } catch (error) {
       console.log('Error fetching salons:', error);
@@ -117,27 +165,81 @@ export default function BookingScreen() {
         return (
           <View style={styles.stepContent}>
             <Text style={styles.stepTitle}>Choisissez un salon</Text>
-            {salons.map((salon) => (
-              <TouchableOpacity
-                key={salon.salon_id}
-                style={[
-                  styles.optionCard,
-                  selectedSalon?.salon_id === salon.salon_id && styles.optionCardSelected
-                ]}
-                onPress={() => setSelectedSalon(salon)}
-              >
-                <View style={styles.salonIcon}>
-                  <Ionicons name="cut" size={30} color="#818cf8" />
-                </View>
-                <View style={styles.optionInfo}>
-                  <Text style={styles.optionTitle}>{salon.name}</Text>
-                  <Text style={styles.optionSubtitle}>{salon.address}</Text>
-                </View>
-                {selectedSalon?.salon_id === salon.salon_id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#818cf8" />
-                )}
-              </TouchableOpacity>
-            ))}
+            
+            {/* Country Selection */}
+            <Text style={styles.filterLabel}>Pays</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+              {countries.map((country) => (
+                <TouchableOpacity
+                  key={country}
+                  style={[styles.filterChip, selectedCountry === country && styles.filterChipActive]}
+                  onPress={() => setSelectedCountry(country)}
+                >
+                  <Text style={[styles.filterChipText, selectedCountry === country && styles.filterChipTextActive]}>
+                    {country}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            
+            {/* City Selection */}
+            {selectedCountry && (
+              <>
+                <Text style={styles.filterLabel}>Ville</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+                  {cities.map((city) => (
+                    <TouchableOpacity
+                      key={city}
+                      style={[styles.filterChip, selectedCity === city && styles.filterChipActive]}
+                      onPress={() => setSelectedCity(city)}
+                    >
+                      <Text style={[styles.filterChipText, selectedCity === city && styles.filterChipTextActive]}>
+                        {city}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+            
+            {/* Salons List */}
+            {selectedCity && salons.length > 0 && (
+              <>
+                <Text style={styles.filterLabel}>Salons disponibles</Text>
+                {salons.map((salon) => (
+                  <TouchableOpacity
+                    key={salon.salon_id}
+                    style={[
+                      styles.optionCard,
+                      selectedSalon?.salon_id === salon.salon_id && styles.optionCardSelected
+                    ]}
+                    onPress={() => setSelectedSalon(salon)}
+                  >
+                    <View style={styles.salonIcon}>
+                      <Ionicons name="cut" size={30} color="#FFD700" />
+                    </View>
+                    <View style={styles.optionInfo}>
+                      <Text style={styles.optionTitle}>{salon.name}</Text>
+                      <Text style={styles.optionSubtitle}>{salon.address}</Text>
+                      <View style={styles.ratingRow}>
+                        <Ionicons name="star" size={14} color="#fbbf24" />
+                        <Text style={styles.ratingText}>{salon.rating || 4.8}</Text>
+                      </View>
+                    </View>
+                    {selectedSalon?.salon_id === salon.salon_id && (
+                      <Ionicons name="checkmark-circle" size={24} color="#FFD700" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+            
+            {selectedCity && salons.length === 0 && (
+              <View style={styles.emptyState}>
+                <Ionicons name="storefront-outline" size={48} color="#64748b" />
+                <Text style={styles.emptyText}>Aucun salon trouvé dans cette ville</Text>
+              </View>
+            )}
           </View>
         );
       
@@ -145,25 +247,44 @@ export default function BookingScreen() {
         return (
           <View style={styles.stepContent}>
             <Text style={styles.stepTitle}>Choisissez une coupe</Text>
-            {haircuts.map((haircut) => (
-              <TouchableOpacity
-                key={haircut.haircut_id}
-                style={[
-                  styles.optionCard,
-                  selectedHaircut?.haircut_id === haircut.haircut_id && styles.optionCardSelected
-                ]}
-                onPress={() => setSelectedHaircut(haircut)}
-              >
-                <View style={styles.optionInfo}>
-                  <Text style={styles.optionTitle}>{haircut.name}</Text>
-                  <Text style={styles.optionSubtitle}>{haircut.duration_minutes} min</Text>
-                </View>
-                <Text style={styles.priceTag}>{haircut.price} EUR</Text>
-                {selectedHaircut?.haircut_id === haircut.haircut_id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#818cf8" style={{ marginLeft: 8 }} />
-                )}
-              </TouchableOpacity>
-            ))}
+            <View style={styles.haircutsGrid}>
+              {haircuts.map((haircut) => (
+                <TouchableOpacity
+                  key={haircut.haircut_id}
+                  style={[
+                    styles.haircutCard,
+                    selectedHaircut?.haircut_id === haircut.haircut_id && styles.haircutCardSelected
+                  ]}
+                  onPress={() => setSelectedHaircut(haircut)}
+                >
+                  {haircut.image_url ? (
+                    <Image source={{ uri: haircut.image_url }} style={styles.haircutImage} />
+                  ) : (
+                    <View style={styles.haircutImagePlaceholder}>
+                      <Ionicons name="cut" size={32} color="#FFD700" />
+                    </View>
+                  )}
+                  <View style={[styles.haircutInfo, selectedHaircut?.haircut_id === haircut.haircut_id && styles.haircutInfoSelected]}>
+                    <Text style={[styles.haircutName, selectedHaircut?.haircut_id === haircut.haircut_id && styles.haircutNameSelected]} numberOfLines={1}>
+                      {haircut.name}
+                    </Text>
+                    <View style={styles.haircutMeta}>
+                      <Text style={[styles.haircutDuration, selectedHaircut?.haircut_id === haircut.haircut_id && styles.haircutDurationSelected]}>
+                        {haircut.duration_minutes} min
+                      </Text>
+                      <Text style={[styles.haircutPrice, selectedHaircut?.haircut_id === haircut.haircut_id && styles.haircutPriceSelected]}>
+                        {haircut.price}€
+                      </Text>
+                    </View>
+                  </View>
+                  {selectedHaircut?.haircut_id === haircut.haircut_id && (
+                    <View style={styles.haircutCheckBadge}>
+                      <Ionicons name="checkmark" size={14} color="#0f172a" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         );
       
@@ -181,9 +302,8 @@ export default function BookingScreen() {
                 onPress={() => setSelectedBarber(barber)}
               >
                 <Image
-                  source={{ uri: barber.photo_url || barber.image_url }}
+                  source={{ uri: barber.photo_url || barber.image_url || `https://ui-avatars.com/api/?name=${barber.name}&background=FFD700&color=0f172a` }}
                   style={styles.barberPhoto}
-                  defaultSource={{ uri: 'https://ui-avatars.com/api/?name=' + barber.name }}
                 />
                 <View style={styles.optionInfo}>
                   <Text style={styles.optionTitle}>{barber.name}</Text>
@@ -194,7 +314,7 @@ export default function BookingScreen() {
                   </View>
                 </View>
                 {selectedBarber?.barber_id === barber.barber_id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#818cf8" />
+                  <Ionicons name="checkmark-circle" size={24} color="#FFD700" />
                 )}
               </TouchableOpacity>
             ))}
@@ -371,7 +491,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#334155',
   },
   progressDotActive: {
-    backgroundColor: '#818cf8',
+    backgroundColor: '#FFD700',
   },
   scrollContent: {
     flex: 1,
@@ -385,6 +505,48 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 20,
   },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94a3b8',
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  filterRow: {
+    marginBottom: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#1e293b',
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  filterChipActive: {
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
+  },
+  filterChipText: {
+    color: '#94a3b8',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: '#0f172a',
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    color: '#64748b',
+    fontSize: 14,
+    marginTop: 12,
+    textAlign: 'center',
+  },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -396,7 +558,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   optionCardSelected: {
-    borderColor: '#818cf8',
+    borderColor: '#FFD700',
   },
   salonIcon: {
     width: 60,
@@ -429,7 +591,7 @@ const styles = StyleSheet.create({
   priceTag: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#818cf8',
+    color: '#FFD700',
   },
   ratingRow: {
     flexDirection: 'row',
@@ -440,6 +602,81 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginLeft: 4,
     fontSize: 14,
+  },
+  // Haircuts grid
+  haircutsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  haircutCard: {
+    width: (width - 44) / 2,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1e293b',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
+  },
+  haircutCardSelected: {
+    borderColor: '#FFD700',
+  },
+  haircutImage: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#334155',
+  },
+  haircutImagePlaceholder: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#334155',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  haircutInfo: {
+    padding: 10,
+  },
+  haircutInfoSelected: {
+    backgroundColor: '#FFD700',
+  },
+  haircutName: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  haircutNameSelected: {
+    color: '#0f172a',
+  },
+  haircutMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  haircutDuration: {
+    color: '#64748b',
+    fontSize: 11,
+  },
+  haircutDurationSelected: {
+    color: '#1e293b',
+  },
+  haircutPrice: {
+    color: '#FFD700',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  haircutPriceSelected: {
+    color: '#0f172a',
+  },
+  haircutCheckBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FFD700',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   label: {
     fontSize: 16,
@@ -462,8 +699,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   dateCardSelected: {
-    backgroundColor: '#818cf8',
-    borderColor: '#818cf8',
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
   },
   dateDay: {
     fontSize: 12,
@@ -480,7 +717,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   dateTextSelected: {
-    color: '#fff',
+    color: '#0f172a',
   },
   timeSlotsGrid: {
     flexDirection: 'row',
@@ -496,15 +733,15 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   timeSlotSelected: {
-    backgroundColor: '#818cf8',
-    borderColor: '#818cf8',
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
   },
   timeSlotText: {
     color: '#94a3b8',
     fontWeight: '500',
   },
   timeSlotTextSelected: {
-    color: '#fff',
+    color: '#0f172a',
   },
   summaryCard: {
     backgroundColor: '#1e293b',
@@ -539,7 +776,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#818cf8',
+    color: '#FFD700',
   },
   bottomNav: {
     flexDirection: 'row',
@@ -562,7 +799,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#FFD700',
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,
@@ -571,7 +808,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   nextButtonText: {
-    color: '#fff',
+    color: '#0f172a',
     fontSize: 16,
     fontWeight: '600',
   },
