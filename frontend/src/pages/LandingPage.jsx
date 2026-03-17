@@ -31,7 +31,8 @@ import {
   Navigation,
   Globe,
   TrendingUp,
-  Zap
+  Zap,
+  Crown
 } from "lucide-react";
 import {
   Dialog,
@@ -408,6 +409,10 @@ const LandingPage = () => {
               <a href="/tendances" className="text-slate-300 hover:text-[#FBBF24] transition-colors flex items-center gap-1">
                 <TrendingUp className="h-4 w-4" />
                 Tendances
+              </a>
+              <a href="/subscriptions" className="text-[#FFD700] hover:text-[#FFA500] transition-colors flex items-center gap-1 font-medium">
+                <Crown className="h-4 w-4" />
+                Abonnements
               </a>
               {user && user.role === 'client' && (
                 <a href="/my-appointments" className="text-slate-300 hover:text-[#FBBF24] transition-colors">{t("nav.appointments")}</a>

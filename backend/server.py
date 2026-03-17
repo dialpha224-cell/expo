@@ -906,6 +906,45 @@ class UrgentBookingRequest(BaseModel):
     haircut_type: Optional[str] = None
 
 # =============================================================================
+# SUBSCRIPTION & QUEUE MODELS
+# =============================================================================
+
+# Monthly subscription plans
+class SubscriptionPlan(BaseModel):
+    plan_id: str
+    name: str
+    price: float  # Monthly price in EUR
+    cuts_per_month: int  # -1 = unlimited
+    description: str
+    features: List[str]
+    is_active: bool = True
+
+# Client subscription
+class ClientSubscription(BaseModel):
+    subscription_id: str
+    user_id: str
+    plan_id: str
+    status: str  # active, cancelled, expired, paused
+    start_date: str
+    end_date: str
+    cuts_used: int = 0
+    auto_renew: bool = True
+
+# Virtual queue entry
+class QueueEntry(BaseModel):
+    queue_id: str
+    salon_id: str
+    client_id: str
+    client_name: str
+    barber_id: Optional[str] = None
+    service_type: str
+    estimated_duration: int  # minutes
+    status: str  # waiting, in_progress, completed, cancelled
+    position: int
+    joined_at: str
+    called_at: Optional[str] = None
+
+# =============================================================================
 # AUTH HELPERS
 # =============================================================================
 
@@ -4588,6 +4627,367 @@ async def send_client_reminder(
     })
     
     return {"success": True, "message": "Rappel programmé"}
+
+# =============================================================================
+# SUBSCRIPTION PLANS ROUTES
+# =============================================================================
+
+# Default subscription plans
+SUBSCRIPTION_PLANS = [
+    {
+        "plan_id": "basic",
+        "name": "Basic",
+        "price": 29.99,
+        "cuts_per_month": 2,
+        "description": "2 coupes par mois",
+        "features": ["2 coupes/mois", "Réservation prioritaire", "Support email"],
+        "is_active": True
+    },
+    {
+        "plan_id": "standard",
+        "name": "Standard",
+        "price": 49.99,
+        "cuts_per_month": 4,
+        "description": "4 coupes par mois",
+        "features": ["4 coupes/mois", "Réservation prioritaire", "10% sur produits", "Support prioritaire"],
+        "is_active": True
+    },
+    {
+        "plan_id": "premium",
+        "name": "Premium",
+        "price": 79.99,
+        "cuts_per_month": -1,  # Unlimited
+        "description": "Coupes illimitées",
+        "features": ["Coupes illimitées", "Réservation VIP", "20% sur produits", "Barbe incluse", "Support dédié"],
+        "is_active": True
+    }
+]
+
+@api_router.get("/subscriptions/plans")
+async def get_subscription_plans():
+    """Get all available subscription plans"""
+    return SUBSCRIPTION_PLANS
+
+@api_router.get("/subscriptions/my")
+async def get_my_subscription(user: UserBase = Depends(require_auth)):
+    """Get current user's subscription"""
+    subscription = await db.subscriptions.find_one(
+        {"user_id": user.user_id, "status": {"$in": ["active", "paused"]}},
+        {"_id": 0}
+    )
+    
+    if subscription:
+        # Get plan details
+        plan = next((p for p in SUBSCRIPTION_PLANS if p["plan_id"] == subscription["plan_id"]), None)
+        subscription["plan"] = plan
+        
+        # Calculate remaining cuts
+        if plan and plan["cuts_per_month"] > 0:
+            subscription["cuts_remaining"] = plan["cuts_per_month"] - subscription.get("cuts_used", 0)
+        else:
+            subscription["cuts_remaining"] = -1  # Unlimited
+    
+    return subscription
+
+@api_router.post("/subscriptions/subscribe")
+async def subscribe_to_plan(plan_id: str, user: UserBase = Depends(require_auth)):
+    """Subscribe to a plan"""
+    # Check if plan exists
+    plan = next((p for p in SUBSCRIPTION_PLANS if p["plan_id"] == plan_id and p["is_active"]), None)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan non trouvé")
+    
+    # Check if already subscribed
+    existing = await db.subscriptions.find_one(
+        {"user_id": user.user_id, "status": "active"}
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez déjà un abonnement actif")
+    
+    # Create subscription
+    now = datetime.now(timezone.utc)
+    end_date = now + timedelta(days=30)
+    
+    subscription = {
+        "subscription_id": f"sub_{uuid.uuid4().hex[:12]}",
+        "user_id": user.user_id,
+        "plan_id": plan_id,
+        "status": "active",
+        "start_date": now.isoformat(),
+        "end_date": end_date.isoformat(),
+        "cuts_used": 0,
+        "auto_renew": True,
+        "created_at": now.isoformat()
+    }
+    
+    await db.subscriptions.insert_one(subscription)
+    
+    # Add points for subscribing
+    await db.client_profiles.update_one(
+        {"user_id": user.user_id},
+        {"$inc": {"total_points": 200, "lifetime_points": 200}},
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "subscription": {k: v for k, v in subscription.items() if k != "_id"},
+        "message": f"Abonnement {plan['name']} activé ! +200 points bonus"
+    }
+
+@api_router.post("/subscriptions/cancel")
+async def cancel_subscription(user: UserBase = Depends(require_auth)):
+    """Cancel current subscription"""
+    result = await db.subscriptions.update_one(
+        {"user_id": user.user_id, "status": "active"},
+        {"$set": {"status": "cancelled", "cancelled_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Aucun abonnement actif trouvé")
+    
+    return {"success": True, "message": "Abonnement annulé. Vous gardez l'accès jusqu'à la fin de la période."}
+
+@api_router.post("/subscriptions/use-cut")
+async def use_subscription_cut(salon_id: str, user: UserBase = Depends(require_auth)):
+    """Use one cut from subscription"""
+    subscription = await db.subscriptions.find_one(
+        {"user_id": user.user_id, "status": "active"}
+    )
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Aucun abonnement actif")
+    
+    plan = next((p for p in SUBSCRIPTION_PLANS if p["plan_id"] == subscription["plan_id"]), None)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan non trouvé")
+    
+    # Check if unlimited or has remaining cuts
+    if plan["cuts_per_month"] > 0:
+        if subscription.get("cuts_used", 0) >= plan["cuts_per_month"]:
+            raise HTTPException(status_code=400, detail="Vous avez utilisé toutes vos coupes ce mois-ci")
+    
+    # Increment cuts used
+    await db.subscriptions.update_one(
+        {"subscription_id": subscription["subscription_id"]},
+        {"$inc": {"cuts_used": 1}}
+    )
+    
+    return {
+        "success": True,
+        "cuts_used": subscription.get("cuts_used", 0) + 1,
+        "cuts_remaining": (plan["cuts_per_month"] - subscription.get("cuts_used", 0) - 1) if plan["cuts_per_month"] > 0 else -1
+    }
+
+# =============================================================================
+# VIRTUAL QUEUE ROUTES
+# =============================================================================
+
+@api_router.get("/queue/{salon_id}")
+async def get_salon_queue(salon_id: str):
+    """Get current queue for a salon"""
+    queue = await db.queue.find(
+        {"salon_id": salon_id, "status": {"$in": ["waiting", "in_progress"]}},
+        {"_id": 0}
+    ).sort("position", 1).to_list(100)
+    
+    # Calculate estimated wait times
+    total_wait = 0
+    for entry in queue:
+        entry["estimated_wait_minutes"] = total_wait
+        if entry["status"] == "waiting":
+            total_wait += entry.get("estimated_duration", 30)
+    
+    # Get salon info
+    salon = await db.salons.find_one({"salon_id": salon_id}, {"_id": 0, "name": 1, "is_active": 1})
+    
+    return {
+        "salon_id": salon_id,
+        "salon_name": salon.get("name") if salon else "Salon",
+        "queue_length": len([e for e in queue if e["status"] == "waiting"]),
+        "in_progress": len([e for e in queue if e["status"] == "in_progress"]),
+        "total_wait_minutes": total_wait,
+        "queue": queue
+    }
+
+@api_router.post("/queue/{salon_id}/join")
+async def join_queue(
+    salon_id: str,
+    service_type: str = "Coupe standard",
+    barber_id: Optional[str] = None,
+    user: UserBase = Depends(require_auth)
+):
+    """Join the virtual queue at a salon"""
+    # Check if already in queue
+    existing = await db.queue.find_one({
+        "salon_id": salon_id,
+        "client_id": user.user_id,
+        "status": {"$in": ["waiting", "in_progress"]}
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous êtes déjà dans la file d'attente")
+    
+    # Get current queue to determine position
+    current_queue = await db.queue.count_documents({
+        "salon_id": salon_id,
+        "status": {"$in": ["waiting", "in_progress"]}
+    })
+    
+    # Estimate duration based on service
+    duration_map = {
+        "Coupe simple": 20,
+        "Coupe standard": 30,
+        "Coupe + Barbe": 45,
+        "Tresses": 60,
+        "Locks": 45,
+        "Coloration": 60
+    }
+    estimated_duration = duration_map.get(service_type, 30)
+    
+    queue_entry = {
+        "queue_id": f"q_{uuid.uuid4().hex[:12]}",
+        "salon_id": salon_id,
+        "client_id": user.user_id,
+        "client_name": user.name,
+        "barber_id": barber_id,
+        "service_type": service_type,
+        "estimated_duration": estimated_duration,
+        "status": "waiting",
+        "position": current_queue + 1,
+        "joined_at": datetime.now(timezone.utc).isoformat(),
+        "called_at": None
+    }
+    
+    await db.queue.insert_one(queue_entry)
+    
+    # Calculate estimated wait
+    queue_before = await db.queue.find({
+        "salon_id": salon_id,
+        "status": "waiting",
+        "position": {"$lt": current_queue + 1}
+    }, {"_id": 0, "estimated_duration": 1}).to_list(100)
+    
+    estimated_wait = sum(e.get("estimated_duration", 30) for e in queue_before)
+    
+    return {
+        "success": True,
+        "queue_entry": {k: v for k, v in queue_entry.items() if k != "_id"},
+        "position": current_queue + 1,
+        "estimated_wait_minutes": estimated_wait,
+        "message": f"Vous êtes #{current_queue + 1} dans la file. Attente estimée: ~{estimated_wait} min"
+    }
+
+@api_router.post("/queue/{salon_id}/leave")
+async def leave_queue(salon_id: str, user: UserBase = Depends(require_auth)):
+    """Leave the virtual queue"""
+    result = await db.queue.update_one(
+        {
+            "salon_id": salon_id,
+            "client_id": user.user_id,
+            "status": "waiting"
+        },
+        {"$set": {"status": "cancelled", "cancelled_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Vous n'êtes pas dans la file d'attente")
+    
+    # Reorder remaining queue
+    await reorder_queue(salon_id)
+    
+    return {"success": True, "message": "Vous avez quitté la file d'attente"}
+
+@api_router.post("/queue/{salon_id}/call-next")
+async def call_next_in_queue(salon_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Call the next client in queue (salon owner only)"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Mark current in_progress as completed
+    await db.queue.update_many(
+        {"salon_id": salon_id, "status": "in_progress"},
+        {"$set": {"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Get next waiting
+    next_client = await db.queue.find_one(
+        {"salon_id": salon_id, "status": "waiting"},
+        {"_id": 0},
+        sort=[("position", 1)]
+    )
+    
+    if not next_client:
+        return {"success": True, "message": "File d'attente vide", "next_client": None}
+    
+    # Update to in_progress
+    await db.queue.update_one(
+        {"queue_id": next_client["queue_id"]},
+        {"$set": {"status": "in_progress", "called_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Reorder queue
+    await reorder_queue(salon_id)
+    
+    # TODO: Send notification to client
+    
+    return {
+        "success": True,
+        "message": f"Client {next_client['client_name']} appelé",
+        "next_client": next_client
+    }
+
+@api_router.get("/queue/my-position/{salon_id}")
+async def get_my_queue_position(salon_id: str, user: UserBase = Depends(require_auth)):
+    """Get current user's position in queue"""
+    entry = await db.queue.find_one(
+        {
+            "salon_id": salon_id,
+            "client_id": user.user_id,
+            "status": {"$in": ["waiting", "in_progress"]}
+        },
+        {"_id": 0}
+    )
+    
+    if not entry:
+        return {"in_queue": False}
+    
+    # Calculate wait time
+    if entry["status"] == "in_progress":
+        return {
+            "in_queue": True,
+            "status": "in_progress",
+            "message": "C'est votre tour !"
+        }
+    
+    queue_before = await db.queue.find({
+        "salon_id": salon_id,
+        "status": "waiting",
+        "position": {"$lt": entry["position"]}
+    }, {"_id": 0, "estimated_duration": 1}).to_list(100)
+    
+    estimated_wait = sum(e.get("estimated_duration", 30) for e in queue_before)
+    
+    return {
+        "in_queue": True,
+        "status": "waiting",
+        "position": entry["position"],
+        "estimated_wait_minutes": estimated_wait,
+        "queue_id": entry["queue_id"]
+    }
+
+async def reorder_queue(salon_id: str):
+    """Reorder queue positions after changes"""
+    queue = await db.queue.find(
+        {"salon_id": salon_id, "status": "waiting"},
+        {"_id": 0, "queue_id": 1}
+    ).sort("joined_at", 1).to_list(100)
+    
+    for i, entry in enumerate(queue):
+        await db.queue.update_one(
+            {"queue_id": entry["queue_id"]},
+            {"$set": {"position": i + 1}}
+        )
 
 # =============================================================================
 # SALON LOCATION & SEARCH ROUTES

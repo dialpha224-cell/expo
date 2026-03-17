@@ -73,6 +73,7 @@ import WebsiteImporter from "../components/WebsiteImporter";
 import AppointmentCalendar from "../components/AppointmentCalendar";
 import SalonBadges from "../components/SalonBadges";
 import InactiveClientReminders from "../components/InactiveClientReminders";
+import VirtualQueue from "../components/VirtualQueue";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -131,6 +132,7 @@ const SalonDashboard = () => {
     { icon: Users, label: "Coiffeurs", path: "/salon/barbers" },
     { icon: Calendar, label: "Rendez-vous", path: "/salon/appointments" },
     { icon: Calendar, label: "Calendrier", path: "/salon/calendar" },
+    { icon: Clock, label: "File d'attente", path: "/salon/queue" },
     { icon: Scissors, label: "Coupes & Tarifs", path: "/salon/haircuts" },
     { icon: Image, label: "Galerie Photos", path: "/salon/gallery" },
     { icon: Sparkles, label: "Soumettre Tendance", path: "/salon/submit-trend" },

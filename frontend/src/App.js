@@ -24,6 +24,7 @@ import LoginAdmin from "./pages/LoginAdmin";
 import LoginSalon from "./pages/LoginSalon";
 import LoginClient from "./pages/LoginClient";
 import Tendances from "./pages/Tendances";
+import SubscriptionsPage from "./pages/SubscriptionsPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -180,6 +181,7 @@ function AppRouter() {
         <Route path="/booking/confirmation/:appointmentId" element={<BookingConfirmation />} />
         <Route path="/ai-simulation" element={<AISimulation />} />
         <Route path="/my-appointments" element={<MyAppointments />} />
+        <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/setup-password" element={<SetupPassword />} />
         <Route path="/salon/screen/:salonId" element={<SalonLiveScreen />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
