@@ -45,10 +45,11 @@ export default function ProfileScreen() {
 
   const menuItems = [
     { icon: 'calendar-outline', title: 'Mes rendez-vous', route: '/(tabs)/appointments', color: '#FFD700' },
+    { icon: 'cart-outline', title: 'Marketplace', route: '/(tabs)/marketplace', color: '#10b981' },
     { icon: 'heart-outline', title: 'Favoris', route: null, color: '#ef4444' },
     { icon: 'notifications-outline', title: 'Notifications', route: '/notifications', color: '#6366f1' },
-    { icon: 'card-outline', title: 'Paiements', route: null, color: '#10b981' },
-    { icon: 'settings-outline', title: 'Paramètres', route: null, color: '#94a3b8' },
+    { icon: 'card-outline', title: 'Paiements', route: null, color: '#94a3b8' },
+    { icon: 'settings-outline', title: 'Paramètres', route: null, color: '#64748b' },
     { icon: 'help-circle-outline', title: 'Aide', route: null, color: '#f59e0b' },
   ];
 
