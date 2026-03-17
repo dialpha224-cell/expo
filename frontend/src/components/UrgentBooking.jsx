@@ -4,6 +4,7 @@ import { API } from "../App";
 import { Zap, MapPin, Clock, Star, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { useLanguage } from "../context/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
 } from "./ui/dialog";
 
 const UrgentBooking = ({ onSelectSlot }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -27,10 +29,10 @@ const UrgentBooking = ({ onSelectSlot }) => {
       });
       setResults(response.data);
       if (response.data.count === 0) {
-        toast.info("Aucun créneau disponible dans les 2h à proximité");
+        toast.info(t("urgent.no_results"));
       }
     } catch (error) {
-      toast.error("Erreur lors de la recherche");
+      toast.error("Error");
     } finally {
       setLoading(false);
     }
@@ -90,7 +92,7 @@ const UrgentBooking = ({ onSelectSlot }) => {
         data-testid="urgent-booking-btn"
       >
         <Zap className="h-4 w-4 mr-2" />
-        Réservation urgente
+        {t("urgent.button")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -98,20 +100,20 @@ const UrgentBooking = ({ onSelectSlot }) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-orange-400" />
-              Créneaux disponibles maintenant
+              {t("urgent.title")}
             </DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
             <p className="text-slate-400 text-sm mb-4">
-              Trouvez un créneau dans les 2 prochaines heures près de vous.
+              {t("urgent.subtitle")}
             </p>
 
             {(loading || locating) && (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500 mb-4"></div>
                 <p className="text-slate-400 text-sm">
-                  {locating ? "Localisation en cours..." : "Recherche de créneaux..."}
+                  {locating ? t("urgent.locating") : t("urgent.searching")}
                 </p>
               </div>
             )}
@@ -121,15 +123,15 @@ const UrgentBooking = ({ onSelectSlot }) => {
                 {results.count === 0 ? (
                   <div className="text-center py-12">
                     <Clock className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-400">Aucun créneau disponible</p>
+                    <p className="text-slate-400">{t("urgent.no_results")}</p>
                     <p className="text-slate-500 text-sm mt-2">
-                      Essayez de réserver normalement pour plus d'options
+                      {t("urgent.try_normal")}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <p className="text-green-400 text-sm font-medium">
-                      {results.count} salon(s) avec des créneaux disponibles
+                      {results.count} {t("urgent.salons_found")}
                     </p>
 
                     {results.salons.map((salon) => (
@@ -191,7 +193,7 @@ const UrgentBooking = ({ onSelectSlot }) => {
                   className="bg-indigo-600 hover:bg-indigo-700"
                 >
                   <MapPin className="h-4 w-4 mr-2" />
-                  Activer la localisation
+                  {t("urgent.enable_location")}
                 </Button>
               </div>
             )}

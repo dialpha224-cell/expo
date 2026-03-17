@@ -293,6 +293,20 @@ Structure dans /app/mobile avec:
   - GET /api/client/inactive-reminder - Liste clients inactifs
   - POST /api/client/{client_id}/send-reminder - Envoyer relance (avec throttling)
 
+- [x] **AI SIMULATION BACKEND** - Amélioré avec 30+ styles de coiffures Afro:
+  - Mapping détaillé de 30+ styles (Fades, Waves, Afro, Tresses, Locks, Natural, Trendy, Classic, Long)
+  - Prompts optimisés pour génération d'images réalistes
+  - Endpoint: POST /api/ai/simulate-haircut
+
+- [x] **TRADUCTIONS MULTI-LANGUES COMPLETES** - 6 langues:
+  - Français (fr) - Complet
+  - English (en) - Complet
+  - Nederlands (nl) - Complet avec navigation, booking, marketplace, simulation, appointments
+  - Español (es) - Complet avec navigation, booking, marketplace, simulation, appointments
+  - العربية (ar) - Complet avec navigation, booking, marketplace, simulation, appointments
+  - Deutsch (de) - Complet avec navigation, booking, marketplace, simulation, appointments
+  - Composant UrgentBooking traduit dans toutes les langues
+
 ## Next Tasks
 1. Attendre validation APK mobile par l'utilisateur
 2. Verifier domaine Resend pour envoi emails en production

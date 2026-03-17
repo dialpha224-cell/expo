@@ -196,7 +196,18 @@ const translations = {
     "reviews.your_rating": "Votre note",
     "reviews.your_comment": "Votre commentaire",
     "reviews.submit_review": "Publier l'avis",
-    "reviews.no_reviews": "Aucun avis pour le moment"
+    "reviews.no_reviews": "Aucun avis pour le moment",
+    
+    // Urgent Booking
+    "urgent.button": "Réservation urgente",
+    "urgent.title": "Créneaux disponibles maintenant",
+    "urgent.subtitle": "Trouvez un créneau dans les 2 prochaines heures près de vous.",
+    "urgent.no_results": "Aucun créneau disponible",
+    "urgent.locating": "Localisation en cours...",
+    "urgent.searching": "Recherche de créneaux...",
+    "urgent.salons_found": "salon(s) avec des créneaux disponibles",
+    "urgent.enable_location": "Activer la localisation",
+    "urgent.try_normal": "Essayez de réserver normalement pour plus d'options"
   },
   
   en: {
@@ -393,7 +404,18 @@ const translations = {
     "reviews.your_rating": "Your rating",
     "reviews.your_comment": "Your comment",
     "reviews.submit_review": "Submit review",
-    "reviews.no_reviews": "No reviews yet"
+    "reviews.no_reviews": "No reviews yet",
+    
+    // Urgent Booking
+    "urgent.button": "Urgent Booking",
+    "urgent.title": "Available slots now",
+    "urgent.subtitle": "Find a slot in the next 2 hours near you.",
+    "urgent.no_results": "No slots available",
+    "urgent.locating": "Locating...",
+    "urgent.searching": "Searching for slots...",
+    "urgent.salons_found": "salon(s) with available slots",
+    "urgent.enable_location": "Enable location",
+    "urgent.try_normal": "Try normal booking for more options"
   },
   
   nl: {
@@ -423,6 +445,16 @@ const translations = {
     "landing.stats.styles": "Beschikbare stijlen",
     "landing.stats.rating": "Gemiddelde score",
     
+    // Features
+    "landing.features.booking.title": "Online Boeken",
+    "landing.features.booking.desc": "Boek je kapsel in een paar klikken, 24/7",
+    "landing.features.ai.title": "AI Simulatie",
+    "landing.features.ai.desc": "Probeer je nieuwe kapsel voordat je naar de salon gaat",
+    "landing.features.marketplace.title": "Marktplaats",
+    "landing.features.marketplace.desc": "Ontdek de beste producten voor je haar",
+    "landing.features.contest.title": "TrimConnect",
+    "landing.features.contest.desc": "Neem deel aan de grootste afro kapselwedstrijd",
+    
     // Search Section
     "landing.search.title": "Vind een Salon",
     "landing.search.subtitle": "Zoek op land, stad of gebruik geolocatie",
@@ -432,16 +464,120 @@ const translations = {
     "landing.search.button": "Zoeken",
     "landing.search.results": "salons gevonden",
     "landing.search.no_results": "Geen salon gevonden",
+    "landing.search.locating": "Lokaliseren...",
+    
+    // Monthly Cuts
+    "landing.monthly.title": "Beste Kapsels van de Maand",
+    "landing.monthly.subtitle": "Ontdek uitzonderlijke creaties van onze partnersalons deze maand.",
+    "landing.monthly.likes": "likes",
+    
+    // CTA
+    "landing.cta.title": "Klaar om je stijl te transformeren?",
+    "landing.cta.subtitle": "Sluit je aan bij duizenden tevreden klanten",
+    "landing.cta.button": "Begin nu",
     
     // Footer
     "footer.inspired": "Inspired by Kadj'",
     "footer.rights": "Alle rechten voorbehouden",
+    "footer.product": "Product",
+    "footer.features": "Functies",
+    "footer.pricing": "Prijzen",
+    "footer.company": "Bedrijf",
+    "footer.about": "Over ons",
+    "footer.contact": "Contact",
+    "footer.legal": "Juridisch",
+    "footer.privacy": "Privacy",
+    "footer.terms": "Voorwaarden",
+    
+    // Booking
+    "booking.title": "Boek je kapsel",
+    "booking.select_salon": "Kies een salon",
+    "booking.select_barber": "Kies een kapper",
+    "booking.select_haircut": "Kies een kapsel",
+    "booking.select_date": "Kies een datum",
+    "booking.select_time": "Kies een tijd",
+    "booking.premium": "Premium Optie (+20%)",
+    "booking.confirm": "Bevestig boeking",
+    "booking.total": "Totaal",
+    "booking.page_title": "Boek je kapsel",
+    "booking.step1": "Kies een salon",
+    "booking.step2": "Kies een kapper",
+    "booking.step3": "Kies een dienst",
+    "booking.step4": "Kies datum en tijd",
+    "booking.step5": "Bevestiging",
+    "booking.no_slots": "Geen tijdsloten beschikbaar",
+    "booking.confirm_booking": "Bevestig boeking",
+    "booking.booking_success": "Boeking bevestigd!",
+    "booking.booking_error": "Boekingsfout",
+    
+    // Auth
+    "auth.login": "Inloggen",
+    "auth.email": "E-mail",
+    "auth.password": "Wachtwoord",
+    "auth.google_login": "Doorgaan met Google",
+    "auth.or": "of",
+    "auth.no_account": "Geen account? Neem contact op met de beheerder.",
+    "auth.submit": "Inloggen",
     
     // Common
     "common.loading": "Laden...",
     "common.save": "Opslaan",
     "common.cancel": "Annuleren",
-    "common.close": "Sluiten"
+    "common.delete": "Verwijderen",
+    "common.edit": "Bewerken",
+    "common.add": "Toevoegen",
+    "common.search": "Zoeken",
+    "common.all": "Alle",
+    "common.yes": "Ja",
+    "common.no": "Nee",
+    "common.close": "Sluiten",
+    "common.back": "Terug",
+    "common.next": "Volgende",
+    "common.previous": "Vorige",
+    "common.submit": "Verzenden",
+    "common.confirm": "Bevestigen",
+    "common.select": "Selecteren",
+    "common.price": "Prijs",
+    "common.duration": "Duur",
+    "common.minutes": "minuten",
+    "common.hours": "uren",
+    "common.days": "dagen",
+    
+    // Marketplace
+    "marketplace.title": "Marktplaats",
+    "marketplace.subtitle": "Ontdek de beste producten voor je haar",
+    "marketplace.products": "Producten",
+    "marketplace.screens": "Touchscreens",
+    "marketplace.add_to_cart": "In winkelwagen",
+    "marketplace.buy_now": "Nu kopen",
+    "marketplace.out_of_stock": "Uitverkocht",
+    
+    // TrimConnect
+    "trimconnect.title": "TrimConnect Barber Battle",
+    "trimconnect.subtitle": "De grootste afro kapselwedstrijd",
+    "trimconnect.vote": "Stemmen",
+    "trimconnect.votes": "stemmen",
+    "trimconnect.participate": "Deelnemen aan wedstrijd",
+    
+    // Simulation
+    "simulation.title": "AI Simulatie",
+    "simulation.subtitle": "Probeer je nieuwe kapsel virtueel",
+    "simulation.upload_photo": "Upload een foto",
+    "simulation.select_style": "Kies een stijl",
+    "simulation.generate": "Genereer simulatie",
+    "simulation.generating": "Genereren...",
+    "simulation.result": "Resultaat",
+    
+    // Appointments
+    "appointments.title": "Mijn Afspraken",
+    "appointments.upcoming": "Aankomend",
+    "appointments.past": "Afgelopen",
+    "appointments.no_appointments": "Geen afspraken",
+    "appointments.cancel": "Afspraak annuleren",
+    "appointments.status.confirmed": "Bevestigd",
+    "appointments.status.pending": "In afwachting",
+    "appointments.status.cancelled": "Geannuleerd",
+    "appointments.status.completed": "Voltooid"
   },
   
   es: {
@@ -471,6 +607,16 @@ const translations = {
     "landing.stats.styles": "Estilos disponibles",
     "landing.stats.rating": "Puntuación media",
     
+    // Features
+    "landing.features.booking.title": "Reserva Online",
+    "landing.features.booking.desc": "Reserva tu corte en unos clics, 24/7",
+    "landing.features.ai.title": "Simulación IA",
+    "landing.features.ai.desc": "Prueba tu nuevo corte antes de ir al salón",
+    "landing.features.marketplace.title": "Tienda",
+    "landing.features.marketplace.desc": "Descubre los mejores productos para tu cabello",
+    "landing.features.contest.title": "TrimConnect",
+    "landing.features.contest.desc": "Participa en el mayor concurso de peluquería afro",
+    
     // Search Section
     "landing.search.title": "Encuentra un Salón",
     "landing.search.subtitle": "Busca por país, ciudad o usa geolocalización",
@@ -480,16 +626,120 @@ const translations = {
     "landing.search.button": "Buscar",
     "landing.search.results": "salones encontrados",
     "landing.search.no_results": "No se encontró ningún salón",
+    "landing.search.locating": "Localizando...",
+    
+    // Monthly Cuts
+    "landing.monthly.title": "Mejores Cortes del Mes",
+    "landing.monthly.subtitle": "Descubre las creaciones excepcionales de nuestros salones asociados este mes.",
+    "landing.monthly.likes": "me gusta",
+    
+    // CTA
+    "landing.cta.title": "¿Listo para transformar tu estilo?",
+    "landing.cta.subtitle": "Únete a miles de clientes satisfechos",
+    "landing.cta.button": "Comenzar ahora",
     
     // Footer
     "footer.inspired": "Inspired by Kadj'",
     "footer.rights": "Todos los derechos reservados",
+    "footer.product": "Producto",
+    "footer.features": "Funciones",
+    "footer.pricing": "Precios",
+    "footer.company": "Empresa",
+    "footer.about": "Sobre nosotros",
+    "footer.contact": "Contacto",
+    "footer.legal": "Legal",
+    "footer.privacy": "Privacidad",
+    "footer.terms": "Términos",
+    
+    // Booking
+    "booking.title": "Reserva tu corte",
+    "booking.select_salon": "Elige un salón",
+    "booking.select_barber": "Elige un peluquero",
+    "booking.select_haircut": "Elige un corte",
+    "booking.select_date": "Elige una fecha",
+    "booking.select_time": "Elige una hora",
+    "booking.premium": "Opción Premium (+20%)",
+    "booking.confirm": "Confirmar reserva",
+    "booking.total": "Total",
+    "booking.page_title": "Reserva tu corte",
+    "booking.step1": "Elegir un salón",
+    "booking.step2": "Elegir un peluquero",
+    "booking.step3": "Elegir un servicio",
+    "booking.step4": "Elegir fecha y hora",
+    "booking.step5": "Confirmación",
+    "booking.no_slots": "No hay horarios disponibles",
+    "booking.confirm_booking": "Confirmar reserva",
+    "booking.booking_success": "¡Reserva confirmada!",
+    "booking.booking_error": "Error de reserva",
+    
+    // Auth
+    "auth.login": "Iniciar sesión",
+    "auth.email": "Correo electrónico",
+    "auth.password": "Contraseña",
+    "auth.google_login": "Continuar con Google",
+    "auth.or": "o",
+    "auth.no_account": "¿Sin cuenta? Contacta al administrador.",
+    "auth.submit": "Entrar",
     
     // Common
     "common.loading": "Cargando...",
     "common.save": "Guardar",
     "common.cancel": "Cancelar",
-    "common.close": "Cerrar"
+    "common.delete": "Eliminar",
+    "common.edit": "Editar",
+    "common.add": "Añadir",
+    "common.search": "Buscar",
+    "common.all": "Todos",
+    "common.yes": "Sí",
+    "common.no": "No",
+    "common.close": "Cerrar",
+    "common.back": "Volver",
+    "common.next": "Siguiente",
+    "common.previous": "Anterior",
+    "common.submit": "Enviar",
+    "common.confirm": "Confirmar",
+    "common.select": "Seleccionar",
+    "common.price": "Precio",
+    "common.duration": "Duración",
+    "common.minutes": "minutos",
+    "common.hours": "horas",
+    "common.days": "días",
+    
+    // Marketplace
+    "marketplace.title": "Tienda",
+    "marketplace.subtitle": "Descubre los mejores productos para tu cabello",
+    "marketplace.products": "Productos",
+    "marketplace.screens": "Pantallas Táctiles",
+    "marketplace.add_to_cart": "Añadir al carrito",
+    "marketplace.buy_now": "Comprar ahora",
+    "marketplace.out_of_stock": "Agotado",
+    
+    // TrimConnect
+    "trimconnect.title": "TrimConnect Barber Battle",
+    "trimconnect.subtitle": "El mayor concurso de peluquería afro",
+    "trimconnect.vote": "Votar",
+    "trimconnect.votes": "votos",
+    "trimconnect.participate": "Participar en el concurso",
+    
+    // Simulation
+    "simulation.title": "Simulación IA",
+    "simulation.subtitle": "Prueba tu nuevo corte virtualmente",
+    "simulation.upload_photo": "Subir una foto",
+    "simulation.select_style": "Elegir un estilo",
+    "simulation.generate": "Generar simulación",
+    "simulation.generating": "Generando...",
+    "simulation.result": "Resultado",
+    
+    // Appointments
+    "appointments.title": "Mis Citas",
+    "appointments.upcoming": "Próximas",
+    "appointments.past": "Pasadas",
+    "appointments.no_appointments": "Sin citas",
+    "appointments.cancel": "Cancelar cita",
+    "appointments.status.confirmed": "Confirmada",
+    "appointments.status.pending": "Pendiente",
+    "appointments.status.cancelled": "Cancelada",
+    "appointments.status.completed": "Completada"
   },
   
   ar: {
@@ -519,6 +769,16 @@ const translations = {
     "landing.stats.styles": "أنماط متاحة",
     "landing.stats.rating": "متوسط التقييم",
     
+    // Features
+    "landing.features.booking.title": "الحجز عبر الإنترنت",
+    "landing.features.booking.desc": "احجز قصة شعرك بنقرات قليلة، على مدار الساعة",
+    "landing.features.ai.title": "محاكاة الذكاء الاصطناعي",
+    "landing.features.ai.desc": "جرب قصة شعرك الجديدة قبل زيارة الصالون",
+    "landing.features.marketplace.title": "السوق",
+    "landing.features.marketplace.desc": "اكتشف أفضل المنتجات لشعرك",
+    "landing.features.contest.title": "TrimConnect",
+    "landing.features.contest.desc": "شارك في أكبر مسابقة تصفيف شعر أفرو",
+    
     // Search Section
     "landing.search.title": "ابحث عن صالون",
     "landing.search.subtitle": "ابحث حسب البلد أو المدينة أو استخدم تحديد الموقع",
@@ -528,16 +788,120 @@ const translations = {
     "landing.search.button": "بحث",
     "landing.search.results": "صالونات وجدت",
     "landing.search.no_results": "لم يتم العثور على صالون",
+    "landing.search.locating": "جاري تحديد الموقع...",
+    
+    // Monthly Cuts
+    "landing.monthly.title": "أفضل قصات الشهر",
+    "landing.monthly.subtitle": "اكتشف إبداعات استثنائية من صالوناتنا الشريكة هذا الشهر.",
+    "landing.monthly.likes": "إعجاب",
+    
+    // CTA
+    "landing.cta.title": "مستعد لتغيير أسلوبك؟",
+    "landing.cta.subtitle": "انضم إلى آلاف العملاء الراضين",
+    "landing.cta.button": "ابدأ الآن",
     
     // Footer
     "footer.inspired": "Inspired by Kadj'",
     "footer.rights": "جميع الحقوق محفوظة",
+    "footer.product": "المنتج",
+    "footer.features": "الميزات",
+    "footer.pricing": "الأسعار",
+    "footer.company": "الشركة",
+    "footer.about": "من نحن",
+    "footer.contact": "اتصل بنا",
+    "footer.legal": "قانوني",
+    "footer.privacy": "الخصوصية",
+    "footer.terms": "الشروط",
+    
+    // Booking
+    "booking.title": "احجز قصة شعرك",
+    "booking.select_salon": "اختر صالون",
+    "booking.select_barber": "اختر حلاق",
+    "booking.select_haircut": "اختر قصة شعر",
+    "booking.select_date": "اختر تاريخ",
+    "booking.select_time": "اختر وقت",
+    "booking.premium": "خيار مميز (+20%)",
+    "booking.confirm": "تأكيد الحجز",
+    "booking.total": "المجموع",
+    "booking.page_title": "احجز قصة شعرك",
+    "booking.step1": "اختر صالون",
+    "booking.step2": "اختر حلاق",
+    "booking.step3": "اختر خدمة",
+    "booking.step4": "اختر التاريخ والوقت",
+    "booking.step5": "التأكيد",
+    "booking.no_slots": "لا توجد مواعيد متاحة",
+    "booking.confirm_booking": "تأكيد الحجز",
+    "booking.booking_success": "تم تأكيد الحجز!",
+    "booking.booking_error": "خطأ في الحجز",
+    
+    // Auth
+    "auth.login": "تسجيل الدخول",
+    "auth.email": "البريد الإلكتروني",
+    "auth.password": "كلمة المرور",
+    "auth.google_login": "المتابعة مع Google",
+    "auth.or": "أو",
+    "auth.no_account": "ليس لديك حساب؟ تواصل مع المدير.",
+    "auth.submit": "دخول",
     
     // Common
     "common.loading": "جاري التحميل...",
     "common.save": "حفظ",
     "common.cancel": "إلغاء",
-    "common.close": "إغلاق"
+    "common.delete": "حذف",
+    "common.edit": "تعديل",
+    "common.add": "إضافة",
+    "common.search": "بحث",
+    "common.all": "الكل",
+    "common.yes": "نعم",
+    "common.no": "لا",
+    "common.close": "إغلاق",
+    "common.back": "رجوع",
+    "common.next": "التالي",
+    "common.previous": "السابق",
+    "common.submit": "إرسال",
+    "common.confirm": "تأكيد",
+    "common.select": "اختيار",
+    "common.price": "السعر",
+    "common.duration": "المدة",
+    "common.minutes": "دقائق",
+    "common.hours": "ساعات",
+    "common.days": "أيام",
+    
+    // Marketplace
+    "marketplace.title": "السوق",
+    "marketplace.subtitle": "اكتشف أفضل المنتجات لشعرك",
+    "marketplace.products": "المنتجات",
+    "marketplace.screens": "الشاشات اللمسية",
+    "marketplace.add_to_cart": "أضف للسلة",
+    "marketplace.buy_now": "اشتر الآن",
+    "marketplace.out_of_stock": "نفذ من المخزون",
+    
+    // TrimConnect
+    "trimconnect.title": "TrimConnect Barber Battle",
+    "trimconnect.subtitle": "أكبر مسابقة تصفيف شعر أفرو",
+    "trimconnect.vote": "صوت",
+    "trimconnect.votes": "أصوات",
+    "trimconnect.participate": "شارك في المسابقة",
+    
+    // Simulation
+    "simulation.title": "محاكاة الذكاء الاصطناعي",
+    "simulation.subtitle": "جرب قصة شعرك الجديدة افتراضياً",
+    "simulation.upload_photo": "ارفع صورة",
+    "simulation.select_style": "اختر نمط",
+    "simulation.generate": "توليد المحاكاة",
+    "simulation.generating": "جاري التوليد...",
+    "simulation.result": "النتيجة",
+    
+    // Appointments
+    "appointments.title": "مواعيدي",
+    "appointments.upcoming": "القادمة",
+    "appointments.past": "السابقة",
+    "appointments.no_appointments": "لا توجد مواعيد",
+    "appointments.cancel": "إلغاء الموعد",
+    "appointments.status.confirmed": "مؤكد",
+    "appointments.status.pending": "قيد الانتظار",
+    "appointments.status.cancelled": "ملغى",
+    "appointments.status.completed": "مكتمل"
   },
   
   de: {
@@ -567,6 +931,16 @@ const translations = {
     "landing.stats.styles": "Verfügbare Stile",
     "landing.stats.rating": "Durchschnittsbewertung",
     
+    // Features
+    "landing.features.booking.title": "Online-Buchung",
+    "landing.features.booking.desc": "Buchen Sie Ihren Haarschnitt mit wenigen Klicks, 24/7",
+    "landing.features.ai.title": "KI-Simulation",
+    "landing.features.ai.desc": "Probieren Sie Ihren neuen Haarschnitt vor dem Salonbesuch",
+    "landing.features.marketplace.title": "Marktplatz",
+    "landing.features.marketplace.desc": "Entdecken Sie die besten Produkte für Ihr Haar",
+    "landing.features.contest.title": "TrimConnect",
+    "landing.features.contest.desc": "Nehmen Sie am größten Afro-Friseurwettbewerb teil",
+    
     // Search Section
     "landing.search.title": "Finden Sie einen Salon",
     "landing.search.subtitle": "Suchen Sie nach Land, Stadt oder verwenden Sie Geolokalisierung",
@@ -576,16 +950,120 @@ const translations = {
     "landing.search.button": "Suchen",
     "landing.search.results": "Salons gefunden",
     "landing.search.no_results": "Kein Salon gefunden",
+    "landing.search.locating": "Lokalisieren...",
+    
+    // Monthly Cuts
+    "landing.monthly.title": "Beste Haarschnitte des Monats",
+    "landing.monthly.subtitle": "Entdecken Sie außergewöhnliche Kreationen unserer Partnersalons diesen Monat.",
+    "landing.monthly.likes": "Gefällt mir",
+    
+    // CTA
+    "landing.cta.title": "Bereit, Ihren Stil zu verändern?",
+    "landing.cta.subtitle": "Schließen Sie sich Tausenden zufriedener Kunden an",
+    "landing.cta.button": "Jetzt starten",
     
     // Footer
     "footer.inspired": "Inspired by Kadj'",
     "footer.rights": "Alle Rechte vorbehalten",
+    "footer.product": "Produkt",
+    "footer.features": "Funktionen",
+    "footer.pricing": "Preise",
+    "footer.company": "Unternehmen",
+    "footer.about": "Über uns",
+    "footer.contact": "Kontakt",
+    "footer.legal": "Rechtliches",
+    "footer.privacy": "Datenschutz",
+    "footer.terms": "AGB",
+    
+    // Booking
+    "booking.title": "Buchen Sie Ihren Haarschnitt",
+    "booking.select_salon": "Salon wählen",
+    "booking.select_barber": "Friseur wählen",
+    "booking.select_haircut": "Haarschnitt wählen",
+    "booking.select_date": "Datum wählen",
+    "booking.select_time": "Zeit wählen",
+    "booking.premium": "Premium-Option (+20%)",
+    "booking.confirm": "Buchung bestätigen",
+    "booking.total": "Gesamt",
+    "booking.page_title": "Buchen Sie Ihren Haarschnitt",
+    "booking.step1": "Salon wählen",
+    "booking.step2": "Friseur wählen",
+    "booking.step3": "Dienstleistung wählen",
+    "booking.step4": "Datum und Zeit wählen",
+    "booking.step5": "Bestätigung",
+    "booking.no_slots": "Keine Termine verfügbar",
+    "booking.confirm_booking": "Buchung bestätigen",
+    "booking.booking_success": "Buchung bestätigt!",
+    "booking.booking_error": "Buchungsfehler",
+    
+    // Auth
+    "auth.login": "Anmelden",
+    "auth.email": "E-Mail",
+    "auth.password": "Passwort",
+    "auth.google_login": "Mit Google fortfahren",
+    "auth.or": "oder",
+    "auth.no_account": "Kein Konto? Kontaktieren Sie den Administrator.",
+    "auth.submit": "Einloggen",
     
     // Common
     "common.loading": "Laden...",
     "common.save": "Speichern",
     "common.cancel": "Abbrechen",
-    "common.close": "Schließen"
+    "common.delete": "Löschen",
+    "common.edit": "Bearbeiten",
+    "common.add": "Hinzufügen",
+    "common.search": "Suchen",
+    "common.all": "Alle",
+    "common.yes": "Ja",
+    "common.no": "Nein",
+    "common.close": "Schließen",
+    "common.back": "Zurück",
+    "common.next": "Weiter",
+    "common.previous": "Zurück",
+    "common.submit": "Absenden",
+    "common.confirm": "Bestätigen",
+    "common.select": "Auswählen",
+    "common.price": "Preis",
+    "common.duration": "Dauer",
+    "common.minutes": "Minuten",
+    "common.hours": "Stunden",
+    "common.days": "Tage",
+    
+    // Marketplace
+    "marketplace.title": "Marktplatz",
+    "marketplace.subtitle": "Entdecken Sie die besten Produkte für Ihr Haar",
+    "marketplace.products": "Produkte",
+    "marketplace.screens": "Touchscreens",
+    "marketplace.add_to_cart": "In den Warenkorb",
+    "marketplace.buy_now": "Jetzt kaufen",
+    "marketplace.out_of_stock": "Ausverkauft",
+    
+    // TrimConnect
+    "trimconnect.title": "TrimConnect Barber Battle",
+    "trimconnect.subtitle": "Der größte Afro-Friseurwettbewerb",
+    "trimconnect.vote": "Abstimmen",
+    "trimconnect.votes": "Stimmen",
+    "trimconnect.participate": "Am Wettbewerb teilnehmen",
+    
+    // Simulation
+    "simulation.title": "KI-Simulation",
+    "simulation.subtitle": "Probieren Sie Ihren neuen Haarschnitt virtuell",
+    "simulation.upload_photo": "Foto hochladen",
+    "simulation.select_style": "Stil wählen",
+    "simulation.generate": "Simulation generieren",
+    "simulation.generating": "Generieren...",
+    "simulation.result": "Ergebnis",
+    
+    // Appointments
+    "appointments.title": "Meine Termine",
+    "appointments.upcoming": "Bevorstehend",
+    "appointments.past": "Vergangen",
+    "appointments.no_appointments": "Keine Termine",
+    "appointments.cancel": "Termin stornieren",
+    "appointments.status.confirmed": "Bestätigt",
+    "appointments.status.pending": "Ausstehend",
+    "appointments.status.cancelled": "Storniert",
+    "appointments.status.completed": "Abgeschlossen"
   }
 };
 

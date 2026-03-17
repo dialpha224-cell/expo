@@ -3368,18 +3368,66 @@ async def simulate_haircut(request: Request, user: UserBase = Depends(require_au
         api_key = os.getenv("EMERGENT_LLM_KEY")
         image_gen = OpenAIImageGeneration(api_key=api_key)
         
-        # Build detailed prompt based on style
+        # Comprehensive style mapping for 30+ Afro hairstyles
         style_prompts = {
-            "fade": "clean fade haircut with sharp lines and precise edges",
-            "dreadlocks": "well-maintained dreadlocks hairstyle, neat and styled",
-            "braids": "neat braided hairstyle with clean parts and intricate patterns",
-            "afro": "full natural afro hairstyle, well-shaped and voluminous",
-            "waves": "360 waves pattern hairstyle with defined waves",
-            "buzz": "clean buzz cut with defined hairline and sharp edges"
+            # Fades & Dégradés
+            "Taper Fade + Barbe": "professional taper fade haircut with full groomed beard, clean edges, precise lineup",
+            "Low Fade + Barbe Courte": "low fade haircut with light stubble beard, sharp temple fade",
+            "Skin Fade + Barbe Design": "skin fade haircut with designer beard lines, artistic patterns",
+            "Drop Fade + Barbe": "drop fade haircut with full beard, curved fade line behind ear",
+            "Burst Fade + Barbe": "burst fade haircut around ears with textured top and neat beard",
+            "Temple Fade + Curly Top": "temple fade with natural curly afro top, defined curls",
+            "Mid Fade + Boucles": "medium fade with curly textured hair on top, bouncy curls",
+            
+            # Afro styles
+            "High Top + Bouc": "classic high top flat top fade with goatee, 90s style",
+            "Afro Naturelle + Barbe": "big natural afro hairstyle with full beard, voluminous",
+            "Flat Top + Barbe": "classic flat top haircut with geometric shape and neat beard",
+            
+            # Waves
+            "360 Waves + Barbe": "perfect 360 waves pattern haircut with groomed beard, durag waves",
+            
+            # Shorts
+            "Buzz Cut + Barbe Épaisse": "clean buzz cut with thick full beard, military style",
+            "Crâne Rasé + Barbe Pleine": "bald shaved head with luxurious full beard",
+            
+            # Braids & Tresses
+            "Cornrows + Barbe": "neat cornrow braids with clean beard, scalp showing",
+            "Tresses Fulani + Barbe": "Fulani braids with beads and accessories, tribal style",
+            "Box Braids + Barbe": "medium box braids with neat beard",
+            
+            # Locks
+            "Dreads Courts + Barbe": "short dreadlocks with thick beard, starter locs",
+            "Dreads Longs + Barbe": "long flowing dreadlocks with groomed beard",
+            "Freeform Locs + Barbe": "freeform natural dreadlocks with rugged beard",
+            
+            # Natural
+            "Two Strand Twists + Barbe": "two strand twist hairstyle with trimmed beard",
+            "Twist Out + Barbe": "twist out defined curls with neat beard",
+            "Finger Coils + Barbe": "defined finger coils natural hair with beard",
+            "Taper Naturel + Barbe Fine": "natural hair taper cut with thin beard",
+            
+            # Trendy
+            "Edgar Cut + Barbe": "edgar cut with straight fringe line and light beard",
+            "Texture Crop + Barbe": "textured crop haircut with shadow beard",
+            "Mohawk Fade + Barbe": "mohawk fade hairstyle with full beard, punk style",
+            "Frohawk + Bouc": "frohawk natural mohawk with goatee",
+            
+            # Classic
+            "Raie sur le Côté + Barbe": "classic side part haircut with groomed beard",
+            "Comb Over + Barbe": "sleek comb over hairstyle with well-maintained beard",
+            
+            # Long
+            "Man Bun + Barbe": "man bun hairstyle with full thick beard, tied back"
         }
         
+        # Get style description or use the provided style name
         style_description = style_prompts.get(haircut_style, haircut_style)
-        prompt = f"Professional barber photo portrait of a handsome young African man with a {style_description}. Clean, sharp lines, well-groomed afro texture hair. Studio lighting, high quality portrait, front facing, neutral background."
+        
+        prompt = f"""Professional barber shop portrait photo of a handsome young African man with perfect {style_description}. 
+The hairstyle is precisely executed with clean sharp lines and expert technique. 
+High-end barbershop quality, studio lighting, front facing portrait, neutral gray background.
+Photorealistic, detailed hair texture, professional grooming, magazine quality."""
         
         logger.info(f"Generating AI simulation with prompt: {prompt[:100]}...")
         
