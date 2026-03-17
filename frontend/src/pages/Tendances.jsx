@@ -252,9 +252,9 @@ const Tendances = () => {
               <Clock className="h-4 w-4" />
               Récentes
             </button>
-            <div className="relative group">
+            <div className="relative">
               <button
-                onClick={() => setActiveFilter('salon')}
+                onClick={() => setActiveFilter(activeFilter === 'salon' ? 'popular' : 'salon')}
                 data-testid="filter-salon"
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   activeFilter === 'salon' 
@@ -266,7 +266,7 @@ const Tendances = () => {
                 Par salon
               </button>
               {activeFilter === 'salon' && (
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 rounded-xl p-2 min-w-[200px] z-50 shadow-xl">
+                <div className="absolute top-full mt-2 left-0 bg-slate-800 border border-slate-700 rounded-xl p-2 min-w-[220px] max-h-[300px] overflow-y-auto z-50 shadow-xl">
                   <button
                     onClick={() => setSelectedSalon(null)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
@@ -287,7 +287,7 @@ const Tendances = () => {
                     </button>
                   ))}
                 </div>
-              )}
+              )}}
             </div>
           </motion.div>
 
@@ -421,7 +421,7 @@ const Tendances = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
+            <AnimatePresence mode="popLayout">
               {filteredTrends.map((trend, index) => (
                 <motion.div
                   key={trend.trend_id}
