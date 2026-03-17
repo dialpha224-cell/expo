@@ -43,6 +43,27 @@ import {
   SelectValue,
 } from "../components/ui/select";
 
+// Custom Scissors X Icon Component
+const ScissorsX = ({ className }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {/* Left scissor blade going top-left to bottom-right */}
+    <path d="M4 4L12 12" />
+    <circle cx="3" cy="3" r="2" fill="currentColor" />
+    <path d="M6 8L8 6" />
+    
+    {/* Right scissor blade going top-right to bottom-left */}
+    <path d="M20 4L12 12" />
+    <circle cx="21" cy="3" r="2" fill="currentColor" />
+    <path d="M18 8L16 6" />
+    
+    {/* Bottom blades */}
+    <path d="M12 12L4 20" />
+    <circle cx="3" cy="21" r="2" fill="currentColor" />
+    <path d="M12 12L20 20" />
+    <circle cx="21" cy="21" r="2" fill="currentColor" />
+  </svg>
+);
+
 const LandingPage = () => {
   const { user, login, logout, loading, setUser } = useAuth();
   const { t } = useLanguage();
@@ -145,7 +166,7 @@ const LandingPage = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           });
-          toast.success("Position detectee !");
+          toast.success("Position détectée !");
         },
         (error) => {
           toast.error("Impossible d'obtenir votre position");
@@ -211,7 +232,7 @@ const LandingPage = () => {
       return;
     }
     if (passwordForm.new.length < 6) {
-      toast.error("Le mot de passe doit faire au moins 6 caracteres");
+      toast.error("Le mot de passe doit faire au moins 6 caractères");
       return;
     }
     
@@ -221,7 +242,7 @@ const LandingPage = () => {
         new_password: passwordForm.new
       }, { withCredentials: true });
       
-      toast.success("Mot de passe modifie avec succes !");
+      toast.success("Mot de passe modifié avec succès !");
       setShowPasswordChange(false);
       setPasswordForm({ current: "", new: "", confirm: "" });
       
@@ -236,28 +257,32 @@ const LandingPage = () => {
     }
   };
 
-  // Pas de redirection automatique - l'utilisateur choisit ou aller
+  // Pas de redirection automatique - l'utilisateur choisit où aller
 
   const features = [
     {
       icon: Calendar,
-      title: "Reservation Simple",
-      description: "Reservez votre coupe en quelques clics. Choisissez votre coiffeur et votre creneau."
+      title: "Réservation Simple",
+      description: "Réservez votre coupe en quelques clics. Choisissez votre coiffeur et votre créneau.",
+      link: "/booking"
     },
     {
       icon: Sparkles,
       title: "Simulation IA",
-      description: "Visualisez votre future coupe grace a l'intelligence artificielle avant de vous decider."
+      description: "Visualisez votre future coupe grâce à l'intelligence artificielle avant de vous décider.",
+      link: "/ai-simulation"
     },
     {
       icon: ShoppingBag,
       title: "Marketplace",
-      description: "Decouvrez les meilleurs produits capillaires selectionnes par nos experts."
+      description: "Découvrez les meilleurs produits capillaires sélectionnés par nos experts.",
+      link: "/marketplace"
     },
     {
       icon: Trophy,
       title: "TrimConnect Battle",
-      description: "Participez au concours de coiffure et votez pour vos styles preferes."
+      description: "Participez au concours de coiffure et votez pour vos styles préférés.",
+      link: "/trimconnect"
     }
   ];
 
@@ -324,10 +349,16 @@ const LandingPage = () => {
               ) : (
                 <Button 
                   onClick={() => setShowLoginDialog(true)}
-                  className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white shadow-lg shadow-amber-500/25"
+                  className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white shadow-lg shadow-amber-500/25 flex items-center gap-2"
                   data-testid="login-btn"
                 >
-                  {t("nav.login")}
+                  <span className="relative">
+                    Conne
+                    <span className="inline-flex items-center">
+                      <ScissorsX className="h-4 w-4 inline -mx-0.5" />
+                    </span>
+                    ion
+                  </span>
                 </Button>
               )}
             </div>
@@ -448,14 +479,19 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-[#1E293B] border border-[#F59E0B]/20 rounded-xl p-6 hover:border-[#F59E0B]/50 transition-all duration-300 hover-lift"
+                onClick={() => window.location.href = feature.link}
+                className="bg-[#1E293B] border border-[#F59E0B]/20 rounded-xl p-6 hover:border-[#F59E0B]/50 transition-all duration-300 hover-lift cursor-pointer group"
                 data-testid={`feature-card-${index}`}
               >
-                <div className="w-12 h-12 bg-[#F59E0B]/15 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-[#F59E0B]/15 rounded-lg flex items-center justify-center mb-4 group-hover:bg-[#F59E0B]/25 transition-colors">
                   <feature.icon className="h-6 w-6 text-[#F59E0B]" />
                 </div>
-                <h3 className="text-lg font-heading font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-[slate-300] text-sm">{feature.description}</p>
+                <h3 className="text-lg font-heading font-semibold text-white mb-2 group-hover:text-[#FFD700] transition-colors">{feature.title}</h3>
+                <p className="text-slate-400 text-sm">{feature.description}</p>
+                <div className="mt-4 flex items-center text-[#F59E0B] text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span>Accéder</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </div>
               </motion.div>
             ))}
           </div>
@@ -958,7 +994,7 @@ const LandingPage = () => {
                 <label className="text-sm text-slate-400 mb-1 block">Nouveau mot de passe</label>
                 <Input
                   type="password"
-                  placeholder="Minimum 6 caracteres"
+                  placeholder="Minimum 6 caractères"
                   value={passwordForm.new}
                   onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})}
                   className="bg-slate-900 border-slate-700 text-white"

@@ -49,6 +49,38 @@ export default function HomeScreen() {
     { id: 'marketplace', title: 'Shop', icon: 'cart', color: '#10b981', route: '/(tabs)/marketplace' },
   ];
 
+  // Features identiques au site web
+  const features = [
+    {
+      icon: 'calendar',
+      title: 'Réservation Simple',
+      description: 'Réservez votre coupe en quelques clics. Choisissez votre coiffeur et votre créneau.',
+      route: '/(tabs)/booking',
+      color: '#FFD700'
+    },
+    {
+      icon: 'sparkles',
+      title: 'Simulation IA',
+      description: 'Visualisez votre future coupe grâce à l\'intelligence artificielle.',
+      route: '/(tabs)/simulation',
+      color: '#6366f1'
+    },
+    {
+      icon: 'cart',
+      title: 'Marketplace',
+      description: 'Découvrez les meilleurs produits capillaires sélectionnés par nos experts.',
+      route: '/(tabs)/marketplace',
+      color: '#10b981'
+    },
+    {
+      icon: 'trophy',
+      title: 'TrimConnect Battle',
+      description: 'Participez au concours de coiffure et votez pour vos styles préférés.',
+      route: '/(tabs)/trimconnect',
+      color: '#f59e0b'
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
@@ -126,6 +158,34 @@ export default function HomeScreen() {
             >
               <Ionicons name="arrow-forward" size={20} color="#FFD700" />
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Fonctionnalités Section - Identique au Web */}
+        <View style={styles.featuresSection}>
+          <Text style={styles.featuresSectionTitle}>Tout ce dont vous avez besoin</Text>
+          <Text style={styles.featuresSectionSubtitle}>
+            Une plateforme complète pour les clients et les professionnels de la coiffure afro.
+          </Text>
+          
+          <View style={styles.featuresGrid}>
+            {features.map((feature, index) => (
+              <TouchableOpacity 
+                key={index}
+                style={styles.featureCard}
+                onPress={() => router.push(feature.route)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.featureIconBox, { backgroundColor: feature.color + '25' }]}>
+                  <Ionicons name={feature.icon} size={22} color={feature.color} />
+                </View>
+                <Text style={styles.featureTitle}>{feature.title}</Text>
+                <Text style={styles.featureDescription} numberOfLines={3}>{feature.description}</Text>
+                <View style={styles.featureArrow}>
+                  <Ionicons name="arrow-forward" size={14} color="#FFD700" />
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -419,5 +479,65 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748b',
     marginTop: 8,
+  },
+  
+  // Features Section (identique au web)
+  featuresSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  featuresSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  featuresSectionSubtitle: {
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  featureCard: {
+    width: (width - 42) / 2,
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+    position: 'relative',
+  },
+  featureIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  featureTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  featureDescription: {
+    fontSize: 11,
+    color: '#94a3b8',
+    lineHeight: 16,
+  },
+  featureArrow: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    opacity: 0.6,
   },
 });
