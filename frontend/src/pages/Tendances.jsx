@@ -11,8 +11,11 @@ import {
   X,
   Plus,
   Award,
-  RefreshCw
+  RefreshCw,
+  Home,
+  ArrowLeft
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -23,6 +26,7 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const Tendances = () => {
+  const navigate = useNavigate();
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -192,6 +196,16 @@ const Tendances = () => {
             transition={{ delay: 0.3 }}
             className="flex flex-wrap justify-center gap-4"
           >
+            <Button 
+              onClick={() => navigate('/')}
+              variant="outline" 
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              data-testid="back-home-btn"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour à l'accueil
+            </Button>
+            
             <Button 
               onClick={refreshTrends}
               variant="outline" 

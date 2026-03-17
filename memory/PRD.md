@@ -19,7 +19,11 @@ Plateforme digitale centralisee pour la coiffure afro reliant clients, salons et
 2. **Proprietaire Salon**: Gestion coiffeurs, rendez-vous, coupes, produits, ventes
 3. **Client**: Reservation, simulation IA, achat produits, vote TrimConnect
 
-## What's Been Implemented (Mars 2026)
+## What's Been Implemented
+
+### Session - 17 Mars 2025
+- ✅ Bouton "Retour à l'accueil" ajouté sur la page Tendances
+- ✅ Page Tendances confirmée fonctionnelle avec données affichées (Mars 2026)
 
 ### Backend APIs (35+ endpoints)
 - Auth: session, me, logout, login (email/password), change-password, setup-password, verify-setup-token
