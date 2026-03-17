@@ -43,27 +43,6 @@ import {
   SelectValue,
 } from "../components/ui/select";
 
-// Custom Scissors X Icon Component
-const ScissorsX = ({ className }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    {/* Left scissor blade going top-left to bottom-right */}
-    <path d="M4 4L12 12" />
-    <circle cx="3" cy="3" r="2" fill="currentColor" />
-    <path d="M6 8L8 6" />
-    
-    {/* Right scissor blade going top-right to bottom-left */}
-    <path d="M20 4L12 12" />
-    <circle cx="21" cy="3" r="2" fill="currentColor" />
-    <path d="M18 8L16 6" />
-    
-    {/* Bottom blades */}
-    <path d="M12 12L4 20" />
-    <circle cx="3" cy="21" r="2" fill="currentColor" />
-    <path d="M12 12L20 20" />
-    <circle cx="21" cy="21" r="2" fill="currentColor" />
-  </svg>
-);
-
 const LandingPage = () => {
   const { user, login, logout, loading, setUser } = useAuth();
   const { t } = useLanguage();
@@ -349,16 +328,10 @@ const LandingPage = () => {
               ) : (
                 <Button 
                   onClick={() => setShowLoginDialog(true)}
-                  className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white shadow-lg shadow-amber-500/25 flex items-center gap-2"
+                  className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white shadow-lg shadow-amber-500/25"
                   data-testid="login-btn"
                 >
-                  <span className="relative">
-                    Conne
-                    <span className="inline-flex items-center">
-                      <ScissorsX className="h-4 w-4 inline -mx-0.5" />
-                    </span>
-                    ion
-                  </span>
+                  Connexion
                 </Button>
               )}
             </div>
