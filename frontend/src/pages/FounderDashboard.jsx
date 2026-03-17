@@ -28,7 +28,10 @@ import {
   Eye,
   HelpCircle,
   Home,
-  ArrowLeft
+  ArrowLeft,
+  DollarSign,
+  Globe,
+  Activity
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -38,8 +41,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import OnboardingTutorial, { resetOnboarding } from "../components/OnboardingTutorial";
 import NotificationBell from "../components/NotificationBell";
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
+const CHART_COLORS = ['#6366F1', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 
 const FounderDashboard = () => {
   const { user, logout } = useAuth();
@@ -1295,12 +1311,269 @@ const UsersManagement = () => {
 
 // Global Stats Component
 const GlobalStats = () => {
-  return (
-    <div className="space-y-6" data-testid="global-stats">
-      <h1 className="text-2xl font-heading font-bold text-white">Statistiques Globales</h1>
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState(7);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [period]);
+
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/analytics/founder?days=${period}`, { withCredentials: true });
+      setAnalytics(response.data);
+    } catch (error) {
+      toast.error("Erreur lors du chargement des analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const periodOptions = [
+    { value: 7, label: "7 derniers jours" },
+    { value: 14, label: "14 derniers jours" },
+    { value: 30, label: "30 derniers jours" },
+    { value: 90, label: "3 derniers mois" },
+    { value: 180, label: "6 derniers mois" }
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
         <BarChart3 className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-        <p className="text-slate-400">Statistiques detaillees a venir</p>
+        <p className="text-slate-400">Aucune donnée disponible</p>
+      </div>
+    );
+  }
+
+  const { summary, daily_data, top_salons, country_distribution } = analytics;
+
+  return (
+    <div className="space-y-6" data-testid="global-stats">
+      {/* Header with period selector */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white">Analytics Plateforme</h1>
+          <p className="text-slate-400 text-sm mt-1">Vue globale de l'activité AfroCrown</p>
+        </div>
+        <Select value={period.toString()} onValueChange={(val) => setPeriod(parseInt(val))}>
+          <SelectTrigger className="w-[200px] bg-slate-800 border-slate-700 text-white" data-testid="period-selector">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            {periodOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value.toString()} className="text-white hover:bg-slate-700">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-gradient-to-br from-indigo-600/20 to-indigo-800/20 border border-indigo-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-500/20 rounded-lg">
+              <Calendar className="h-5 w-5 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-indigo-300 text-xs">Réservations</p>
+              <p className="text-2xl font-bold text-white">{summary.total_bookings}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-500/20 rounded-lg">
+              <DollarSign className="h-5 w-5 text-green-400" />
+            </div>
+            <div>
+              <p className="text-green-300 text-xs">Revenus</p>
+              <p className="text-2xl font-bold text-white">{summary.total_revenue}€</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-amber-600/20 to-amber-800/20 border border-amber-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/20 rounded-lg">
+              <Users className="h-5 w-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-amber-300 text-xs">Nouveaux users</p>
+              <p className="text-2xl font-bold text-white">{summary.new_users}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 border border-purple-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-500/20 rounded-lg">
+              <Store className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-purple-300 text-xs">Salons actifs</p>
+              <p className="text-2xl font-bold text-white">{summary.active_salons}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-cyan-600/20 to-cyan-800/20 border border-cyan-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-cyan-500/20 rounded-lg">
+              <Activity className="h-5 w-5 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-cyan-300 text-xs">RDV/jour moy.</p>
+              <p className="text-2xl font-bold text-white">{summary.avg_bookings_per_day}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bookings & Revenue Trend */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-indigo-400" />
+            Évolution globale
+          </h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={daily_data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="date" stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 11}} tickFormatter={(val) => val.slice(5)} />
+              <YAxis yAxisId="left" stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 11}} />
+              <YAxis yAxisId="right" orientation="right" stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 11}} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                labelStyle={{ color: '#F8FAFC' }}
+              />
+              <Legend />
+              <Line yAxisId="left" type="monotone" dataKey="bookings" stroke="#6366F1" strokeWidth={2} dot={false} name="Réservations" />
+              <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#22C55E" strokeWidth={2} dot={false} name="Revenus (€)" />
+              <Line yAxisId="left" type="monotone" dataKey="new_users" stroke="#F59E0B" strokeWidth={2} dot={false} name="Nouveaux users" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Country Distribution Pie */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Globe className="h-5 w-5 text-purple-400" />
+            Répartition par pays
+          </h3>
+          <div className="flex items-center">
+            <ResponsiveContainer width="50%" height={250}>
+              <PieChart>
+                <Pie
+                  data={country_distribution.slice(0, 8)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  dataKey="count"
+                  nameKey="country"
+                >
+                  {country_distribution.slice(0, 8).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                  formatter={(value, name) => [value, name]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="w-1/2 space-y-2 pl-4">
+              {country_distribution.slice(0, 8).map((c, idx) => (
+                <div key={c.country} className="flex items-center gap-2 text-sm">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+                  <span className="text-slate-300">{c.country}</span>
+                  <span className="text-slate-500 ml-auto">{c.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Salons Table */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Store className="h-5 w-5 text-amber-400" />
+          Top 10 Salons
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700">
+                <th className="text-left py-3 px-4 text-slate-400 font-medium">#</th>
+                <th className="text-left py-3 px-4 text-slate-400 font-medium">Salon</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Réservations</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Revenus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {top_salons.map((salon, idx) => (
+                <tr key={salon.salon_id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                  <td className="py-3 px-4">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      idx === 0 ? 'bg-amber-500 text-slate-900' : 
+                      idx === 1 ? 'bg-slate-400 text-slate-900' : 
+                      idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-700 text-slate-300'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-white">{salon.name}</td>
+                  <td className="py-3 px-4 text-right text-indigo-400 font-semibold">{salon.bookings}</td>
+                  <td className="py-3 px-4 text-right text-green-400 font-semibold">{salon.revenue}€</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Daily Data Table */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Données quotidiennes détaillées</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700">
+                <th className="text-left py-3 px-4 text-slate-400 font-medium">Date</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Réservations</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Revenus</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Nouveaux users</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily_data.slice(-14).reverse().map((day) => (
+                <tr key={day.date} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                  <td className="py-3 px-4 text-white">{day.date}</td>
+                  <td className="py-3 px-4 text-right text-indigo-400">{day.bookings}</td>
+                  <td className="py-3 px-4 text-right text-green-400">{day.revenue}€</td>
+                  <td className="py-3 px-4 text-right text-amber-400">{day.new_users}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

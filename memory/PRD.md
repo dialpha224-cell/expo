@@ -256,6 +256,20 @@ Structure dans /app/mobile avec:
 - [x] Bug Founder Login: Role non reconnu - CORRIGE (utilisateur manquait dans la DB test_database)
 - [x] Compte Founder cree: founder@afrocrown.com / founder123
 
+## Nouvelles Fonctionnalites (Mars 2026 - Session 8)
+- [x] **ANALYTICS AVANCES** pour Salon Owner et Founder:
+  - Sélecteur de période: 7 jours, 14 jours, 30 jours, 3 mois, 6 mois
+  - Cartes de résumé avec KPIs clés (réservations, revenus, taux complétion, panier moyen)
+  - Graphique d'évolution temporelle (AreaChart/LineChart avec Recharts)
+  - Répartition par pays (PieChart pour Founder)
+  - Top 5 coiffeurs et coupes populaires (pour Salon)
+  - Distribution horaire des réservations (BarChart horizontal)
+  - Tableaux de données détaillées avec colonnes triables
+  - Top 10 salons par réservations et revenus (pour Founder)
+- [x] Nouveaux endpoints API:
+  - GET /api/analytics/salon/{salon_id}?days=N
+  - GET /api/analytics/founder?days=N
+
 ## Next Tasks
 1. Attendre validation APK mobile par l'utilisateur
 2. Verifier domaine Resend pour envoi emails en production

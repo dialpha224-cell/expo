@@ -32,7 +32,10 @@ import {
   Image,
   MapPin,
   Home,
-  ArrowLeft
+  ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  Activity
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -67,6 +70,10 @@ import AppointmentQRScanner from "../components/AppointmentQRScanner";
 import ReassignClientModal from "../components/ReassignClientModal";
 import WebsiteImporter from "../components/WebsiteImporter";
 import AppointmentCalendar from "../components/AppointmentCalendar";
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 
 const SalonDashboard = () => {
   const { user, logout } = useAuth();
@@ -2082,13 +2089,284 @@ const ProductsManagement = () => {
 };
 
 // Salon Stats Component
+const CHART_COLORS = ['#6366F1', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
 const SalonStats = ({ salonId }) => {
-  return (
-    <div className="space-y-6" data-testid="salon-stats">
-      <h1 className="text-2xl font-heading font-bold text-white">Statistiques</h1>
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState(7);
+
+  useEffect(() => {
+    if (salonId) {
+      fetchAnalytics();
+    }
+  }, [salonId, period]);
+
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/analytics/salon/${salonId}?days=${period}`, { withCredentials: true });
+      setAnalytics(response.data);
+    } catch (error) {
+      toast.error("Erreur lors du chargement des analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const periodOptions = [
+    { value: 7, label: "7 derniers jours" },
+    { value: 14, label: "14 derniers jours" },
+    { value: 30, label: "30 derniers jours" },
+    { value: 90, label: "3 derniers mois" },
+    { value: 180, label: "6 derniers mois" }
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
         <BarChart3 className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-        <p className="text-slate-400">Statistiques detaillees a venir</p>
+        <p className="text-slate-400">Aucune donnée disponible</p>
+      </div>
+    );
+  }
+
+  const { summary, daily_data, top_barbers, top_haircuts, hourly_distribution } = analytics;
+
+  return (
+    <div className="space-y-6" data-testid="salon-stats">
+      {/* Header with period selector */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white">Statistiques & Analytics</h1>
+          <p className="text-slate-400 text-sm mt-1">Analyse détaillée de votre activité</p>
+        </div>
+        <Select value={period.toString()} onValueChange={(val) => setPeriod(parseInt(val))}>
+          <SelectTrigger className="w-[200px] bg-slate-800 border-slate-700 text-white" data-testid="period-selector">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            {periodOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value.toString()} className="text-white hover:bg-slate-700">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-indigo-600/20 to-indigo-800/20 border border-indigo-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-500/20 rounded-lg">
+              <Calendar className="h-5 w-5 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-indigo-300 text-xs">Réservations</p>
+              <p className="text-2xl font-bold text-white">{summary.total_bookings}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-500/20 rounded-lg">
+              <DollarSign className="h-5 w-5 text-green-400" />
+            </div>
+            <div>
+              <p className="text-green-300 text-xs">Revenus</p>
+              <p className="text-2xl font-bold text-white">{summary.total_revenue}€</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-amber-600/20 to-amber-800/20 border border-amber-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/20 rounded-lg">
+              <CheckCircle className="h-5 w-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-amber-300 text-xs">Taux complétion</p>
+              <p className="text-2xl font-bold text-white">{summary.completion_rate}%</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 border border-purple-500/30 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-500/20 rounded-lg">
+              <Activity className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-purple-300 text-xs">Panier moyen</p>
+              <p className="text-2xl font-bold text-white">{summary.avg_booking_value}€</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bookings & Revenue Chart */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-indigo-400" />
+            Évolution des réservations
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart data={daily_data}>
+              <defs>
+                <linearGradient id="bookingsGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="date" stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 11}} tickFormatter={(val) => val.slice(5)} />
+              <YAxis stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 11}} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                labelStyle={{ color: '#F8FAFC' }}
+              />
+              <Area type="monotone" dataKey="bookings" stroke="#6366F1" fill="url(#bookingsGradient)" name="Réservations" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Revenue Chart */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-400" />
+            Revenus journaliers
+          </h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={daily_data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="date" stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 11}} tickFormatter={(val) => val.slice(5)} />
+              <YAxis stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 11}} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                labelStyle={{ color: '#F8FAFC' }}
+                formatter={(value) => [`${value}€`, 'Revenus']}
+              />
+              <Bar dataKey="revenue" fill="#22C55E" radius={[4, 4, 0, 0]} name="Revenus (€)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Tables Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Top Barbers */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Users className="h-5 w-5 text-indigo-400" />
+            Top Coiffeurs
+          </h3>
+          <div className="space-y-3">
+            {top_barbers.length > 0 ? top_barbers.map((barber, idx) => (
+              <div key={barber.barber_id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    idx === 0 ? 'bg-amber-500 text-slate-900' : 
+                    idx === 1 ? 'bg-slate-400 text-slate-900' : 
+                    idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {idx + 1}
+                  </span>
+                  <span className="text-white text-sm">{barber.name}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-indigo-400 font-semibold">{barber.bookings} RDV</p>
+                  <p className="text-slate-500 text-xs">{barber.revenue}€</p>
+                </div>
+              </div>
+            )) : <p className="text-slate-500 text-sm">Aucune donnée</p>}
+          </div>
+        </div>
+
+        {/* Top Haircuts */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Scissors className="h-5 w-5 text-amber-400" />
+            Coupes populaires
+          </h3>
+          <div className="space-y-3">
+            {top_haircuts.length > 0 ? top_haircuts.map((haircut, idx) => (
+              <div key={haircut.haircut_id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    idx === 0 ? 'bg-amber-500 text-slate-900' : 
+                    idx === 1 ? 'bg-slate-400 text-slate-900' : 
+                    idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {idx + 1}
+                  </span>
+                  <span className="text-white text-sm truncate max-w-[120px]">{haircut.name}</span>
+                </div>
+                <span className="text-amber-400 font-semibold">{haircut.count}x</span>
+              </div>
+            )) : <p className="text-slate-500 text-sm">Aucune donnée</p>}
+          </div>
+        </div>
+
+        {/* Hourly Distribution */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-purple-400" />
+            Heures populaires
+          </h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={hourly_distribution} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis type="number" stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 10}} />
+              <YAxis dataKey="hour" type="category" stroke="#64748B" tick={{fill: '#94A3B8', fontSize: 10}} width={40} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px' }}
+                labelStyle={{ color: '#F8FAFC' }}
+              />
+              <Bar dataKey="count" fill="#8B5CF6" radius={[0, 4, 4, 0]} name="Réservations" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Data Table */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Données détaillées</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700">
+                <th className="text-left py-3 px-4 text-slate-400 font-medium">Date</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Réservations</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Complétées</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Annulées</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium">Revenus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily_data.slice(-14).reverse().map((day) => (
+                <tr key={day.date} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                  <td className="py-3 px-4 text-white">{day.date}</td>
+                  <td className="py-3 px-4 text-right text-indigo-400">{day.bookings}</td>
+                  <td className="py-3 px-4 text-right text-green-400">{day.completed}</td>
+                  <td className="py-3 px-4 text-right text-red-400">{day.cancelled}</td>
+                  <td className="py-3 px-4 text-right text-amber-400">{day.revenue}€</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

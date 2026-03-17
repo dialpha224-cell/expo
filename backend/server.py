@@ -3513,8 +3513,188 @@ async def get_salon_stats(salon_id: str, user: UserBase = Depends(require_salon_
     }
 
 # =============================================================================
-# HEALTH CHECK
+# ADVANCED ANALYTICS ENDPOINTS
 # =============================================================================
+
+@api_router.get("/analytics/salon/{salon_id}")
+async def get_salon_analytics(
+    salon_id: str,
+    days: int = 7,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Get detailed analytics for a salon with time series data"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Limit to 6 months max
+    if days > 180:
+        days = 180
+    
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    start_date_str = start_date.isoformat()
+    
+    # Get all appointments in range
+    appointments = await db.appointments.find({
+        "salon_id": salon_id,
+        "created_at": {"$gte": start_date_str}
+    }, {"_id": 0}).to_list(10000)
+    
+    # Build daily breakdown
+    daily_data = {}
+    for i in range(days):
+        day = (datetime.now(timezone.utc) - timedelta(days=days-1-i)).strftime("%Y-%m-%d")
+        daily_data[day] = {"date": day, "bookings": 0, "revenue": 0, "completed": 0, "cancelled": 0}
+    
+    # Aggregate by day
+    for apt in appointments:
+        apt_date = apt.get("created_at", "")[:10]
+        if apt_date in daily_data:
+            daily_data[apt_date]["bookings"] += 1
+            if apt.get("status") == "completed":
+                daily_data[apt_date]["completed"] += 1
+                daily_data[apt_date]["revenue"] += apt.get("total_price", 0)
+            elif apt.get("status") == "cancelled":
+                daily_data[apt_date]["cancelled"] += 1
+    
+    # Top barbers
+    barber_stats = {}
+    for apt in appointments:
+        bid = apt.get("barber_id")
+        if bid:
+            if bid not in barber_stats:
+                barber_stats[bid] = {"barber_id": bid, "bookings": 0, "revenue": 0, "name": apt.get("barber_name", "Inconnu")}
+            barber_stats[bid]["bookings"] += 1
+            if apt.get("status") == "completed":
+                barber_stats[bid]["revenue"] += apt.get("total_price", 0)
+    
+    top_barbers = sorted(barber_stats.values(), key=lambda x: x["bookings"], reverse=True)[:5]
+    
+    # Top haircuts
+    haircut_stats = {}
+    for apt in appointments:
+        hid = apt.get("haircut_id")
+        if hid:
+            if hid not in haircut_stats:
+                haircut_stats[hid] = {"haircut_id": hid, "count": 0, "name": apt.get("haircut_name", "Inconnu")}
+            haircut_stats[hid]["count"] += 1
+    
+    top_haircuts = sorted(haircut_stats.values(), key=lambda x: x["count"], reverse=True)[:5]
+    
+    # Time slots popularity (by hour)
+    hour_stats = {str(h).zfill(2): 0 for h in range(8, 21)}
+    for apt in appointments:
+        time_slot = apt.get("time_slot", "")
+        if time_slot:
+            hour = time_slot[:2]
+            if hour in hour_stats:
+                hour_stats[hour] += 1
+    
+    # Summary stats
+    total_bookings = len(appointments)
+    total_revenue = sum(a.get("total_price", 0) for a in appointments if a.get("status") == "completed")
+    completed = sum(1 for a in appointments if a.get("status") == "completed")
+    cancelled = sum(1 for a in appointments if a.get("status") == "cancelled")
+    avg_booking_value = total_revenue / completed if completed > 0 else 0
+    
+    return {
+        "period_days": days,
+        "summary": {
+            "total_bookings": total_bookings,
+            "total_revenue": round(total_revenue, 2),
+            "completed": completed,
+            "cancelled": cancelled,
+            "completion_rate": round((completed / total_bookings * 100) if total_bookings > 0 else 0, 1),
+            "avg_booking_value": round(avg_booking_value, 2)
+        },
+        "daily_data": list(daily_data.values()),
+        "top_barbers": top_barbers,
+        "top_haircuts": top_haircuts,
+        "hourly_distribution": [{"hour": f"{h}:00", "count": hour_stats[h]} for h in hour_stats]
+    }
+
+@api_router.get("/analytics/founder")
+async def get_founder_analytics(
+    days: int = 7,
+    founder: UserBase = Depends(require_founder)
+):
+    """Get global platform analytics for founder"""
+    # Limit to 6 months max
+    if days > 180:
+        days = 180
+    
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    start_date_str = start_date.isoformat()
+    
+    # Get all appointments in range
+    appointments = await db.appointments.find({
+        "created_at": {"$gte": start_date_str}
+    }, {"_id": 0}).to_list(50000)
+    
+    # Build daily breakdown
+    daily_data = {}
+    for i in range(days):
+        day = (datetime.now(timezone.utc) - timedelta(days=days-1-i)).strftime("%Y-%m-%d")
+        daily_data[day] = {"date": day, "bookings": 0, "revenue": 0, "new_users": 0}
+    
+    # Aggregate bookings by day
+    for apt in appointments:
+        apt_date = apt.get("created_at", "")[:10]
+        if apt_date in daily_data:
+            daily_data[apt_date]["bookings"] += 1
+            if apt.get("status") == "completed":
+                daily_data[apt_date]["revenue"] += apt.get("total_price", 0)
+    
+    # Count new users per day
+    users = await db.users.find({
+        "created_at": {"$gte": start_date_str}
+    }, {"_id": 0, "created_at": 1}).to_list(10000)
+    
+    for user in users:
+        user_date = user.get("created_at", "")[:10]
+        if user_date in daily_data:
+            daily_data[user_date]["new_users"] += 1
+    
+    # Top 10 salons by bookings
+    salon_stats = {}
+    for apt in appointments:
+        sid = apt.get("salon_id")
+        if sid:
+            if sid not in salon_stats:
+                salon_stats[sid] = {"salon_id": sid, "bookings": 0, "revenue": 0, "name": apt.get("salon_name", "Inconnu")}
+            salon_stats[sid]["bookings"] += 1
+            if apt.get("status") == "completed":
+                salon_stats[sid]["revenue"] += apt.get("total_price", 0)
+    
+    top_salons = sorted(salon_stats.values(), key=lambda x: x["bookings"], reverse=True)[:10]
+    
+    # Country distribution
+    salons = await db.salons.find({"is_active": True}, {"_id": 0, "country": 1}).to_list(1000)
+    country_stats = {}
+    for s in salons:
+        country = s.get("country", "Inconnu")
+        country_stats[country] = country_stats.get(country, 0) + 1
+    
+    country_distribution = [{"country": k, "count": v} for k, v in sorted(country_stats.items(), key=lambda x: x[1], reverse=True)]
+    
+    # Summary stats
+    total_bookings = len(appointments)
+    total_revenue = sum(a.get("total_price", 0) for a in appointments if a.get("status") == "completed")
+    total_new_users = len(users)
+    total_salons = await db.salons.count_documents({"is_active": True})
+    
+    return {
+        "period_days": days,
+        "summary": {
+            "total_bookings": total_bookings,
+            "total_revenue": round(total_revenue, 2),
+            "new_users": total_new_users,
+            "active_salons": total_salons,
+            "avg_bookings_per_day": round(total_bookings / days, 1) if days > 0 else 0
+        },
+        "daily_data": list(daily_data.values()),
+        "top_salons": top_salons,
+        "country_distribution": country_distribution
+    }
 
 # =============================================================================
 # MONTHLY CUTS (COUPES DU MOIS) ROUTES
