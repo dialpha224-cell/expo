@@ -1,4 +1,11 @@
-# AfroCrown - Build APK Android
+# AfroCrown - Build APK Android v1.1.0
+
+## Nouveautés de cette version
+- ✅ Mode hors-ligne amélioré (cache local)
+- ✅ Synchronisation automatique au retour en ligne
+- ✅ File d'attente virtuelle
+- ✅ Système d'abonnements
+- ✅ Gestion des consentements RGPD
 
 ## Prérequis
 - Node.js 18+ installé
@@ -109,7 +116,15 @@ npx expo doctor     # Diagnostiquer les problèmes
 ## Configuration actuelle
 - **API Backend**: https://salon-dashboard-48.preview.emergentagent.com/api
 - **Package**: com.afrocrown.mobile
-- **Version**: 1.0.0
+- **Version**: 1.1.0
+- **Version Code**: 3
+
+## Mode Hors-ligne
+L'application fonctionne en mode hors-ligne avec:
+- Cache des salons, rendez-vous et profil
+- File d'attente des actions (réservations, annulations)
+- Synchronisation automatique au retour en ligne
+- Indicateur visuel du statut de connexion
 
 ## Support
 - Documentation Expo: https://docs.expo.dev/

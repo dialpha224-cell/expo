@@ -308,10 +308,23 @@ Structure dans /app/mobile avec:
   - Composant UrgentBooking traduit dans toutes les langues
 
 ## Next Tasks
-1. Vérifier build APK mobile avec mode offline
-2. Facebook Login (en attente de credentials utilisateur)
+1. Facebook Login (en attente de credentials utilisateur)
 
 ## Completed (Session 10 - Mars 2026)
+- [x] **Optimisation Performance**:
+  - Pagination côté serveur avec PaginatedResponse helper
+  - Endpoint /api/salons/search avec pagination (page, page_size)
+  - Hook usePagination.js pour le frontend
+  - Composant LazyImage.jsx pour lazy loading
+  - InfiniteScrollLoader pour scroll infini
+
+- [x] **Mobile App v1.1.0 Prête pour Build**:
+  - Version incrémentée à 1.1.0 (versionCode: 3)
+  - Mode offline complet avec cache AsyncStorage
+  - Synchronisation automatique au retour en ligne
+  - OfflineStatusBar pour feedback visuel
+  - Instructions BUILD_APK.md mises à jour
+
 - [x] **Sécurité Renforcée**:
   - Middleware Security Headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy)
   - Hachage bcrypt pour les mots de passe

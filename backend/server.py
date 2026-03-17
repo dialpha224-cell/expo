@@ -44,6 +44,26 @@ def generate_setup_token() -> str:
     """Generate a secure token for password setup"""
     return secrets.token_urlsafe(32)
 
+# =============================================================================
+# PAGINATION HELPERS
+# =============================================================================
+
+class PaginatedResponse:
+    """Helper for paginated API responses"""
+    @staticmethod
+    def create(items: list, page: int, page_size: int, total: int):
+        return {
+            "items": items,
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total_items": total,
+                "total_pages": (total + page_size - 1) // page_size if page_size > 0 else 0,
+                "has_next": page * page_size < total,
+                "has_prev": page > 1
+            }
+        }
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -2145,9 +2165,10 @@ async def search_salons(
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
     radius_km: float = 10.0,
-    limit: int = 50
+    page: int = 1,
+    page_size: int = 20
 ):
-    """Search salons by location"""
+    """Search salons by location with pagination"""
     import math
     
     query = {}
@@ -2157,7 +2178,12 @@ async def search_salons(
     if city:
         query["city"] = {"$regex": city, "$options": "i"}
     
-    salons = await db.salons.find(query, {"_id": 0}).to_list(limit)
+    # Get total count for pagination
+    total = await db.salons.count_documents(query)
+    
+    # Get paginated results
+    skip = (page - 1) * page_size
+    salons = await db.salons.find(query, {"_id": 0}).skip(skip).limit(page_size).to_list(page_size)
     
     # If coordinates provided, sort by distance
     if latitude and longitude:
@@ -2181,7 +2207,7 @@ async def search_salons(
         salons = [s for s in salons if s.get("distance_km", 9999) <= radius_km]
         salons.sort(key=lambda x: x.get("distance_km", 9999))
     
-    return salons
+    return PaginatedResponse.create(salons, page, page_size, total)
 
 @api_router.get("/salons/nearby")
 async def get_nearby_salons(latitude: float, longitude: float, radius_km: float = 10.0, limit: int = 20):
