@@ -575,16 +575,18 @@ class SalonUpdateByAdmin(BaseModel):
 
 # Tendances du moment - Soumissions des salons
 class TrendSubmission(BaseModel):
-    title: str
-    description: Optional[str] = None
-    message: Optional[str] = None  # Message du propriétaire
-    image_url: str  # URL de l'image de la réalisation
+    image_url: str  # URL de l'image (depuis la galerie du salon)
+    haircut_name: str  # Nom de la coupe
+    barber_name: str  # Coiffeur qui a réalisé la coupe
+    message: Optional[str] = None  # Message à la communauté
+    client_consent: bool = True  # Accord du client
 
 class TrendResponse(BaseModel):
     trend_id: str
     salon_id: str
     salon_name: str
     barber_name: Optional[str] = None
+    haircut_name: Optional[str] = None
     title: str
     description: Optional[str] = None
     message: Optional[str] = None
@@ -592,6 +594,18 @@ class TrendResponse(BaseModel):
     is_approved: bool = False
     is_featured: bool = False
     likes: int = 0
+    created_at: datetime
+
+# Salon Photo Gallery
+class SalonPhotoUpload(BaseModel):
+    image_url: str
+    description: Optional[str] = None
+
+class SalonPhotoResponse(BaseModel):
+    photo_id: str
+    salon_id: str
+    image_url: str
+    description: Optional[str] = None
     created_at: datetime
 
 class AppointmentCreate(BaseModel):
@@ -4278,9 +4292,63 @@ async def order_tactile_screen(order: dict, user: UserBase = Depends(require_sal
 # TENDANCES DU MOMENT (TRENDS)
 # =============================================================================
 
+# Salon Photo Gallery Endpoints
+@api_router.get("/salons/{salon_id}/photos")
+async def get_salon_photos(salon_id: str):
+    """Get all photos from a salon's gallery"""
+    photos = await db.salon_photos.find({"salon_id": salon_id}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return photos
+
+@api_router.post("/salons/{salon_id}/photos")
+async def upload_salon_photo(salon_id: str, photo: SalonPhotoUpload, user: UserBase = Depends(require_salon_owner)):
+    """Upload a photo to salon's gallery (max 10 per month)"""
+    # Verify user owns this salon
+    if user.salon_id != salon_id and user.role != "founder":
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    # Check monthly limit (10 photos per month)
+    start_of_month = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_count = await db.salon_photos.count_documents({
+        "salon_id": salon_id,
+        "created_at": {"$gte": start_of_month.isoformat()}
+    })
+    
+    if monthly_count >= 10:
+        raise HTTPException(status_code=400, detail="Limite de 10 photos par mois atteinte")
+    
+    photo_id = f"photo_{uuid.uuid4().hex[:12]}"
+    photo_doc = {
+        "photo_id": photo_id,
+        "salon_id": salon_id,
+        "image_url": photo.image_url,
+        "description": photo.description,
+        "uploaded_by": user.user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.salon_photos.insert_one(photo_doc)
+    return {"success": True, "photo_id": photo_id, "image_url": photo.image_url}
+
+@api_router.delete("/salons/{salon_id}/photos/{photo_id}")
+async def delete_salon_photo(salon_id: str, photo_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Delete a photo from salon's gallery"""
+    if user.salon_id != salon_id and user.role != "founder":
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    result = await db.salon_photos.delete_one({"photo_id": photo_id, "salon_id": salon_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Photo non trouvée")
+    
+    return {"success": True}
+
+# Trends Endpoints
 @api_router.post("/trends")
 async def submit_trend(trend: TrendSubmission, user: UserBase = Depends(require_salon_owner)):
     """Submit a trend/realization for potential featuring"""
+    # Verify client consent
+    if not trend.client_consent:
+        raise HTTPException(status_code=400, detail="L'accord du client est requis")
+    
     # Get salon info
     salon = await db.salons.find_one({"salon_id": user.salon_id}, {"_id": 0})
     if not salon:
@@ -4293,10 +4361,13 @@ async def submit_trend(trend: TrendSubmission, user: UserBase = Depends(require_
         "salon_name": salon.get("name"),
         "owner_id": user.user_id,
         "owner_name": user.name,
-        "title": trend.title,
-        "description": trend.description,
+        "barber_name": trend.barber_name,
+        "haircut_name": trend.haircut_name,
+        "title": trend.haircut_name,  # Use haircut name as title
+        "description": f"Réalisé par {trend.barber_name}",
         "message": trend.message,
         "image_url": trend.image_url,
+        "client_consent": trend.client_consent,
         "is_approved": False,
         "is_featured": False,
         "likes": 0,
@@ -4304,7 +4375,7 @@ async def submit_trend(trend: TrendSubmission, user: UserBase = Depends(require_
     }
     
     await db.trends.insert_one(trend_doc)
-    return {"success": True, "trend_id": trend_id, "message": "Votre création a été soumise !"}
+    return {"success": True, "trend_id": trend_id, "message": "Votre création a été soumise et sera visible après validation !"}
 
 @api_router.get("/trends")
 async def get_trends(limit: int = 20, featured_only: bool = False):

@@ -122,13 +122,13 @@ const SalonDashboard = () => {
     { icon: Calendar, label: "Rendez-vous", path: "/salon/appointments" },
     { icon: Calendar, label: "Calendrier", path: "/salon/calendar" },
     { icon: Scissors, label: "Coupes & Tarifs", path: "/salon/haircuts" },
-    { icon: Image, label: "Coupes du Mois", path: "/salon/monthly-cuts" },
-    { icon: Gift, label: "Programme Fidelite", path: "/salon/loyalty" },
+    { icon: Image, label: "Galerie Photos", path: "/salon/gallery" },
+    { icon: Sparkles, label: "Soumettre Tendance", path: "/salon/submit-trend" },
+    { icon: Gift, label: "Programme Fidélité", path: "/salon/loyalty" },
     { icon: Tag, label: "Promotions", path: "/salon/promotions" },
-    { icon: Sparkles, label: "Services Premium", path: "/salon/premium" },
     { icon: ShoppingBag, label: "Produits", path: "/salon/products" },
     { icon: BarChart3, label: "Statistiques", path: "/salon/stats" },
-    { icon: Settings, label: "Parametres", path: "/salon/settings" },
+    { icon: Settings, label: "Paramètres", path: "/salon/settings" },
   ];
 
   const isActive = (path) => {
@@ -296,7 +296,8 @@ const SalonDashboard = () => {
             <Route path="appointments" element={<AppointmentsManagement salonId={selectedSalonId} />} />
             <Route path="calendar" element={<CalendarPage salonId={selectedSalonId} />} />
             <Route path="haircuts" element={<HaircutsManagement salonId={selectedSalonId} />} />
-            <Route path="monthly-cuts" element={<MonthlyCutsPage salonId={selectedSalonId} />} />
+            <Route path="gallery" element={<PhotoGallery salonId={selectedSalonId} />} />
+            <Route path="submit-trend" element={<SubmitTrendPage salonId={selectedSalonId} salon={salon} />} />
             <Route path="loyalty" element={<LoyaltyPage salonId={selectedSalonId} />} />
             <Route path="promotions" element={<PromotionsPage salonId={selectedSalonId} />} />
             <Route path="premium" element={<PremiumServicesPage salonId={selectedSalonId} />} />
@@ -1346,6 +1347,405 @@ const HaircutsManagement = ({ salonId }) => {
       <p className="text-slate-500 text-sm">
         * Prix personnalise pour votre salon. Cliquez sur un prix pour le modifier.
       </p>
+    </div>
+  );
+};
+
+// Photo Gallery Component
+const PhotoGallery = ({ salonId }) => {
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [newPhotoDesc, setNewPhotoDesc] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (salonId) fetchPhotos();
+  }, [salonId]);
+
+  const fetchPhotos = async () => {
+    try {
+      const response = await axios.get(`${API}/salons/${salonId}/photos`);
+      setPhotos(response.data);
+    } catch (error) {
+      console.error("Error fetching photos:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uploadPhoto = async () => {
+    if (!newPhotoUrl.trim()) {
+      toast.error("Veuillez entrer l'URL de l'image");
+      return;
+    }
+    setUploading(true);
+    try {
+      await axios.post(`${API}/salons/${salonId}/photos`, {
+        image_url: newPhotoUrl,
+        description: newPhotoDesc
+      }, { withCredentials: true });
+      toast.success("Photo ajoutée à la galerie !");
+      setShowUploadDialog(false);
+      setNewPhotoUrl("");
+      setNewPhotoDesc("");
+      fetchPhotos();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de l'ajout");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deletePhoto = async (photoId) => {
+    if (!window.confirm("Supprimer cette photo ?")) return;
+    try {
+      await axios.delete(`${API}/salons/${salonId}/photos/${photoId}`, { withCredentials: true });
+      toast.success("Photo supprimée");
+      fetchPhotos();
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  const monthlyCount = photos.filter(p => {
+    const photoDate = new Date(p.created_at);
+    const now = new Date();
+    return photoDate.getMonth() === now.getMonth() && photoDate.getFullYear() === now.getFullYear();
+  }).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white mb-2">Galerie Photos</h1>
+          <p className="text-slate-400">
+            {monthlyCount}/10 photos ce mois-ci • Utilisez ces URLs pour soumettre vos tendances
+          </p>
+        </div>
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-indigo-600 hover:bg-indigo-700" disabled={monthlyCount >= 10}>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter une photo
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Ajouter une photo</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">URL de l'image *</label>
+                <Input
+                  placeholder="https://exemple.com/photo.jpg"
+                  value={newPhotoUrl}
+                  onChange={(e) => setNewPhotoUrl(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+                {newPhotoUrl && (
+                  <div className="mt-2">
+                    <img 
+                      src={newPhotoUrl} 
+                      alt="Aperçu" 
+                      className="w-full h-40 object-cover rounded-lg"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Description (optionnel)</label>
+                <Input
+                  placeholder="Ex: Dégradé américain"
+                  value={newPhotoDesc}
+                  onChange={(e) => setNewPhotoDesc(e.target.value)}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+              <Button onClick={uploadPhoto} disabled={uploading} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                {uploading ? "Ajout en cours..." : "Ajouter à la galerie"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {monthlyCount >= 10 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+          <p className="text-amber-400 text-sm">
+            <Camera className="inline h-4 w-4 mr-2" />
+            Vous avez atteint la limite de 10 photos ce mois-ci. Les nouvelles photos seront possibles le mois prochain.
+          </p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-12 text-slate-400">Chargement...</div>
+      ) : photos.length === 0 ? (
+        <div className="bg-slate-800 rounded-xl p-12 text-center">
+          <Image className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-white mb-2">Aucune photo</h3>
+          <p className="text-slate-400">Ajoutez des photos de vos réalisations pour les utiliser dans les tendances</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {photos.map((photo) => (
+            <div key={photo.photo_id} className="relative group">
+              <img 
+                src={photo.image_url} 
+                alt={photo.description || "Photo"} 
+                className="w-full h-48 object-cover rounded-xl"
+              />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(photo.image_url);
+                    toast.success("URL copiée !");
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Copier l'URL
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => deletePhoto(photo.photo_id)}
+                  className="border-red-500 text-red-400 hover:bg-red-500/10"
+                >
+                  Supprimer
+                </Button>
+              </div>
+              {photo.description && (
+                <p className="text-xs text-slate-400 mt-1 truncate">{photo.description}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Submit Trend Page Component
+const SubmitTrendPage = ({ salonId, salon }) => {
+  const [photos, setPhotos] = useState([]);
+  const [barbers, setBarbers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    image_url: "",
+    haircut_name: "",
+    barber_name: "",
+    message: "",
+    client_consent: false
+  });
+
+  useEffect(() => {
+    if (salonId) {
+      fetchPhotos();
+      fetchBarbers();
+    }
+  }, [salonId]);
+
+  const fetchPhotos = async () => {
+    try {
+      const response = await axios.get(`${API}/salons/${salonId}/photos`);
+      setPhotos(response.data);
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchBarbers = async () => {
+    try {
+      const response = await axios.get(`${API}/salons/${salonId}/barbers`);
+      setBarbers(response.data);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!form.image_url) {
+      toast.error("Veuillez sélectionner ou coller une URL d'image");
+      return;
+    }
+    if (!form.haircut_name.trim()) {
+      toast.error("Veuillez entrer le nom de la coupe");
+      return;
+    }
+    if (!form.barber_name.trim()) {
+      toast.error("Veuillez entrer le nom du coiffeur");
+      return;
+    }
+    if (!form.client_consent) {
+      toast.error("L'accord du client est obligatoire");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await axios.post(`${API}/trends`, form, { withCredentials: true });
+      toast.success("Votre création a été soumise ! Elle sera visible après validation.");
+      setForm({ image_url: "", haircut_name: "", barber_name: "", message: "", client_consent: false });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la soumission");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="text-center mb-8">
+        <Sparkles className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+        <h1 className="text-2xl font-heading font-bold text-white mb-2">Soumettre une Tendance</h1>
+        <p className="text-slate-400">Partagez vos plus belles créations avec la communauté AfroCrown</p>
+      </div>
+
+      <div className="bg-slate-800 rounded-xl p-6 space-y-6">
+        {/* Image Selection */}
+        <div>
+          <label className="text-sm text-slate-400 mb-2 block font-medium">1. Sélectionner ou coller l'URL de l'image *</label>
+          
+          {/* Gallery Photos */}
+          {photos.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs text-slate-500 mb-2">Choisir depuis votre galerie :</p>
+              <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+                {photos.map((photo) => (
+                  <img
+                    key={photo.photo_id}
+                    src={photo.image_url}
+                    alt=""
+                    className={`w-full h-16 object-cover rounded cursor-pointer transition-all ${
+                      form.image_url === photo.image_url ? 'ring-2 ring-amber-500' : 'hover:opacity-80'
+                    }`}
+                    onClick={() => setForm({...form, image_url: photo.image_url})}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <Input
+            placeholder="https://exemple.com/ma-coupe.jpg"
+            value={form.image_url}
+            onChange={(e) => setForm({...form, image_url: e.target.value})}
+            className="bg-slate-900 border-slate-700 text-white"
+          />
+          
+          {form.image_url && (
+            <div className="mt-3 flex justify-center">
+              <img 
+                src={form.image_url} 
+                alt="Aperçu" 
+                className="max-h-48 rounded-lg object-contain"
+                onError={(e) => e.target.style.display = 'none'}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Salon Name (Auto-filled) */}
+        <div>
+          <label className="text-sm text-slate-400 mb-2 block font-medium">2. Nom du salon</label>
+          <Input
+            value={salon?.name || ""}
+            disabled
+            className="bg-slate-900 border-slate-700 text-slate-400"
+          />
+        </div>
+
+        {/* Barber Name */}
+        <div>
+          <label className="text-sm text-slate-400 mb-2 block font-medium">3. Coiffeur qui a réalisé la coupe *</label>
+          {barbers.length > 0 ? (
+            <Select value={form.barber_name} onValueChange={(v) => setForm({...form, barber_name: v})}>
+              <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
+                <SelectValue placeholder="Sélectionner un coiffeur" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                {barbers.map((barber) => (
+                  <SelectItem key={barber.barber_id} value={barber.name} className="text-white">
+                    {barber.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="other" className="text-slate-400">Autre...</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              placeholder="Nom du coiffeur"
+              value={form.barber_name}
+              onChange={(e) => setForm({...form, barber_name: e.target.value})}
+              className="bg-slate-900 border-slate-700 text-white"
+            />
+          )}
+          {form.barber_name === "other" && (
+            <Input
+              placeholder="Entrer le nom du coiffeur"
+              onChange={(e) => setForm({...form, barber_name: e.target.value})}
+              className="bg-slate-900 border-slate-700 text-white mt-2"
+            />
+          )}
+        </div>
+
+        {/* Haircut Name */}
+        <div>
+          <label className="text-sm text-slate-400 mb-2 block font-medium">4. Nom de la coupe *</label>
+          <Input
+            placeholder="Ex: Dégradé américain, Tresses collées, Afro naturel..."
+            value={form.haircut_name}
+            onChange={(e) => setForm({...form, haircut_name: e.target.value})}
+            className="bg-slate-900 border-slate-700 text-white"
+          />
+        </div>
+
+        {/* Message */}
+        <div>
+          <label className="text-sm text-slate-400 mb-2 block font-medium">5. Message à la communauté (optionnel)</label>
+          <Textarea
+            placeholder="Partagez l'histoire de cette création, des conseils, ou un message pour la communauté..."
+            value={form.message}
+            onChange={(e) => setForm({...form, message: e.target.value})}
+            className="bg-slate-900 border-slate-700 text-white"
+            rows={3}
+          />
+        </div>
+
+        {/* Client Consent */}
+        <div className="bg-slate-900 rounded-xl p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.client_consent}
+              onChange={(e) => setForm({...form, client_consent: e.target.checked})}
+              className="mt-1 w-5 h-5 rounded border-slate-600 bg-slate-700 text-amber-500 focus:ring-amber-500"
+            />
+            <div>
+              <p className="text-white font-medium">J'ai l'accord du client *</p>
+              <p className="text-sm text-slate-400">
+                Je confirme avoir obtenu l'autorisation du client pour publier cette photo sur AfroCrown.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        {/* Submit Button */}
+        <Button 
+          onClick={handleSubmit}
+          disabled={submitting || !form.client_consent}
+          className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-900 font-semibold py-6"
+        >
+          {submitting ? "Envoi en cours..." : "Soumettre ma création"}
+        </Button>
+      </div>
     </div>
   );
 };

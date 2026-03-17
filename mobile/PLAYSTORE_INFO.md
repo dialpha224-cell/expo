@@ -2,10 +2,10 @@
 
 ## ✅ Assets générés pour le Play Store
 
-### Feature Graphic (1024x500) - VERSION HOMME
-![Feature Graphic](https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/a329d1359422f95557fd35cad141f9ad6afdcf098859623ded18952e2acfcf57.png)
+### Feature Graphic (1024x500) - VERSION HOMME V2
+![Feature Graphic](https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/c84ef41cdaf11f6f2edbcf0b82e1e6c20d2c6ec1a11b4b2dc18f11d25b5dd50.png)
 
-**URL:** https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/a329d1359422f95557fd35cad141f9ad6afdcf098859623ded18952e2acfcf57.png
+**URL:** https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/c84ef41cdaf11f6f2edbcf0b82e1e6c20d2c6ec1a11b4b2dc18f11d25b5dd50.png
 
 ---
 
