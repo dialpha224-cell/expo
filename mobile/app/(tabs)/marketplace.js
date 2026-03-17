@@ -8,17 +8,20 @@ import {
   Image,
   RefreshControl,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../_layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
 
 export default function MarketplaceScreen() {
   const { API_URL } = useAuth();
+  const insets = useSafeAreaInsets();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState(['Tous', 'Soins', 'Coiffage', 'Accessoires', 'Matériel']);
   const [selectedCategory, setSelectedCategory] = useState('Tous');
@@ -66,7 +69,7 @@ export default function MarketplaceScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 20) + 80 : 100 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFD700" />
         }

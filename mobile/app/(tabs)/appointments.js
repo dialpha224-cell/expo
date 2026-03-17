@@ -7,16 +7,19 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../_layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AppointmentsScreen() {
   const router = useRouter();
   const { user, API_URL } = useAuth();
+  const insets = useSafeAreaInsets();
   const [appointments, setAppointments] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -127,7 +130,7 @@ export default function AppointmentsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 20) + 80 : 100 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFD700" />
         }

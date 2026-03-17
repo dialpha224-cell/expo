@@ -8,11 +8,13 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../_layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +23,7 @@ const CROWN_LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/203a8c
 
 export default function TrimConnectScreen() {
   const { user, API_URL } = useAuth();
+  const insets = useSafeAreaInsets();
   const [contestants, setContestants] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('leaderboard');
@@ -68,7 +71,7 @@ export default function TrimConnectScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 20) + 80 : 100 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFD700" />
         }

@@ -8,12 +8,14 @@ import {
   Image,
   Alert,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../_layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const HAIRCUT_SIZE = (width - 52) / 2;
@@ -21,6 +23,7 @@ const HAIRCUT_SIZE = (width - 52) / 2;
 export default function BookingScreen() {
   const router = useRouter();
   const { user, API_URL } = useAuth();
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState(1);
   const [salons, setSalons] = useState([]);
   const [barbers, setBarbers] = useState([]);
@@ -444,7 +447,7 @@ export default function BookingScreen() {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom + 10 }]}>
         {step > 1 && (
           <TouchableOpacity 
             style={styles.backButton}

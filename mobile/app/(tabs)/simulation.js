@@ -10,18 +10,21 @@ import {
   ScrollView,
   Dimensions,
   FlatList,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useAuth } from '../_layout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 3; // 3 colonnes avec padding
 
 export default function SimulationScreen() {
   const { user, API_URL } = useAuth();
+  const insets = useSafeAreaInsets();
   const [selectedImage, setSelectedImage] = useState(null);
   const [resultImage, setResultImage] = useState(null);
   const [selectedStyle, setSelectedStyle] = useState(null);
@@ -195,7 +198,7 @@ export default function SimulationScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView 
         style={styles.scrollView} 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 20) + 80 : 100 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header compact */}
