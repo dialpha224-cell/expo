@@ -1,0 +1,6 @@
+{
+  "CFBundleDisplayName": "AfroCrown",
+  "CFBundleName": "AfroCrown",
+  "NSCameraUsageDescription": "AfroCrown utilise la caméra pour la simulation de coupe de cheveux avec IA",
+  "NSPhotoLibraryUsageDescription": "AfroCrown accède à vos photos pour la simulation de coupe avec IA"
+}

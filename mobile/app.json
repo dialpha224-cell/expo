@@ -18,9 +18,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.afrocrown.mobile",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "AfroCrown utilise la camera pour la simulation de coupe de cheveux",
-        "NSPhotoLibraryUsageDescription": "AfroCrown accede a vos photos pour la simulation de coupe"
+        "NSCameraUsageDescription": "AfroCrown utilise la caméra pour la simulation de coupe de cheveux avec IA",
+        "NSPhotoLibraryUsageDescription": "AfroCrown accède à vos photos pour la simulation de coupe avec IA",
+        "CFBundleAllowMixedLocalizations": true
       }
     },
     "android": {
@@ -29,11 +31,18 @@
         "backgroundColor": "#0F172A"
       },
       "package": "com.afrocrown.mobile",
+      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "ACCESS_NETWORK_STATE",
+        "INTERNET"
+      ],
+      "blockedPermissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {
@@ -53,16 +62,26 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "AfroCrown accede a vos photos pour la simulation IA",
-          "cameraPermission": "AfroCrown utilise la camera pour prendre des photos"
+          "photosPermission": "AfroCrown accède à vos photos pour la simulation IA de coiffure",
+          "cameraPermission": "AfroCrown utilise la caméra pour prendre des photos et simuler des coiffures"
         }
       ]
     ],
+    "locales": {
+      "fr": "./locales/fr.json"
+    },
     "extra": {
       "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api",
       "eas": {
         "projectId": "afrocrown-mobile"
       }
+    },
+    "owner": "afrocrown",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/afrocrown-mobile"
     }
   }
 }
