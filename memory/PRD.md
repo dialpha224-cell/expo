@@ -24,7 +24,11 @@ Plateforme digitale centralisee pour la coiffure afro reliant clients, salons et
 ### Session - 17 Mars 2025
 - ✅ Bouton "Retour à l'accueil" ajouté sur la page Tendances
 - ✅ Page Tendances confirmée fonctionnelle avec données affichées
-- ✅ Système de filtres ajouté (Populaires, Récentes, Par salon) avec dropdown interactif (Mars 2026)
+- ✅ Système de filtres ajouté (Populaires, Récentes, Par salon) avec dropdown interactif
+- ✅ CTA "Devenir Salon Partenaire" remplace les fausses statistiques
+- ✅ Formulaire inscription salon en 2 étapes (propriétaire + salon)
+- ✅ Système de validation admin avec endpoints (pending/approve/reject)
+- ✅ Interface FounderDashboard avec onglets salons actifs/en attente (Mars 2026)
 
 ### Backend APIs (35+ endpoints)
 - Auth: session, me, logout, login (email/password), change-password, setup-password, verify-setup-token

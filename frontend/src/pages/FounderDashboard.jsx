@@ -280,16 +280,19 @@ const FounderOverview = () => {
 // Salons Management Component
 const SalonsManagement = () => {
   const [salons, setSalons] = useState([]);
+  const [pendingSalons, setPendingSalons] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedSalon, setSelectedSalon] = useState(null);
   const [newSalon, setNewSalon] = useState({ name: "", address: "", phone: "", description: "" });
+  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'pending'
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchSalons();
+    fetchPendingSalons();
     fetchUsers();
   }, []);
 
@@ -304,12 +307,45 @@ const SalonsManagement = () => {
     }
   };
 
+  const fetchPendingSalons = async () => {
+    try {
+      const response = await axios.get(`${API}/founder/salons/pending`, { withCredentials: true });
+      setPendingSalons(response.data);
+    } catch (error) {
+      console.error("Error fetching pending salons:", error);
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${API}/founder/users`, { withCredentials: true });
       setUsers(response.data);
     } catch (error) {
       console.error("Error fetching users:", error);
+    }
+  };
+
+  const approveSalon = async (salonId) => {
+    try {
+      await axios.put(`${API}/founder/salons/${salonId}/approve`, {}, { withCredentials: true });
+      toast.success("Salon approuvé et maintenant visible !");
+      fetchSalons();
+      fetchPendingSalons();
+    } catch (error) {
+      toast.error("Erreur lors de l'approbation");
+    }
+  };
+
+  const rejectSalon = async (salonId) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir rejeter ce salon ? Cette action supprimera le salon et le compte propriétaire.")) {
+      return;
+    }
+    try {
+      await axios.put(`${API}/founder/salons/${salonId}/reject`, {}, { withCredentials: true });
+      toast.success("Salon rejeté et supprimé");
+      fetchPendingSalons();
+    } catch (error) {
+      toast.error("Erreur lors du rejet");
     }
   };
 
@@ -350,7 +386,7 @@ const SalonsManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold text-white mb-2">Gestion des Salons</h1>
-          <p className="text-slate-400">{salons.length} salons enregistres</p>
+          <p className="text-slate-400">{salons.length} salons actifs · {pendingSalons.length} en attente</p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
@@ -404,7 +440,109 @@ const SalonsManagement = () => {
         </Dialog>
       </div>
 
-      {/* Assign Owner Dialog */}
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-700 pb-2">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+            activeTab === 'active' 
+              ? 'bg-indigo-600 text-white' 
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          Salons actifs ({salons.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors relative ${
+            activeTab === 'pending' 
+              ? 'bg-amber-600 text-white' 
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          En attente de validation
+          {pendingSalons.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              {pendingSalons.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Pending Salons Tab */}
+      {activeTab === 'pending' && (
+        <div className="space-y-4">
+          {pendingSalons.length === 0 ? (
+            <div className="bg-slate-800 rounded-xl p-8 text-center">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">Aucune demande en attente</h3>
+              <p className="text-slate-400">Tous les salons ont été traités</p>
+            </div>
+          ) : (
+            pendingSalons.map((salon) => (
+              <div key={salon.salon_id} className="bg-slate-800 rounded-xl p-6 border border-amber-500/30">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Store className="h-6 w-6 text-amber-500" />
+                      <h3 className="text-xl font-semibold text-white">{salon.name}</h3>
+                      <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs font-medium">
+                        En attente
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm text-slate-400 mb-4">
+                      <div>
+                        <span className="text-slate-500">Ville:</span> {salon.city}, {salon.country}
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Adresse:</span> {salon.address || 'Non renseignée'}
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Téléphone:</span> {salon.phone || 'Non renseigné'}
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Description:</span> {salon.description || 'Aucune'}
+                      </div>
+                    </div>
+                    {salon.owner && (
+                      <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
+                        <p className="text-sm text-slate-300 font-medium mb-1">Propriétaire demandeur :</p>
+                        <div className="flex items-center gap-4 text-sm text-slate-400">
+                          <span>{salon.owner.name}</span>
+                          <span>{salon.owner.email}</span>
+                          <span>{salon.owner.phone || 'Pas de téléphone'}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 ml-4">
+                    <Button 
+                      onClick={() => approveSalon(salon.salon_id)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Approuver
+                    </Button>
+                    <Button 
+                      onClick={() => rejectSalon(salon.salon_id)}
+                      variant="outline"
+                      className="border-red-500 text-red-400 hover:bg-red-500/10"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Rejeter
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Active Salons Tab */}
+      {activeTab === 'active' && (
+        <>
+          {/* Assign Owner Dialog */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
         <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
           <DialogHeader>
@@ -508,6 +646,8 @@ const SalonsManagement = () => {
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

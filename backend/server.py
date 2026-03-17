@@ -432,6 +432,7 @@ class SalonResponse(BaseModel):
     rating: float = 0.0
     total_reviews: int = 0
     is_active: bool = True
+    is_approved: bool = True  # False until admin approves
     created_at: datetime
 
 class BarberCreate(BaseModel):
@@ -808,6 +809,25 @@ class SalonSearchQuery(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     radius_km: float = 10.0
+
+class SalonRegistrationOwner(BaseModel):
+    name: str
+    email: str
+    password: str
+    phone: Optional[str] = None
+
+class SalonRegistrationSalon(BaseModel):
+    name: str
+    description: Optional[str] = None
+    address: Optional[str] = None
+    city: str
+    country: str
+    phone: Optional[str] = None
+    services: List[str] = []
+
+class SalonRegistrationRequest(BaseModel):
+    owner: SalonRegistrationOwner
+    salon: SalonRegistrationSalon
 
 # =============================================================================
 # AUTH HELPERS
@@ -1716,6 +1736,44 @@ async def get_global_stats(founder: UserBase = Depends(require_founder)):
         }
     }
 
+@api_router.get("/founder/salons/pending")
+async def get_pending_salons(founder: UserBase = Depends(require_founder)):
+    """Get list of salons pending approval"""
+    salons = await db.salons.find({"is_approved": False}, {"_id": 0}).to_list(100)
+    for s in salons:
+        if isinstance(s.get("created_at"), str):
+            s["created_at"] = datetime.fromisoformat(s["created_at"])
+        # Get owner info
+        if s.get("owner_id"):
+            owner = await db.users.find_one({"user_id": s["owner_id"]}, {"_id": 0, "name": 1, "email": 1, "phone": 1})
+            s["owner"] = owner
+    return salons
+
+@api_router.put("/founder/salons/{salon_id}/approve")
+async def approve_salon(salon_id: str, founder: UserBase = Depends(require_founder)):
+    """Approve a pending salon"""
+    result = await db.salons.update_one(
+        {"salon_id": salon_id},
+        {"$set": {"is_approved": True, "is_active": True}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Salon non trouvé")
+    return {"message": "Salon approuvé et maintenant visible"}
+
+@api_router.put("/founder/salons/{salon_id}/reject")
+async def reject_salon(salon_id: str, founder: UserBase = Depends(require_founder)):
+    """Reject a pending salon (deletes it)"""
+    salon = await db.salons.find_one({"salon_id": salon_id})
+    if not salon:
+        raise HTTPException(status_code=404, detail="Salon non trouvé")
+    
+    # Delete salon and owner account
+    await db.salons.delete_one({"salon_id": salon_id})
+    if salon.get("owner_id"):
+        await db.users.delete_one({"user_id": salon["owner_id"]})
+    
+    return {"message": "Salon rejeté et supprimé"}
+
 @api_router.get("/founder/appointments")
 async def get_all_appointments(
     founder: UserBase = Depends(require_founder),
@@ -1844,6 +1902,60 @@ async def notify_arrival(
 # SALON ROUTES
 # =============================================================================
 
+@api_router.post("/salons/register")
+async def register_salon(request: SalonRegistrationRequest):
+    """Register a new salon with owner account (requires admin approval)"""
+    # Check if email already exists
+    existing = await db.users.find_one({"email": request.owner.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
+    
+    # Create owner account
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    password_hash = pwd_context.hash(request.owner.password)
+    
+    user_doc = {
+        "user_id": user_id,
+        "email": request.owner.email,
+        "name": request.owner.name,
+        "phone": request.owner.phone,
+        "picture": None,
+        "role": "salon_owner",
+        "salon_id": None,  # Will be set after salon creation
+        "password_hash": password_hash,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Create salon (not approved yet)
+    salon_id = f"salon_{uuid.uuid4().hex[:12]}"
+    salon_doc = {
+        "salon_id": salon_id,
+        "name": request.salon.name,
+        "description": request.salon.description,
+        "address": request.salon.address or "",
+        "city": request.salon.city,
+        "country": request.salon.country,
+        "phone": request.salon.phone or "",
+        "owner_id": user_id,
+        "opening_hours": {},
+        "image_url": None,
+        "rating": 0.0,
+        "total_reviews": 0,
+        "is_active": False,  # Not active until approved
+        "is_approved": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update user with salon_id
+    user_doc["salon_id"] = salon_id
+    
+    # Insert both
+    await db.users.insert_one(user_doc)
+    await db.salons.insert_one(salon_doc)
+    
+    return {"message": "Demande d'inscription envoyée. Votre salon sera visible après validation par un administrateur.", "salon_id": salon_id}
+
 @api_router.post("/salons", response_model=SalonResponse)
 async def create_salon(salon: SalonCreate, user: UserBase = Depends(require_founder)):
     """Create a new salon (founder only)"""
@@ -1868,11 +1980,14 @@ async def create_salon(salon: SalonCreate, user: UserBase = Depends(require_foun
 
 @api_router.get("/salons", response_model=List[SalonResponse])
 async def list_salons():
-    """List all active salons"""
-    salons = await db.salons.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    """List all active and approved salons"""
+    salons = await db.salons.find({"is_active": True, "$or": [{"is_approved": True}, {"is_approved": {"$exists": False}}]}, {"_id": 0}).to_list(1000)
     for s in salons:
         if isinstance(s.get("created_at"), str):
             s["created_at"] = datetime.fromisoformat(s["created_at"])
+        # Set default is_approved for old salons
+        if "is_approved" not in s:
+            s["is_approved"] = True
     return [SalonResponse(**s) for s in salons]
 
 # =============================================================================

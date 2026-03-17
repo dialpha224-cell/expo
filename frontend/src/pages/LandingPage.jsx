@@ -304,12 +304,85 @@ const LandingPage = () => {
     }
   ];
 
-  const stats = [
-    { value: "500+", label: t("landing.stats.salons") },
-    { value: "10K+", label: t("landing.stats.clients") },
-    { value: "50+", label: t("landing.stats.styles") },
-    { value: "4.9", label: t("landing.stats.rating") }
-  ];
+  // Salon registration state
+  const [showSalonRegistration, setShowSalonRegistration] = useState(false);
+  const [salonRegStep, setSalonRegStep] = useState(1);
+  const [salonRegForm, setSalonRegForm] = useState({
+    // Step 1: Owner info
+    ownerName: "",
+    ownerEmail: "",
+    ownerPassword: "",
+    ownerPasswordConfirm: "",
+    ownerPhone: "",
+    // Step 2: Salon info
+    salonName: "",
+    salonDescription: "",
+    salonAddress: "",
+    salonCity: "",
+    salonCountry: "",
+    salonPhone: "",
+    salonServices: []
+  });
+  const [salonRegLoading, setSalonRegLoading] = useState(false);
+
+  const handleSalonRegistration = async () => {
+    if (salonRegStep === 1) {
+      // Validate step 1
+      if (!salonRegForm.ownerName || !salonRegForm.ownerEmail || !salonRegForm.ownerPassword) {
+        toast.error("Veuillez remplir tous les champs obligatoires");
+        return;
+      }
+      if (salonRegForm.ownerPassword !== salonRegForm.ownerPasswordConfirm) {
+        toast.error("Les mots de passe ne correspondent pas");
+        return;
+      }
+      if (salonRegForm.ownerPassword.length < 6) {
+        toast.error("Le mot de passe doit faire au moins 6 caractères");
+        return;
+      }
+      setSalonRegStep(2);
+      return;
+    }
+    
+    // Step 2: Submit
+    if (!salonRegForm.salonName || !salonRegForm.salonCity || !salonRegForm.salonCountry) {
+      toast.error("Veuillez remplir les informations du salon");
+      return;
+    }
+
+    setSalonRegLoading(true);
+    try {
+      const response = await axios.post(`${API}/salons/register`, {
+        owner: {
+          name: salonRegForm.ownerName,
+          email: salonRegForm.ownerEmail,
+          password: salonRegForm.ownerPassword,
+          phone: salonRegForm.ownerPhone
+        },
+        salon: {
+          name: salonRegForm.salonName,
+          description: salonRegForm.salonDescription,
+          address: salonRegForm.salonAddress,
+          city: salonRegForm.salonCity,
+          country: salonRegForm.salonCountry,
+          phone: salonRegForm.salonPhone,
+          services: salonRegForm.salonServices
+        }
+      });
+      
+      toast.success("Votre demande a été envoyée ! Un administrateur va valider votre salon sous 24-48h.");
+      setShowSalonRegistration(false);
+      setSalonRegStep(1);
+      setSalonRegForm({
+        ownerName: "", ownerEmail: "", ownerPassword: "", ownerPasswordConfirm: "", ownerPhone: "",
+        salonName: "", salonDescription: "", salonAddress: "", salonCity: "", salonCountry: "", salonPhone: "", salonServices: []
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de l'inscription");
+    } finally {
+      setSalonRegLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0F172A]">
@@ -453,19 +526,31 @@ const LandingPage = () => {
             </div>
           </motion.div>
 
-          {/* Stats */}
+          {/* CTA Salon Partenaire */}
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20"
+            className="mt-16 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/30 rounded-2xl p-8 md:p-10"
           >
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl sm:text-4xl font-heading font-bold text-[#FBBF24] mb-2">{stat.value}</div>
-                <div className="text-sm text-slate-400">{stat.label}</div>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-center md:text-left">
+                <h3 className="text-2xl md:text-3xl font-heading font-bold text-white mb-2">
+                  Vous êtes professionnel ?
+                </h3>
+                <p className="text-slate-400 text-lg">
+                  Rejoignez AfroCrown et développez votre clientèle en ligne
+                </p>
               </div>
-            ))}
+              <Button 
+                onClick={() => setShowSalonRegistration(true)}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-900 font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-amber-500/30 whitespace-nowrap"
+                data-testid="become-partner-btn"
+              >
+                <Scissors className="h-5 w-5 mr-2" />
+                Devenir Salon Partenaire
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -1120,6 +1205,176 @@ const LandingPage = () => {
               </Button>
             </form>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Salon Registration Dialog */}
+      <Dialog open={showSalonRegistration} onOpenChange={setShowSalonRegistration}>
+        <DialogContent className="bg-slate-900 border-slate-700 max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2 text-xl">
+              <Scissors className="h-6 w-6 text-amber-500" />
+              Devenir Salon Partenaire
+            </DialogTitle>
+          </DialogHeader>
+          
+          {/* Progress Steps */}
+          <div className="flex items-center justify-center gap-4 my-4">
+            <div className={`flex items-center gap-2 ${salonRegStep >= 1 ? 'text-amber-500' : 'text-slate-500'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${salonRegStep >= 1 ? 'bg-amber-500 text-slate-900' : 'bg-slate-700'}`}>1</div>
+              <span className="text-sm hidden sm:block">Vos infos</span>
+            </div>
+            <div className="w-8 h-px bg-slate-600"></div>
+            <div className={`flex items-center gap-2 ${salonRegStep >= 2 ? 'text-amber-500' : 'text-slate-500'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${salonRegStep >= 2 ? 'bg-amber-500 text-slate-900' : 'bg-slate-700'}`}>2</div>
+              <span className="text-sm hidden sm:block">Votre salon</span>
+            </div>
+          </div>
+
+          {salonRegStep === 1 ? (
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm mb-4">Créez votre compte propriétaire</p>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom complet *</label>
+                <Input
+                  value={salonRegForm.ownerName}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, ownerName: e.target.value})}
+                  placeholder="Jean Dupont"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Email *</label>
+                <Input
+                  type="email"
+                  value={salonRegForm.ownerEmail}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, ownerEmail: e.target.value})}
+                  placeholder="votre@email.com"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Téléphone</label>
+                <Input
+                  value={salonRegForm.ownerPhone}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, ownerPhone: e.target.value})}
+                  placeholder="+33 6 12 34 56 78"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Mot de passe *</label>
+                <Input
+                  type="password"
+                  value={salonRegForm.ownerPassword}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, ownerPassword: e.target.value})}
+                  placeholder="••••••••"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Confirmer mot de passe *</label>
+                <Input
+                  type="password"
+                  value={salonRegForm.ownerPasswordConfirm}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, ownerPasswordConfirm: e.target.value})}
+                  placeholder="••••••••"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <Button 
+                onClick={handleSalonRegistration}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 mt-4"
+              >
+                Continuer
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm mb-4">Informations de votre salon</p>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom du salon *</label>
+                <Input
+                  value={salonRegForm.salonName}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, salonName: e.target.value})}
+                  placeholder="Mon Super Salon"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Description</label>
+                <Input
+                  value={salonRegForm.salonDescription}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, salonDescription: e.target.value})}
+                  placeholder="Salon spécialisé en coiffure afro..."
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Adresse</label>
+                <Input
+                  value={salonRegForm.salonAddress}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, salonAddress: e.target.value})}
+                  placeholder="123 Rue de Paris"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Ville *</label>
+                  <Input
+                    value={salonRegForm.salonCity}
+                    onChange={(e) => setSalonRegForm({...salonRegForm, salonCity: e.target.value})}
+                    placeholder="Paris"
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Pays *</label>
+                  <Input
+                    value={salonRegForm.salonCountry}
+                    onChange={(e) => setSalonRegForm({...salonRegForm, salonCountry: e.target.value})}
+                    placeholder="France"
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Téléphone du salon</label>
+                <Input
+                  value={salonRegForm.salonPhone}
+                  onChange={(e) => setSalonRegForm({...salonRegForm, salonPhone: e.target.value})}
+                  placeholder="+33 1 23 45 67 89"
+                  className="bg-slate-800 border-slate-700 text-white"
+                />
+              </div>
+              
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mt-4">
+                <p className="text-amber-400 text-sm">
+                  <Sparkles className="h-4 w-4 inline mr-2" />
+                  Votre salon sera visible après validation par notre équipe (24-48h)
+                </p>
+              </div>
+              
+              <div className="flex gap-3 mt-4">
+                <Button 
+                  onClick={() => setSalonRegStep(1)}
+                  variant="outline"
+                  className="flex-1 border-slate-600 text-slate-300"
+                >
+                  Retour
+                </Button>
+                <Button 
+                  onClick={handleSalonRegistration}
+                  disabled={salonRegLoading}
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900"
+                >
+                  {salonRegLoading ? "Envoi..." : "Soumettre ma demande"}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
