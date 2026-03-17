@@ -419,6 +419,9 @@ class SalonCreate(BaseModel):
     phone: str
     description: Optional[str] = None
     opening_hours: Optional[Dict[str, str]] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    image_url: Optional[str] = None
 
 class SalonResponse(BaseModel):
     salon_id: str
@@ -429,6 +432,8 @@ class SalonResponse(BaseModel):
     owner_id: Optional[str] = None
     opening_hours: Optional[Dict[str, Any]] = None
     image_url: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
     rating: float = 0.0
     total_reviews: int = 0
     is_active: bool = True
@@ -1968,10 +1973,13 @@ async def create_salon(salon: SalonCreate, user: UserBase = Depends(require_foun
         "description": salon.description,
         "owner_id": None,
         "opening_hours": salon.opening_hours or {},
-        "image_url": None,
+        "image_url": salon.image_url,
+        "country": salon.country,
+        "city": salon.city,
         "rating": 0.0,
         "total_reviews": 0,
         "is_active": True,
+        "is_approved": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.salons.insert_one(salon_doc)
@@ -1979,9 +1987,19 @@ async def create_salon(salon: SalonCreate, user: UserBase = Depends(require_foun
     return SalonResponse(**{k: v for k, v in salon_doc.items() if k != "_id"})
 
 @api_router.get("/salons", response_model=List[SalonResponse])
-async def list_salons():
-    """List all active and approved salons"""
-    salons = await db.salons.find({"is_active": True, "$or": [{"is_approved": True}, {"is_approved": {"$exists": False}}]}, {"_id": 0}).to_list(1000)
+async def list_salons(country: Optional[str] = None, city: Optional[str] = None):
+    """List all active and approved salons, optionally filtered by country/city"""
+    query = {"is_active": True, "$or": [{"is_approved": True}, {"is_approved": {"$exists": False}}]}
+    
+    # Filter by country if provided
+    if country:
+        query["country"] = {"$regex": f"^{country}$", "$options": "i"}
+    
+    # Filter by city if provided
+    if city:
+        query["city"] = {"$regex": f"^{city}$", "$options": "i"}
+    
+    salons = await db.salons.find(query, {"_id": 0}).to_list(1000)
     for s in salons:
         if isinstance(s.get("created_at"), str):
             s["created_at"] = datetime.fromisoformat(s["created_at"])

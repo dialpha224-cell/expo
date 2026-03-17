@@ -305,7 +305,7 @@ const SalonsManagement = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedSalon, setSelectedSalon] = useState(null);
-  const [newSalon, setNewSalon] = useState({ name: "", address: "", phone: "", description: "" });
+  const [newSalon, setNewSalon] = useState({ name: "", address: "", phone: "", description: "", country: "", city: "", image_url: "" });
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'pending'
   const navigate = useNavigate();
 
@@ -371,12 +371,12 @@ const SalonsManagement = () => {
   const createSalon = async () => {
     try {
       await axios.post(`${API}/salons`, newSalon, { withCredentials: true });
-      toast.success("Salon cree avec succes");
+      toast.success("Salon créé avec succès");
       setShowCreateDialog(false);
-      setNewSalon({ name: "", address: "", phone: "", description: "" });
+      setNewSalon({ name: "", address: "", phone: "", description: "", country: "", city: "", image_url: "" });
       fetchSalons();
     } catch (error) {
-      toast.error("Erreur lors de la creation du salon");
+      toast.error("Erreur lors de la création du salon");
     }
   };
 
@@ -414,45 +414,96 @@ const SalonsManagement = () => {
               Nouveau salon
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-white">Creer un nouveau salon</DialogTitle>
+              <DialogTitle className="text-white">Créer un nouveau salon</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <Input
-                placeholder="Nom du salon"
-                value={newSalon.name}
-                onChange={(e) => setNewSalon({...newSalon, name: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="salon-name-input"
-              />
-              <Input
-                placeholder="Adresse"
-                value={newSalon.address}
-                onChange={(e) => setNewSalon({...newSalon, address: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="salon-address-input"
-              />
-              <Input
-                placeholder="Telephone"
-                value={newSalon.phone}
-                onChange={(e) => setNewSalon({...newSalon, phone: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="salon-phone-input"
-              />
-              <Input
-                placeholder="Description"
-                value={newSalon.description}
-                onChange={(e) => setNewSalon({...newSalon, description: e.target.value})}
-                className="bg-slate-900 border-slate-700 text-white"
-                data-testid="salon-description-input"
-              />
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Photo du salon (URL)</label>
+                <Input
+                  placeholder="https://exemple.com/photo-salon.jpg"
+                  value={newSalon.image_url}
+                  onChange={(e) => setNewSalon({...newSalon, image_url: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+                {newSalon.image_url && (
+                  <div className="mt-2">
+                    <img 
+                      src={newSalon.image_url} 
+                      alt="Aperçu" 
+                      className="w-full h-32 object-cover rounded-lg"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Nom du salon *</label>
+                <Input
+                  placeholder="Ex: Crown Cuts Paris"
+                  value={newSalon.name}
+                  onChange={(e) => setNewSalon({...newSalon, name: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="salon-name-input"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Pays *</label>
+                  <Input
+                    placeholder="France"
+                    value={newSalon.country}
+                    onChange={(e) => setNewSalon({...newSalon, country: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Ville *</label>
+                  <Input
+                    placeholder="Paris"
+                    value={newSalon.city}
+                    onChange={(e) => setNewSalon({...newSalon, city: e.target.value})}
+                    className="bg-slate-900 border-slate-700 text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Adresse</label>
+                <Input
+                  placeholder="123 Rue de la Coiffure"
+                  value={newSalon.address}
+                  onChange={(e) => setNewSalon({...newSalon, address: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="salon-address-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Téléphone</label>
+                <Input
+                  placeholder="+33 1 23 45 67 89"
+                  value={newSalon.phone}
+                  onChange={(e) => setNewSalon({...newSalon, phone: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="salon-phone-input"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Description</label>
+                <Input
+                  placeholder="Salon spécialisé en coiffure afro..."
+                  value={newSalon.description}
+                  onChange={(e) => setNewSalon({...newSalon, description: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                  data-testid="salon-description-input"
+                />
+              </div>
               <Button 
                 onClick={createSalon} 
                 className="w-full bg-indigo-600 hover:bg-indigo-700"
                 data-testid="submit-salon-btn"
               >
-                Creer le salon
+                Créer le salon
               </Button>
             </div>
           </DialogContent>
