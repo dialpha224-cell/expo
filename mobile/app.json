@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -17,13 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.afrocrown.mobile",
-      "buildNumber": "1",
-      "infoPlist": {
-        "NSCameraUsageDescription": "AfroCrown utilise la caméra pour la simulation de coupe de cheveux avec IA",
-        "NSPhotoLibraryUsageDescription": "AfroCrown accède à vos photos pour la simulation de coupe avec IA",
-        "CFBundleAllowMixedLocalizations": true
-      }
+      "bundleIdentifier": "com.afrocrown.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -31,19 +24,7 @@
         "backgroundColor": "#0F172A"
       },
       "package": "com.afrocrown.mobile",
-      "versionCode": 1,
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "ACCESS_NETWORK_STATE",
-        "INTERNET"
-      ],
-      "blockedPermissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ]
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -51,37 +32,14 @@
     "scheme": "afrocrown",
     "plugins": [
       "expo-router",
-      "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#FFD700"
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "AfroCrown accède à vos photos pour la simulation IA de coiffure",
-          "cameraPermission": "AfroCrown utilise la caméra pour prendre des photos et simuler des coiffures"
-        }
-      ]
+      "expo-secure-store"
     ],
-    "locales": {
-      "fr": "./locales/fr.json"
-    },
     "extra": {
       "apiUrl": "https://salon-dashboard-48.preview.emergentagent.com/api",
       "eas": {
-        "projectId": "afrocrown-mobile"
+        "projectId": "84899450-832e-4ac0-a6c6-2923a22996d4"
       }
     },
-    "owner": "afrocrown",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/afrocrown-mobile"
-    }
+    "owner": "kadjalioudiallo"
   }
 }
