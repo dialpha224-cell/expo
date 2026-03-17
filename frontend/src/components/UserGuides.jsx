@@ -31,25 +31,11 @@ const UserGuides = ({ variant = "full" }) => {
     }
   };
 
-  const handleDownload = async (guide) => {
-    try {
-      const response = await axios.get(`${API}${guide.download_url}`, {
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', guide.filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      toast.success(`${guide.name} téléchargé !`);
-    } catch (error) {
-      toast.error("Erreur lors du téléchargement");
-    }
+  const handleDownload = (guide) => {
+    // Direct download via window.open
+    const downloadUrl = `${API}${guide.download_url}`;
+    window.open(downloadUrl, '_blank');
+    toast.success(`Téléchargement de ${guide.name} en cours...`);
   };
 
   const getGuideIcon = (filename) => {
