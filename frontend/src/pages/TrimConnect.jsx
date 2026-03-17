@@ -253,16 +253,7 @@ const TrimConnect = () => {
             </div>
             
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-extrabold text-white mb-6">
-              <span className="relative inline-block">
-                {/* Couronne accrochée sur le T */}
-                <img 
-                  src={CROWN_LOGO_URL} 
-                  alt="Crown" 
-                  className="absolute -top-8 sm:-top-10 lg:-top-12 -left-2 sm:-left-3 w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 transform -rotate-12 drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]"
-                />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">T</span>
-              </span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">rim</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">Trim</span>
               <span className="text-white">Connect</span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">
                 Barber Battle

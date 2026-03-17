@@ -74,21 +74,15 @@ export default function TrimConnectScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header avec logo couronne sur le T */}
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
             <Image source={{ uri: CROWN_LOGO_URL }} style={styles.crownLogo} />
           </View>
-          <View style={styles.titleContainer}>
-            <View style={styles.titleRow}>
-              <View style={styles.letterT}>
-                <Image source={{ uri: CROWN_LOGO_URL }} style={styles.smallCrown} />
-                <Text style={styles.titleGold}>T</Text>
-              </View>
-              <Text style={styles.titleGold}>rim</Text>
-              <Text style={styles.titleWhite}>Connect</Text>
-            </View>
-          </View>
+          <Text style={styles.title}>
+            <Text style={styles.titleGold}>Trim</Text>
+            <Text style={styles.titleWhite}>Connect</Text>
+          </Text>
           <Text style={styles.subtitle}>Le concours des meilleurs coiffeurs</Text>
         </View>
 
@@ -245,50 +239,22 @@ const styles = StyleSheet.create({
   logoCircle: {
     width: 70,
     height: 70,
-    backgroundColor: '#1e293b',
-    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFD700',
     marginBottom: 10,
-    overflow: 'hidden',
   },
   crownLogo: {
-    width: 50,
-    height: 50,
+    width: 70,
+    height: 70,
   },
-  titleContainer: {
-    alignItems: 'center',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  letterT: {
-    position: 'relative',
-  },
-  smallCrown: {
-    position: 'absolute',
-    top: -18,
-    left: -4,
-    width: 24,
-    height: 24,
-    transform: [{ rotate: '-15deg' }],
-  },
-  titleGold: {
+  title: {
     fontSize: 26,
     fontWeight: 'bold',
+  },
+  titleGold: {
     color: '#FFD700',
   },
   titleWhite: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
     color: '#fff',
   },
   subtitle: {
