@@ -30,7 +30,9 @@ import {
   Gift,
   QrCode,
   Image,
-  MapPin
+  MapPin,
+  Home,
+  ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -156,92 +158,107 @@ const SalonDashboard = () => {
     <div className="dashboard-layout">
       {/* Sidebar */}
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="p-6 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <Scissors className="h-8 w-8 text-indigo-500" />
-            <div>
-              <h1 className="font-heading font-bold text-white text-lg">AfroCrown</h1>
-              <p className="text-xs text-slate-500">Espace Salon</p>
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-6 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <Scissors className="h-8 w-8 text-indigo-500" />
+              <div>
+                <h1 className="font-heading font-bold text-white text-lg">AfroCrown</h1>
+                <p className="text-xs text-slate-500">Espace Salon</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Salon Selector (pour fondateur) */}
-        {user?.role === 'founder' && salons.length > 0 && (
-          <div className="p-4 border-b border-slate-800">
-            <label className="text-xs text-slate-500 mb-2 block">Salon actif</label>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-between border-slate-700 text-white bg-slate-800 hover:bg-slate-700">
-                  <span className="truncate">{salon?.name || "Selectionner"}</span>
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700">
-                {salons.map((s) => (
-                  <DropdownMenuItem 
-                    key={s.salon_id}
-                    onClick={() => setSelectedSalonId(s.salon_id)}
-                    className="text-white hover:bg-slate-700 cursor-pointer"
-                  >
-                    {s.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
-        <nav className="p-4 space-y-1">
-          {menuItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => {
-                navigate(item.path);
-                setSidebarOpen(false);
-              }}
-              className={`sidebar-item w-full ${isActive(item.path) ? 'sidebar-item-active' : ''}`}
-              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Lien vers dashboard fondateur */}
-        {user?.role === 'founder' && (
-          <div className="px-4 py-2">
-            <button
-              onClick={() => navigate('/founder')}
-              className="sidebar-item w-full text-indigo-400 hover:bg-indigo-500/10"
-            >
-              <LayoutDashboard className="h-5 w-5" />
-              <span>Dashboard Admin</span>
-            </button>
-          </div>
-        )}
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 mb-4 px-4">
-            <img 
-              src={user?.picture || `https://ui-avatars.com/api/?name=${user?.name}&background=4F46E5&color=fff`}
-              alt={user?.name}
-              className="w-10 h-10 rounded-full"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">{user?.name}</p>
-              <p className="text-slate-500 text-xs truncate">{user?.email}</p>
+          {/* Salon Selector (pour fondateur) */}
+          {user?.role === 'founder' && salons.length > 0 && (
+            <div className="p-4 border-b border-slate-800">
+              <label className="text-xs text-slate-500 mb-2 block">Salon actif</label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between border-slate-700 text-white bg-slate-800 hover:bg-slate-700">
+                    <span className="truncate">{salon?.name || "Selectionner"}</span>
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700">
+                  {salons.map((s) => (
+                    <DropdownMenuItem 
+                      key={s.salon_id}
+                      onClick={() => setSelectedSalonId(s.salon_id)}
+                      className="text-white hover:bg-slate-700 cursor-pointer"
+                    >
+                      {s.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+          )}
+
+          {/* Navigation - Scrollable */}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+            {/* Bouton Retour à l'accueil */}
+            <button
+              onClick={() => navigate('/')}
+              className="sidebar-item w-full text-amber-400 hover:bg-amber-500/10 mb-2"
+              data-testid="back-home-btn"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>Retour à l'accueil</span>
+            </button>
+            
+            <div className="h-px bg-slate-800 my-2"></div>
+            
+            {menuItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarOpen(false);
+                }}
+                className={`sidebar-item w-full ${isActive(item.path) ? 'sidebar-item-active' : ''}`}
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+            
+            {/* Lien vers dashboard fondateur */}
+            {user?.role === 'founder' && (
+              <button
+                onClick={() => navigate('/founder')}
+                className="sidebar-item w-full text-indigo-400 hover:bg-indigo-500/10 mt-2"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                <span>Dashboard Admin</span>
+              </button>
+            )}
+          </nav>
+
+          {/* User Profile & Logout - Fixed at bottom */}
+          <div className="p-4 border-t border-slate-800 bg-slate-900">
+            <div className="flex items-center gap-3 mb-3 px-2">
+              <img 
+                src={user?.picture || `https://ui-avatars.com/api/?name=${user?.name}&background=4F46E5&color=fff`}
+                alt={user?.name}
+                className="w-10 h-10 rounded-full"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-medium truncate">{user?.name}</p>
+                <p className="text-slate-500 text-xs truncate">{user?.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="sidebar-item w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              data-testid="logout-btn"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Déconnexion</span>
+            </button>
           </div>
-          <button
-            onClick={logout}
-            className="sidebar-item w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-            data-testid="logout-btn"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Deconnexion</span>
-          </button>
         </div>
       </aside>
 
