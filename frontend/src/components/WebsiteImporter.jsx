@@ -125,7 +125,7 @@ const WebsiteImporter = ({ salonId, onImportComplete }) => {
 
               {/* Import Options */}
               <div>
-                <label className="text-slate-300 text-sm mb-3 block">Donnees a importer</label>
+                <label className="text-slate-300 text-sm mb-3 block">Données à importer</label>
                 <div className="space-y-3">
                   {importOptions.map((option) => (
                     <label
@@ -155,12 +155,12 @@ const WebsiteImporter = ({ salonId, onImportComplete }) => {
 
               {/* Info Box */}
               <div className="bg-slate-700/50 rounded-xl p-4 text-sm text-slate-400">
-                <p className="font-medium text-slate-300 mb-2">Comment ca marche ?</p>
+                <p className="font-medium text-slate-300 mb-2">Comment ça marche ?</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Entrez l'URL de votre site actuel</li>
-                  <li>Notre equipe analysera votre contenu</li>
-                  <li>Les donnees seront adaptees au format AfroCrown</li>
-                  <li>Vous serez notifie une fois l'import termine</li>
+                  <li>Notre système analyse automatiquement votre contenu</li>
+                  <li>Services, prix et photos sont importés</li>
+                  <li>Vérifiez et ajustez les données importées</li>
                 </ol>
               </div>
 
@@ -173,7 +173,7 @@ const WebsiteImporter = ({ salonId, onImportComplete }) => {
                 {importing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Import en cours...
+                    Analyse en cours...
                   </>
                 ) : (
                   <>
@@ -194,16 +194,38 @@ const WebsiteImporter = ({ salonId, onImportComplete }) => {
               </div>
               
               <h3 className="text-xl font-bold text-white mb-2">
-                Demande envoyee !
+                {importResult.status === 'completed' ? 'Import réussi !' : 'Demande envoyée !'}
               </h3>
               
               <p className="text-slate-400 mb-4">
                 {importResult.message}
               </p>
 
+              {/* Extracted Data Summary */}
+              {importResult.extracted && (
+                <div className="bg-slate-700/50 rounded-xl p-4 text-left mb-4 space-y-3">
+                  <p className="text-slate-300 font-medium text-sm mb-2">Données extraites :</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Scissors className="w-4 h-4 text-indigo-400" />
+                      <span className="text-slate-300">{importResult.extracted.services_found} services</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Image className="w-4 h-4 text-purple-400" />
+                      <span className="text-slate-300">{importResult.extracted.images_imported || 0} photos</span>
+                    </div>
+                  </div>
+                  {importResult.extracted.phones_found?.length > 0 && (
+                    <p className="text-slate-400 text-xs">
+                      Tél: {importResult.extracted.phones_found[0]}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="bg-slate-700/50 rounded-xl p-4 text-left mb-6">
                 <p className="text-slate-400 text-sm">ID de l'import</p>
-                <p className="text-indigo-400 font-mono">{importResult.import_id}</p>
+                <p className="text-indigo-400 font-mono text-sm">{importResult.import_id}</p>
               </div>
 
               <Button

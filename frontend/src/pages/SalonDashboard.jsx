@@ -36,7 +36,8 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
-  Trophy
+  Trophy,
+  Star
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -2150,7 +2151,19 @@ const SalonStats = ({ salonId }) => {
     );
   }
 
-  const { summary, daily_data, top_barbers, top_haircuts, hourly_distribution } = analytics;
+  const { summary, trends, daily_data, top_barbers, top_haircuts, hourly_distribution } = analytics;
+
+  const getTrendIcon = (value) => {
+    if (value > 0) return <TrendingUp className="h-4 w-4 text-green-400" />;
+    if (value < 0) return <TrendingDown className="h-4 w-4 text-red-400" />;
+    return <Activity className="h-4 w-4 text-slate-400" />;
+  };
+
+  const getTrendColor = (value) => {
+    if (value > 0) return "text-green-400";
+    if (value < 0) return "text-red-400";
+    return "text-slate-400";
+  };
 
   return (
     <div className="space-y-6" data-testid="salon-stats">
@@ -2184,6 +2197,12 @@ const SalonStats = ({ salonId }) => {
             <div>
               <p className="text-indigo-300 text-xs">Réservations</p>
               <p className="text-2xl font-bold text-white">{summary.total_bookings}</p>
+              {trends && (
+                <div className={`flex items-center gap-1 text-xs ${getTrendColor(trends.bookings_trend)}`}>
+                  {getTrendIcon(trends.bookings_trend)}
+                  <span>{trends.bookings_trend > 0 ? '+' : ''}{trends.bookings_trend}%</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2196,6 +2215,12 @@ const SalonStats = ({ salonId }) => {
             <div>
               <p className="text-green-300 text-xs">Revenus</p>
               <p className="text-2xl font-bold text-white">{summary.total_revenue}€</p>
+              {trends && (
+                <div className={`flex items-center gap-1 text-xs ${getTrendColor(trends.revenue_trend)}`}>
+                  {getTrendIcon(trends.revenue_trend)}
+                  <span>{trends.revenue_trend > 0 ? '+' : ''}{trends.revenue_trend}%</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2215,11 +2240,14 @@ const SalonStats = ({ salonId }) => {
         <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 border border-purple-500/30 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Activity className="h-5 w-5 text-purple-400" />
+              <Star className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <p className="text-purple-300 text-xs">Panier moyen</p>
-              <p className="text-2xl font-bold text-white">{summary.avg_booking_value}€</p>
+              <p className="text-purple-300 text-xs">Satisfaction</p>
+              <p className="text-2xl font-bold text-white">{summary.satisfaction_rate || 0}%</p>
+              {summary.total_reviews > 0 && (
+                <p className="text-purple-400/60 text-xs">{summary.avg_rating}/5 ({summary.total_reviews} avis)</p>
+              )}
             </div>
           </div>
         </div>

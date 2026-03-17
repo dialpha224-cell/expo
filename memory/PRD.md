@@ -310,7 +310,7 @@ Structure dans /app/mobile avec:
 ## Next Tasks
 1. Vérifier build APK mobile avec mode offline
 2. Facebook Login (en attente de credentials utilisateur)
-3. Continuer refactoring server.py (5700+ lignes)
+3. Continuer refactoring server.py (5800+ lignes)
 
 ## Completed (Session 9 - Mars 2026)
 - [x] **Abonnements Mensuels** - Système complet:
@@ -332,6 +332,23 @@ Structure dans /app/mobile avec:
   - Page dédiée /guides avec téléchargement
   - Lien "Guides PDF" ajouté au footer
   - 2 PDFs: Guide Client (251 Ko), Guide Salon (167 Ko)
+
+- [x] **Import Automatique de Sites Web Amélioré**:
+  - Extraction automatique services, prix, photos, téléphones, emails
+  - Import des photos dans la galerie du salon
+  - Nouveaux endpoints: /api/salons/{salon_id}/imports, /imported-photos
+  - Résultat détaillé après import
+
+- [x] **Analytics Améliorés**:
+  - Comparaison période précédente (tendances +/-%)
+  - Taux de satisfaction basé sur les avis
+  - Indicateurs visuels de tendance (flèches vertes/rouges)
+  - Note moyenne et nombre d'avis
+
+- [x] **Stripe Paiement Vérifié**:
+  - Checkout session fonctionne avec clé test
+  - Webhook configuré
+  - Flow complet testé
 
 - [x] **Composants Existants Vérifiés**:
   - WebsiteImporter.jsx - Fonctionnel (import site web salon)

@@ -3806,6 +3806,30 @@ async def get_salon_analytics(
     cancelled = sum(1 for a in appointments if a.get("status") == "cancelled")
     avg_booking_value = total_revenue / completed if completed > 0 else 0
     
+    # Previous period comparison (week over week)
+    prev_start = start_date - timedelta(days=days)
+    prev_start_str = prev_start.isoformat()
+    prev_appointments = await db.appointments.find({
+        "salon_id": salon_id,
+        "created_at": {"$gte": prev_start_str, "$lt": start_date_str}
+    }, {"_id": 0}).to_list(10000)
+    
+    prev_bookings = len(prev_appointments)
+    prev_revenue = sum(a.get("total_price", 0) for a in prev_appointments if a.get("status") == "completed")
+    
+    # Calculate trends
+    bookings_trend = round(((total_bookings - prev_bookings) / prev_bookings * 100) if prev_bookings > 0 else 0, 1)
+    revenue_trend = round(((total_revenue - prev_revenue) / prev_revenue * 100) if prev_revenue > 0 else 0, 1)
+    
+    # Get satisfaction rate from reviews
+    reviews = await db.reviews.find(
+        {"salon_id": salon_id, "created_at": {"$gte": start_date_str}},
+        {"_id": 0, "rating": 1}
+    ).to_list(1000)
+    
+    avg_rating = sum(r.get("rating", 0) for r in reviews) / len(reviews) if reviews else 0
+    satisfaction_rate = round(avg_rating / 5 * 100, 1) if avg_rating > 0 else 0
+    
     return {
         "period_days": days,
         "summary": {
@@ -3814,7 +3838,16 @@ async def get_salon_analytics(
             "completed": completed,
             "cancelled": cancelled,
             "completion_rate": round((completed / total_bookings * 100) if total_bookings > 0 else 0, 1),
-            "avg_booking_value": round(avg_booking_value, 2)
+            "avg_booking_value": round(avg_booking_value, 2),
+            "satisfaction_rate": satisfaction_rate,
+            "avg_rating": round(avg_rating, 1),
+            "total_reviews": len(reviews)
+        },
+        "trends": {
+            "bookings_trend": bookings_trend,
+            "revenue_trend": revenue_trend,
+            "prev_bookings": prev_bookings,
+            "prev_revenue": round(prev_revenue, 2)
         },
         "daily_data": list(daily_data.values()),
         "top_barbers": top_barbers,
@@ -5277,17 +5310,61 @@ async def import_salon_website(salon_id: str, import_req: SalonWebsiteImportRequ
                     upsert=True
                 )
     
+    # Import gallery images if enabled
+    imported_images = []
+    if import_req.import_gallery and scraped_data.get('images') and scraped_data.get('status') == 'completed':
+        for img_url in scraped_data['images'][:6]:  # Max 6 images
+            photo_id = f"photo_{uuid.uuid4().hex[:12]}"
+            await db.salon_photos.update_one(
+                {"salon_id": salon_id, "external_url": img_url},
+                {"$setOnInsert": {
+                    "photo_id": photo_id,
+                    "salon_id": salon_id,
+                    "external_url": img_url,
+                    "imported": True,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }},
+                upsert=True
+            )
+            imported_images.append(img_url)
+    
     return {
         "success": True,
         "import_id": import_id,
         "status": scraped_data.get('status', 'pending'),
-        "message": "Import termine !" if scraped_data.get('status') == 'completed' else "Import en cours de traitement.",
+        "message": "Import terminé avec succès !" if scraped_data.get('status') == 'completed' else "Import en cours de traitement.",
         "extracted": {
             "services_found": len(scraped_data.get('services', [])),
             "images_found": len(scraped_data.get('images', [])),
-            "prices_found": len(scraped_data.get('prices', []))
+            "images_imported": len(imported_images),
+            "prices_found": len(scraped_data.get('prices', [])),
+            "phones_found": scraped_data.get('phones', []),
+            "emails_found": scraped_data.get('emails', [])
         } if scraped_data.get('status') == 'completed' else None
     }
+
+@api_router.get("/salons/{salon_id}/imports")
+async def get_salon_imports(salon_id: str, user: UserBase = Depends(require_salon_owner)):
+    """Get import history for a salon"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    imports = await db.salon_imports.find(
+        {"salon_id": salon_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(10)
+    
+    return imports
+
+@api_router.get("/salons/{salon_id}/imported-photos")
+async def get_imported_photos(salon_id: str):
+    """Get imported photos for a salon"""
+    photos = await db.salon_photos.find(
+        {"salon_id": salon_id, "imported": True},
+        {"_id": 0}
+    ).to_list(20)
+    
+    return photos
 
 # =============================================================================
 # TRIMCONNECT VOTING
