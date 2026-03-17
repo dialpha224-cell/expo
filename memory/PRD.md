@@ -270,6 +270,29 @@ Structure dans /app/mobile avec:
   - GET /api/analytics/salon/{salon_id}?days=N
   - GET /api/analytics/founder?days=N
 
+- [x] **GAMIFICATION & ENGAGEMENT** (Phase 1):
+  - **Système de badges salons** avec 7 badges (Nouveau Partenaire, Étoile Montante, Salon Populaire, Excellence, Maître des Revenus, Fidélité Exemplaire, Salon Élite)
+  - **Programme VIP clients** avec 4 tiers (Bronze, Silver, Gold, Platinum) et points cumulables
+  - **Code de parrainage** généré automatiquement pour chaque client (100 pts par parrainage)
+  - **Préférences de notification** anti-spam (max messages/semaine, heures calmes, opt-in/out)
+  - **Relances clients inactifs** (4+ semaines) avec throttling intelligent (1 rappel/semaine max)
+  - **Réservation urgente** "dans les 2h" avec géolocalisation
+
+- [x] Nouveaux composants frontend:
+  - ClientVIPStatus.jsx - Carte VIP avec statut, points, parrainage, préférences notif
+  - SalonBadges.jsx - Page badges avec stats et progression
+  - UrgentBooking.jsx - Modal de réservation urgente géolocalisée
+  - InactiveClientReminders.jsx - Liste des clients à relancer avec bouton "Relancer"
+
+- [x] Nouveaux endpoints API:
+  - GET /api/client/profile/enhanced - Profil VIP client
+  - PUT /api/client/notification-preferences - Préférences notification
+  - POST /api/client/referral/apply - Appliquer code parrainage
+  - GET /api/salon/{salon_id}/badges - Badges du salon
+  - GET /api/bookings/urgent - Créneaux urgents géolocalisés
+  - GET /api/client/inactive-reminder - Liste clients inactifs
+  - POST /api/client/{client_id}/send-reminder - Envoyer relance (avec throttling)
+
 ## Next Tasks
 1. Attendre validation APK mobile par l'utilisateur
 2. Verifier domaine Resend pour envoi emails en production

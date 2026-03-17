@@ -849,6 +849,63 @@ class SalonRegistrationRequest(BaseModel):
     salon: SalonRegistrationSalon
 
 # =============================================================================
+# ENHANCED LOYALTY & GAMIFICATION MODELS
+# =============================================================================
+
+# Client notification preferences (anti-spam)
+class NotificationPreferences(BaseModel):
+    email_marketing: bool = True
+    email_reminders: bool = True
+    push_promotions: bool = True
+    push_reminders: bool = True
+    sms_enabled: bool = False
+    max_messages_per_week: int = 3  # Smart throttling
+    quiet_hours_start: str = "22:00"
+    quiet_hours_end: str = "08:00"
+
+# VIP Status tiers
+class VIPTier(BaseModel):
+    tier: str  # bronze, silver, gold, platinum
+    min_points: int
+    benefits: List[str]
+    discount_percent: float
+
+# Salon badges/achievements
+class SalonBadge(BaseModel):
+    badge_id: str
+    name: str
+    description: str
+    icon: str  # emoji or icon name
+    criteria_type: str  # bookings, revenue, rating, retention
+    criteria_value: int
+    tier: str  # bronze, silver, gold
+
+# Client points transaction
+class PointsTransaction(BaseModel):
+    transaction_id: str
+    user_id: str
+    salon_id: Optional[str] = None
+    points: int  # positive = earned, negative = spent
+    reason: str  # booking, referral, review, redemption
+    created_at: datetime
+
+# Referral program
+class ReferralCode(BaseModel):
+    code: str
+    user_id: str
+    uses: int = 0
+    max_uses: Optional[int] = None
+    reward_points: int = 100
+    created_at: datetime
+
+# Urgent booking request
+class UrgentBookingRequest(BaseModel):
+    latitude: float
+    longitude: float
+    radius_km: float = 5.0
+    haircut_type: Optional[str] = None
+
+# =============================================================================
 # AUTH HELPERS
 # =============================================================================
 
@@ -4004,6 +4061,419 @@ async def redeem_reward(reward_id: str, user: UserBase = Depends(require_salon_o
     )
     
     return {"success": True, "message": "Reward redeemed successfully"}
+
+# =============================================================================
+# ENHANCED GAMIFICATION & ENGAGEMENT ROUTES
+# =============================================================================
+
+# VIP Tiers configuration
+VIP_TIERS = [
+    {"tier": "bronze", "min_points": 0, "discount_percent": 0, "benefits": ["Accès programme fidélité"]},
+    {"tier": "silver", "min_points": 500, "discount_percent": 5, "benefits": ["5% réduction", "Réservation prioritaire"]},
+    {"tier": "gold", "min_points": 1500, "discount_percent": 10, "benefits": ["10% réduction", "Coupe gratuite/an", "Accès VIP TrimConnect"]},
+    {"tier": "platinum", "min_points": 5000, "discount_percent": 15, "benefits": ["15% réduction", "2 coupes gratuites/an", "Badge exclusif", "Support prioritaire"]}
+]
+
+# Salon badges configuration
+SALON_BADGES = [
+    {"badge_id": "starter", "name": "Nouveau Partenaire", "icon": "🌱", "criteria_type": "bookings", "criteria_value": 1, "tier": "bronze"},
+    {"badge_id": "rising_star", "name": "Étoile Montante", "icon": "⭐", "criteria_type": "bookings", "criteria_value": 50, "tier": "bronze"},
+    {"badge_id": "popular", "name": "Salon Populaire", "icon": "🔥", "criteria_type": "bookings", "criteria_value": 200, "tier": "silver"},
+    {"badge_id": "top_rated", "name": "Excellence", "icon": "🏆", "criteria_type": "rating", "criteria_value": 45, "tier": "silver"},  # 4.5+ rating
+    {"badge_id": "revenue_master", "name": "Maître des Revenus", "icon": "💎", "criteria_type": "revenue", "criteria_value": 10000, "tier": "gold"},
+    {"badge_id": "loyal_base", "name": "Fidélité Exemplaire", "icon": "❤️", "criteria_type": "retention", "criteria_value": 70, "tier": "gold"},  # 70%+ retention
+    {"badge_id": "elite", "name": "Salon Élite", "icon": "👑", "criteria_type": "bookings", "criteria_value": 1000, "tier": "platinum"},
+]
+
+@api_router.get("/client/profile/enhanced")
+async def get_enhanced_client_profile(user: UserBase = Depends(require_auth)):
+    """Get enhanced client profile with VIP status, points, and badges"""
+    
+    # Get or create client profile
+    profile = await db.client_profiles.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not profile:
+        profile = {
+            "user_id": user.user_id,
+            "total_points": 0,
+            "lifetime_points": 0,
+            "vip_tier": "bronze",
+            "total_bookings": 0,
+            "referral_code": f"AFRO{user.user_id[:8].upper()}",
+            "referrals_count": 0,
+            "notification_preferences": {
+                "email_marketing": True,
+                "email_reminders": True,
+                "push_promotions": True,
+                "push_reminders": True,
+                "max_messages_per_week": 3,
+                "quiet_hours_start": "22:00",
+                "quiet_hours_end": "08:00"
+            },
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.client_profiles.insert_one(profile)
+    
+    # Calculate VIP tier
+    lifetime_points = profile.get("lifetime_points", 0)
+    vip_tier = "bronze"
+    for tier in reversed(VIP_TIERS):
+        if lifetime_points >= tier["min_points"]:
+            vip_tier = tier["tier"]
+            break
+    
+    # Get current tier benefits
+    tier_info = next((t for t in VIP_TIERS if t["tier"] == vip_tier), VIP_TIERS[0])
+    next_tier = None
+    for i, t in enumerate(VIP_TIERS):
+        if t["tier"] == vip_tier and i < len(VIP_TIERS) - 1:
+            next_tier = VIP_TIERS[i + 1]
+            break
+    
+    return {
+        "user_id": user.user_id,
+        "name": user.name,
+        "email": user.email,
+        "total_points": profile.get("total_points", 0),
+        "lifetime_points": lifetime_points,
+        "vip_tier": vip_tier,
+        "tier_benefits": tier_info["benefits"],
+        "discount_percent": tier_info["discount_percent"],
+        "next_tier": next_tier["tier"] if next_tier else None,
+        "points_to_next_tier": (next_tier["min_points"] - lifetime_points) if next_tier else 0,
+        "total_bookings": profile.get("total_bookings", 0),
+        "referral_code": profile.get("referral_code"),
+        "referrals_count": profile.get("referrals_count", 0),
+        "notification_preferences": profile.get("notification_preferences", {})
+    }
+
+@api_router.put("/client/notification-preferences")
+async def update_notification_preferences(preferences: NotificationPreferences, user: UserBase = Depends(require_auth)):
+    """Update client notification preferences (anti-spam settings)"""
+    await db.client_profiles.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"notification_preferences": preferences.dict()}},
+        upsert=True
+    )
+    return {"success": True, "message": "Préférences mises à jour"}
+
+@api_router.post("/client/referral/apply")
+async def apply_referral_code(code: str, user: UserBase = Depends(require_auth)):
+    """Apply a referral code to earn points"""
+    # Find referrer
+    referrer_profile = await db.client_profiles.find_one({"referral_code": code.upper()}, {"_id": 0})
+    if not referrer_profile:
+        raise HTTPException(status_code=404, detail="Code de parrainage invalide")
+    
+    if referrer_profile["user_id"] == user.user_id:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas utiliser votre propre code")
+    
+    # Check if already used referral
+    existing = await db.referral_uses.find_one({"user_id": user.user_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez déjà utilisé un code de parrainage")
+    
+    # Award points to both
+    reward_points = 100
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Record referral use
+    await db.referral_uses.insert_one({
+        "user_id": user.user_id,
+        "referrer_id": referrer_profile["user_id"],
+        "code": code.upper(),
+        "created_at": now
+    })
+    
+    # Award points to new user
+    await db.client_profiles.update_one(
+        {"user_id": user.user_id},
+        {"$inc": {"total_points": reward_points, "lifetime_points": reward_points}},
+        upsert=True
+    )
+    
+    # Award points to referrer
+    await db.client_profiles.update_one(
+        {"user_id": referrer_profile["user_id"]},
+        {"$inc": {"total_points": reward_points, "lifetime_points": reward_points, "referrals_count": 1}}
+    )
+    
+    return {"success": True, "points_earned": reward_points, "message": f"Vous avez gagné {reward_points} points!"}
+
+@api_router.get("/client/points-history")
+async def get_points_history(user: UserBase = Depends(require_auth), limit: int = 20):
+    """Get client's points transaction history"""
+    transactions = await db.points_transactions.find(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return transactions
+
+@api_router.get("/salon/{salon_id}/badges")
+async def get_salon_badges(salon_id: str):
+    """Get badges earned by a salon"""
+    salon = await db.salons.find_one({"salon_id": salon_id}, {"_id": 0})
+    if not salon:
+        raise HTTPException(status_code=404, detail="Salon non trouvé")
+    
+    # Calculate salon stats
+    total_bookings = await db.appointments.count_documents({"salon_id": salon_id})
+    completed_bookings = await db.appointments.count_documents({"salon_id": salon_id, "status": "completed"})
+    
+    # Calculate revenue
+    revenue_agg = await db.appointments.aggregate([
+        {"$match": {"salon_id": salon_id, "status": "completed"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_price"}}}
+    ]).to_list(1)
+    total_revenue = revenue_agg[0]["total"] if revenue_agg else 0
+    
+    # Get rating
+    avg_rating = salon.get("rating", 0) * 10  # Convert to scale for comparison
+    
+    # Calculate retention (returning clients)
+    retention_rate = 0
+    if completed_bookings > 0:
+        unique_clients = await db.appointments.distinct("client_id", {"salon_id": salon_id, "status": "completed"})
+        repeat_clients = 0
+        for client_id in unique_clients:
+            count = await db.appointments.count_documents({"salon_id": salon_id, "client_id": client_id, "status": "completed"})
+            if count > 1:
+                repeat_clients += 1
+        retention_rate = int((repeat_clients / len(unique_clients)) * 100) if unique_clients else 0
+    
+    # Determine earned badges
+    earned_badges = []
+    for badge in SALON_BADGES:
+        earned = False
+        if badge["criteria_type"] == "bookings" and total_bookings >= badge["criteria_value"]:
+            earned = True
+        elif badge["criteria_type"] == "revenue" and total_revenue >= badge["criteria_value"]:
+            earned = True
+        elif badge["criteria_type"] == "rating" and avg_rating >= badge["criteria_value"]:
+            earned = True
+        elif badge["criteria_type"] == "retention" and retention_rate >= badge["criteria_value"]:
+            earned = True
+        
+        if earned:
+            earned_badges.append({
+                "badge_id": badge["badge_id"],
+                "name": badge["name"],
+                "icon": badge["icon"],
+                "tier": badge["tier"],
+                "earned": True
+            })
+    
+    # Add unearned badges for progress
+    all_badges = []
+    for badge in SALON_BADGES:
+        is_earned = any(b["badge_id"] == badge["badge_id"] for b in earned_badges)
+        all_badges.append({
+            "badge_id": badge["badge_id"],
+            "name": badge["name"],
+            "icon": badge["icon"],
+            "tier": badge["tier"],
+            "criteria_type": badge["criteria_type"],
+            "criteria_value": badge["criteria_value"],
+            "earned": is_earned
+        })
+    
+    return {
+        "salon_id": salon_id,
+        "stats": {
+            "total_bookings": total_bookings,
+            "total_revenue": total_revenue,
+            "rating": salon.get("rating", 0),
+            "retention_rate": retention_rate
+        },
+        "earned_badges": earned_badges,
+        "all_badges": all_badges
+    }
+
+@api_router.post("/salon/{salon_id}/alert-settings")
+async def update_salon_alerts(
+    salon_id: str,
+    booking_milestone: int = 100,
+    revenue_milestone: int = 5000,
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Configure salon performance alerts"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    await db.salon_alert_settings.update_one(
+        {"salon_id": salon_id},
+        {"$set": {
+            "booking_milestone": booking_milestone,
+            "revenue_milestone": revenue_milestone,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    return {"success": True}
+
+@api_router.get("/bookings/urgent")
+async def find_urgent_bookings(
+    latitude: float,
+    longitude: float,
+    radius_km: float = 5.0,
+    user: UserBase = Depends(require_auth)
+):
+    """Find salons with availability within 2 hours for urgent bookings"""
+    now = datetime.now(timezone.utc)
+    two_hours_later = now + timedelta(hours=2)
+    today = now.strftime("%Y-%m-%d")
+    
+    # Find nearby active salons
+    salons = await db.salons.find({
+        "is_active": True,
+        "is_approved": True,
+        "country": {"$exists": True}
+    }, {"_id": 0}).to_list(500)
+    
+    available_salons = []
+    
+    for salon in salons:
+        salon_id = salon["salon_id"]
+        
+        # Get salon's barbers
+        barbers = await db.barbers.find({
+            "salon_id": salon_id,
+            "is_active": True,
+            "is_available": True
+        }, {"_id": 0}).to_list(50)
+        
+        if not barbers:
+            continue
+        
+        # Check for available slots in next 2 hours
+        # Generate time slots
+        available_slots = []
+        current_hour = now.hour
+        current_minute = (now.minute // 30 + 1) * 30  # Round up to next 30 min
+        
+        if current_minute >= 60:
+            current_hour += 1
+            current_minute = 0
+        
+        for h in range(current_hour, min(current_hour + 3, 21)):
+            for m in [0, 30]:
+                if h == current_hour and m < current_minute:
+                    continue
+                time_slot = f"{h:02d}:{m:02d}"
+                
+                # Check if any barber is free
+                for barber in barbers:
+                    existing = await db.appointments.find_one({
+                        "salon_id": salon_id,
+                        "barber_id": barber["barber_id"],
+                        "appointment_date": today,
+                        "time_slot": time_slot,
+                        "status": {"$nin": ["cancelled"]}
+                    })
+                    if not existing:
+                        available_slots.append({
+                            "time": time_slot,
+                            "barber_id": barber["barber_id"],
+                            "barber_name": barber["name"]
+                        })
+                        break
+        
+        if available_slots:
+            available_salons.append({
+                "salon_id": salon_id,
+                "name": salon["name"],
+                "address": salon.get("address", ""),
+                "city": salon.get("city", ""),
+                "rating": salon.get("rating", 0),
+                "available_slots": available_slots[:3]  # Limit to 3 slots
+            })
+    
+    return {
+        "count": len(available_salons),
+        "salons": available_salons[:10]  # Limit to 10 salons
+    }
+
+@api_router.get("/client/inactive-reminder")
+async def check_inactive_clients(user: UserBase = Depends(require_salon_owner)):
+    """Get list of inactive clients for the salon (haven't visited in 4+ weeks)"""
+    salon_id = user.salon_id
+    if not salon_id:
+        raise HTTPException(status_code=400, detail="Salon non assigné")
+    
+    four_weeks_ago = (datetime.now(timezone.utc) - timedelta(weeks=4)).isoformat()
+    
+    # Find clients who booked but haven't returned
+    pipeline = [
+        {"$match": {"salon_id": salon_id, "status": "completed"}},
+        {"$sort": {"created_at": -1}},
+        {"$group": {
+            "_id": "$client_id",
+            "last_visit": {"$first": "$appointment_date"},
+            "client_name": {"$first": "$client_name"},
+            "client_email": {"$first": "$client_email"},
+            "total_visits": {"$sum": 1}
+        }},
+        {"$match": {"last_visit": {"$lt": four_weeks_ago[:10]}}},
+        {"$limit": 50}
+    ]
+    
+    inactive_clients = await db.appointments.aggregate(pipeline).to_list(50)
+    
+    return {
+        "count": len(inactive_clients),
+        "clients": inactive_clients
+    }
+
+@api_router.post("/client/{client_id}/send-reminder")
+async def send_client_reminder(
+    client_id: str,
+    message_type: str = "comeback",  # comeback, promotion, new_service
+    user: UserBase = Depends(require_salon_owner)
+):
+    """Send a reminder to an inactive client (with throttling)"""
+    salon_id = user.salon_id
+    if not salon_id:
+        raise HTTPException(status_code=400, detail="Salon non assigné")
+    
+    # Check throttling - max 1 reminder per client per week
+    one_week_ago = (datetime.now(timezone.utc) - timedelta(weeks=1)).isoformat()
+    recent_reminder = await db.client_reminders.find_one({
+        "client_id": client_id,
+        "salon_id": salon_id,
+        "created_at": {"$gte": one_week_ago}
+    })
+    
+    if recent_reminder:
+        raise HTTPException(status_code=429, detail="Un rappel a déjà été envoyé cette semaine")
+    
+    # Get client notification preferences
+    client_profile = await db.client_profiles.find_one({"user_id": client_id}, {"_id": 0})
+    prefs = client_profile.get("notification_preferences", {}) if client_profile else {}
+    
+    # Check if client accepts marketing
+    if not prefs.get("email_marketing", True):
+        raise HTTPException(status_code=400, detail="Ce client a désactivé les messages marketing")
+    
+    # Check weekly limit for this client
+    messages_this_week = await db.client_reminders.count_documents({
+        "client_id": client_id,
+        "created_at": {"$gte": one_week_ago}
+    })
+    max_messages = prefs.get("max_messages_per_week", 3)
+    
+    if messages_this_week >= max_messages:
+        raise HTTPException(status_code=429, detail=f"Limite de {max_messages} messages/semaine atteinte pour ce client")
+    
+    # Record the reminder (actual sending would be via email service)
+    await db.client_reminders.insert_one({
+        "reminder_id": f"rem_{uuid.uuid4().hex[:12]}",
+        "client_id": client_id,
+        "salon_id": salon_id,
+        "message_type": message_type,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"success": True, "message": "Rappel programmé"}
 
 # =============================================================================
 # SALON LOCATION & SEARCH ROUTES

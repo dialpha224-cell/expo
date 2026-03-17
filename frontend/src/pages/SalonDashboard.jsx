@@ -35,7 +35,8 @@ import {
   ArrowLeft,
   TrendingUp,
   TrendingDown,
-  Activity
+  Activity,
+  Trophy
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -70,6 +71,8 @@ import AppointmentQRScanner from "../components/AppointmentQRScanner";
 import ReassignClientModal from "../components/ReassignClientModal";
 import WebsiteImporter from "../components/WebsiteImporter";
 import AppointmentCalendar from "../components/AppointmentCalendar";
+import SalonBadges from "../components/SalonBadges";
+import InactiveClientReminders from "../components/InactiveClientReminders";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -135,6 +138,7 @@ const SalonDashboard = () => {
     { icon: Tag, label: "Promotions", path: "/salon/promotions" },
     { icon: ShoppingBag, label: "Produits", path: "/salon/products" },
     { icon: BarChart3, label: "Statistiques", path: "/salon/stats" },
+    { icon: Trophy, label: "Badges & Performance", path: "/salon/badges" },
     { icon: Settings, label: "Paramètres", path: "/salon/settings" },
   ];
 
@@ -310,6 +314,7 @@ const SalonDashboard = () => {
             <Route path="premium" element={<PremiumServicesPage salonId={selectedSalonId} />} />
             <Route path="products" element={<ProductsManagement />} />
             <Route path="stats" element={<SalonStats salonId={selectedSalonId} />} />
+            <Route path="badges" element={<SalonBadges salonId={selectedSalonId} />} />
             <Route path="settings" element={<SalonSettings salon={salon} onUpdate={() => fetchSalon(selectedSalonId)} />} />
           </Routes>
         </div>
@@ -420,6 +425,9 @@ const SalonOverview = ({ salonId }) => {
           </div>
         ))}
       </div>
+
+      {/* Inactive Clients Section */}
+      <InactiveClientReminders salonId={salonId} />
     </div>
   );
 };

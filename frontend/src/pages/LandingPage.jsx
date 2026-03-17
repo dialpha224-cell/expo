@@ -7,6 +7,8 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useLanguage, LanguageSelector } from "../context/LanguageContext";
 import VideoPresentation from "../components/VideoPresentation";
+import ClientVIPStatus from "../components/ClientVIPStatus";
+import UrgentBooking from "../components/UrgentBooking";
 import { 
   Scissors, 
   Calendar, 
@@ -28,7 +30,8 @@ import {
   ChevronRight,
   Navigation,
   Globe,
-  TrendingUp
+  TrendingUp,
+  Zap
 } from "lucide-react";
 import {
   Dialog,
@@ -496,23 +499,35 @@ const LandingPage = () => {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {user ? (
-                <Button 
-                  onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/booking'}
-                  className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-amber-500/30 transition-all duration-300"
-                  data-testid="go-dashboard-btn"
-                >
-                  {user.role === 'founder' ? t("landing.hero.cta_admin") : user.role === 'salon_owner' ? t("landing.hero.cta_salon") : t("landing.hero.cta")}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                <>
+                  <Button 
+                    onClick={() => window.location.href = user.role === 'founder' ? '/founder' : user.role === 'salon_owner' ? '/salon' : '/booking'}
+                    className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-amber-500/30 transition-all duration-300"
+                    data-testid="go-dashboard-btn"
+                  >
+                    {user.role === 'founder' ? t("landing.hero.cta_admin") : user.role === 'salon_owner' ? t("landing.hero.cta_salon") : t("landing.hero.cta")}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                  {user.role === 'client' && (
+                    <UrgentBooking onSelectSlot={(slot) => {
+                      window.location.href = `/booking?salon=${slot.salonId}&barber=${slot.barberId}&time=${slot.time}`;
+                    }} />
+                  )}
+                </>
               ) : (
-                <Button 
-                  onClick={() => window.location.href = '/booking'}
-                  className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-amber-500/30 transition-all duration-300"
-                  data-testid="get-started-btn"
-                >
-                  {t("landing.hero.cta")}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                <>
+                  <Button 
+                    onClick={() => window.location.href = '/booking'}
+                    className="bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#D97706] hover:to-[#F59E0B] text-white font-semibold py-6 px-8 rounded-xl text-lg shadow-lg shadow-amber-500/30 transition-all duration-300"
+                    data-testid="get-started-btn"
+                  >
+                    {t("landing.hero.cta")}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                  <UrgentBooking onSelectSlot={(slot) => {
+                    window.location.href = `/booking?salon=${slot.salonId}&barber=${slot.barberId}&time=${slot.time}`;
+                  }} />
+                </>
               )}
               <Button 
                 variant="outline"
@@ -554,6 +569,21 @@ const LandingPage = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* VIP Status Section - Only for logged-in clients */}
+      {user && user.role === 'client' && (
+        <section className="py-12 bg-[#0A0A0A]">
+          <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <ClientVIPStatus />
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section id="features" className="py-20 bg-[#0F172A]">
