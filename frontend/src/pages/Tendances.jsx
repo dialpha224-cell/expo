@@ -13,7 +13,11 @@ import {
   Award,
   RefreshCw,
   Home,
-  ArrowLeft
+  ArrowLeft,
+  Filter,
+  Flame,
+  Clock,
+  Store
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
@@ -28,17 +32,44 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 const Tendances = () => {
   const navigate = useNavigate();
   const [trends, setTrends] = useState([]);
+  const [filteredTrends, setFilteredTrends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [likedTrends, setLikedTrends] = useState([]);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('popular'); // 'popular', 'recent', 'salon'
+  const [selectedSalon, setSelectedSalon] = useState(null);
+  const [salons, setSalons] = useState([]);
   const [newTrend, setNewTrend] = useState({
     title: '',
     description: '',
     message: '',
     image_url: ''
   });
+
+  // Get unique salons from trends
+  useEffect(() => {
+    if (trends.length > 0) {
+      const uniqueSalons = [...new Map(trends.map(t => [t.salon_name, { name: t.salon_name, id: t.author_salon_id }])).values()];
+      setSalons(uniqueSalons);
+    }
+  }, [trends]);
+
+  // Apply filters
+  useEffect(() => {
+    let sorted = [...trends];
+    
+    if (activeFilter === 'popular') {
+      sorted.sort((a, b) => b.likes - a.likes);
+    } else if (activeFilter === 'recent') {
+      sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (activeFilter === 'salon' && selectedSalon) {
+      sorted = sorted.filter(t => t.salon_name === selectedSalon);
+    }
+    
+    setFilteredTrends(sorted);
+  }, [trends, activeFilter, selectedSalon]);
 
   useEffect(() => {
     fetchUser();
@@ -190,6 +221,76 @@ const Tendances = () => {
             Découvrez les créations des meilleurs salons, likez vos préférées et partagez l'inspiration !
           </motion.p>
 
+          {/* Filter Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="flex flex-wrap justify-center gap-2 mb-6"
+          >
+            <button
+              onClick={() => { setActiveFilter('popular'); setSelectedSalon(null); }}
+              data-testid="filter-popular"
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                activeFilter === 'popular' 
+                  ? 'bg-amber-500 text-slate-900' 
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Flame className="h-4 w-4" />
+              Populaires
+            </button>
+            <button
+              onClick={() => { setActiveFilter('recent'); setSelectedSalon(null); }}
+              data-testid="filter-recent"
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                activeFilter === 'recent' 
+                  ? 'bg-amber-500 text-slate-900' 
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              Récentes
+            </button>
+            <div className="relative group">
+              <button
+                onClick={() => setActiveFilter('salon')}
+                data-testid="filter-salon"
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  activeFilter === 'salon' 
+                    ? 'bg-amber-500 text-slate-900' 
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                <Store className="h-4 w-4" />
+                Par salon
+              </button>
+              {activeFilter === 'salon' && (
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 rounded-xl p-2 min-w-[200px] z-50 shadow-xl">
+                  <button
+                    onClick={() => setSelectedSalon(null)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
+                      !selectedSalon ? 'bg-amber-500/20 text-amber-400' : 'text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    Tous les salons
+                  </button>
+                  {salons.map((salon) => (
+                    <button
+                      key={salon.name}
+                      onClick={() => setSelectedSalon(salon.name)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
+                        selectedSalon === salon.name ? 'bg-amber-500/20 text-amber-400' : 'text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      {salon.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -288,22 +389,40 @@ const Tendances = () => {
 
       {/* Trends Grid */}
       <div className="max-w-7xl mx-auto px-4 pb-20">
+        {/* Active filter indicator */}
+        {activeFilter === 'salon' && selectedSalon && (
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="text-slate-400 text-sm">Filtré par:</span>
+            <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-sm font-medium">
+              {selectedSalon}
+            </span>
+            <button 
+              onClick={() => setSelectedSalon(null)}
+              className="text-slate-500 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-slate-800 rounded-2xl h-96 animate-pulse"></div>
             ))}
           </div>
-        ) : trends.length === 0 ? (
+        ) : filteredTrends.length === 0 ? (
           <div className="text-center py-20">
             <Sparkles className="h-16 w-16 text-amber-500/30 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">Aucune tendance pour le moment</h3>
-            <p className="text-slate-400">Les salons n'ont pas encore soumis de créations.</p>
+            <p className="text-slate-400">
+              {selectedSalon ? `Aucune création de ${selectedSalon}` : 'Les salons n\'ont pas encore soumis de créations.'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence>
-              {trends.map((trend, index) => (
+              {filteredTrends.map((trend, index) => (
                 <motion.div
                   key={trend.trend_id}
                   initial={{ opacity: 0, y: 20 }}
