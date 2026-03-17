@@ -3464,6 +3464,72 @@ Photorealistic, detailed hair texture, professional grooming, magazine quality."
         logger.error(f"AI simulation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI simulation failed: {str(e)}")
 
+@api_router.post("/ai/simulate-haircut-360")
+async def simulate_haircut_360(request: Request, user: UserBase = Depends(require_auth)):
+    """Generate 3 views (front, profile, back) for 360° preview"""
+    body = await request.json()
+    haircut_style = body.get("haircut_style", "modern fade haircut")
+    
+    try:
+        from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+        
+        api_key = os.getenv("EMERGENT_LLM_KEY")
+        image_gen = OpenAIImageGeneration(api_key=api_key)
+        
+        # Style prompts mapping
+        style_prompts = {
+            "Taper Fade + Barbe": "taper fade haircut with full groomed beard",
+            "360 Waves + Barbe": "360 waves pattern with groomed beard",
+            "High Top + Bouc": "high top flat top fade with goatee",
+            "Low Fade + Barbe Courte": "low fade with light stubble beard",
+            "Afro Naturelle + Barbe": "big natural afro with full beard",
+            "Buzz Cut + Barbe Épaisse": "clean buzz cut with thick full beard",
+            "Cornrows + Barbe": "neat cornrow braids with clean beard",
+            "Dreads Courts + Barbe": "short dreadlocks with thick beard",
+            "Dreads Longs + Barbe": "long flowing dreadlocks with groomed beard"
+        }
+        
+        style_description = style_prompts.get(haircut_style, haircut_style)
+        
+        # Generate 3 views: front, profile, back
+        views = [
+            {"name": "face", "angle": "front facing portrait, looking at camera"},
+            {"name": "profil", "angle": "side profile view, 90 degree angle from right"},
+            {"name": "dos", "angle": "back view showing the back of the head and haircut"}
+        ]
+        
+        results = []
+        
+        for view in views:
+            prompt = f"""Professional barber shop portrait photo of a handsome young African man with perfect {style_description}. 
+{view['angle']}.
+High-end barbershop quality, studio lighting, neutral gray background.
+Photorealistic, detailed hair texture, professional grooming."""
+            
+            logger.info(f"Generating 360 view '{view['name']}' for style: {haircut_style}")
+            
+            images = await image_gen.generate_images(
+                prompt=prompt,
+                model="gpt-image-1",
+                number_of_images=1
+            )
+            
+            if images and len(images) > 0:
+                result_base64 = base64.b64encode(images[0]).decode('utf-8')
+                results.append({
+                    "view": view["name"],
+                    "image_base64": result_base64
+                })
+        
+        return {
+            "style": haircut_style,
+            "views": results
+        }
+            
+    except Exception as e:
+        logger.error(f"AI 360 simulation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI simulation failed: {str(e)}")
+
 # =============================================================================
 # STRIPE PAYMENT ROUTES
 # =============================================================================

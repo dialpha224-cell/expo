@@ -28,18 +28,18 @@ const AISimulation = () => {
   const [loading, setLoading] = useState(false);
   const [mannequinStyle, setMannequinStyle] = useState(null);
   const [rotationAngle, setRotationAngle] = useState(0);
+  const [views360, setViews360] = useState(null); // Store 360 views
+  const [loading360, setLoading360] = useState(false);
   const carouselRef = useRef(null);
 
-  // 5 vues: Face, Droite, Dos, Gauche, Dessus
+  // 3 vues principales: Face, Profil, Dos
   const rotationLabels = {
     0: "Face",
-    1: "Profil Droit",
-    2: "Dos",
-    3: "Profil Gauche",
-    4: "Dessus"
+    1: "Profil",
+    2: "Dos"
   };
   
-  const rotationAngles = [0, 1, 2, 3, 4];
+  const rotationAngles = [0, 1, 2];
 
   // 30 styles de coiffure avec barbe - Images générées par IA avec cape AfroCrown
   const haircutStyles = [
@@ -285,10 +285,55 @@ const AISimulation = () => {
     }
   };
 
-  const applyStyleToMannequin = (style) => {
+  const applyStyleToMannequin = async (style) => {
     setMannequinStyle(style);
     setSelectedStyle(style.id);
-    toast.success(`Style "${style.name}" sélectionné !`);
+    setRotationAngle(0);
+    setViews360(null);
+    toast.success(`Style "${style.name}" sélectionné ! Cliquez sur "Générer Vue 360°" pour voir toutes les vues.`);
+  };
+
+  const generate360Views = async () => {
+    if (!user) {
+      toast.error("Veuillez vous connecter pour utiliser la simulation IA");
+      login();
+      return;
+    }
+
+    if (!mannequinStyle) {
+      toast.error("Veuillez d'abord sélectionner un style");
+      return;
+    }
+
+    setLoading360(true);
+    setViews360(null);
+
+    try {
+      const response = await axios.post(`${API}/ai/simulate-haircut-360`, {
+        haircut_style: mannequinStyle.name
+      }, { withCredentials: true });
+
+      if (response.data.views && response.data.views.length > 0) {
+        setViews360(response.data.views);
+        toast.success("Vues 360° générées avec succès !");
+      }
+    } catch (error) {
+      console.error("360 simulation error:", error);
+      toast.error("Erreur lors de la génération. Veuillez réessayer.");
+    } finally {
+      setLoading360(false);
+    }
+  };
+
+  const getCurrentViewImage = () => {
+    if (views360 && views360.length > 0) {
+      const viewNames = ["face", "profil", "dos"];
+      const currentView = views360.find(v => v.view === viewNames[rotationAngle]);
+      if (currentView) {
+        return `data:image/png;base64,${currentView.image_base64}`;
+      }
+    }
+    return mannequinStyle?.thumbnail;
   };
 
   const handleSimulation = async () => {
@@ -411,17 +456,32 @@ const AISimulation = () => {
             
             {/* Main Display with 360° */}
             <div className="relative flex-shrink-0">
-              <div className="text-center mb-3">
+              <div className="text-center mb-3 flex items-center justify-center gap-3">
                 <span className="text-[#FFD700] text-sm font-medium">
                   Vue 360° - {rotationLabels[rotationAngle]}
                 </span>
+                {views360 && (
+                  <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full">
+                    IA Générée
+                  </span>
+                )}
               </div>
               
               <div className="relative w-80 h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-slate-700 to-slate-800 border-4 border-[#FFD700]/30 shadow-2xl shadow-[#FFD700]/10">
                 <AnimatePresence mode="wait">
-                  {mannequinStyle ? (
+                  {loading360 ? (
                     <motion.div
-                      key={`${mannequinStyle.id}-${rotationAngle}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="w-full h-full flex flex-col items-center justify-center"
+                    >
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFD700] mb-4"></div>
+                      <p className="text-[#FFD700] text-sm">Génération des vues 360°...</p>
+                      <p className="text-slate-500 text-xs mt-1">Cela peut prendre quelques secondes</p>
+                    </motion.div>
+                  ) : mannequinStyle ? (
+                    <motion.div
+                      key={`${mannequinStyle.id}-${rotationAngle}-${views360 ? 'ai' : 'preview'}`}
                       initial={{ opacity: 0, rotateY: -90 }}
                       animate={{ opacity: 1, rotateY: 0 }}
                       exit={{ opacity: 0, rotateY: 90 }}
@@ -429,25 +489,17 @@ const AISimulation = () => {
                       className="w-full h-full relative"
                     >
                       <img
-                        src={mannequinStyle.thumbnail}
-                        alt={mannequinStyle.name}
+                        src={getCurrentViewImage()}
+                        alt={`${mannequinStyle.name} - ${rotationLabels[rotationAngle]}`}
                         className="w-full h-full object-cover"
-                        style={{
-                          transform: rotationAngle === 1 ? 'scaleX(-1)' : 
-                                     rotationAngle === 3 ? 'scaleX(1)' : 'none',
-                          filter: rotationAngle === 2 ? 'brightness(0.85)' : 
-                                  rotationAngle === 4 ? 'brightness(1.1) saturate(0.9)' : 'none'
-                        }}
                       />
-                      {/* Overlay pour chaque vue */}
-                      {rotationAngle === 2 && (
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end justify-center pb-20">
-                          <span className="text-white/70 text-sm font-medium">Vue de dos</span>
-                        </div>
-                      )}
-                      {rotationAngle === 4 && (
-                        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 to-transparent flex items-start justify-center pt-6">
-                          <span className="text-white/70 text-sm font-medium">Vue du dessus</span>
+                      {/* Overlay for preview mode */}
+                      {!views360 && (
+                        <div className="absolute inset-0 bg-slate-900/40 flex flex-col items-center justify-center">
+                          <p className="text-white/80 text-sm font-medium mb-2">Aperçu</p>
+                          <p className="text-white/60 text-xs text-center px-4">
+                            Cliquez sur "Générer Vue 360°" pour voir toutes les vues
+                          </p>
                         </div>
                       )}
                     </motion.div>
@@ -482,58 +534,72 @@ const AISimulation = () => {
               </div>
               
               {/* 360° Rotation Controls */}
-              <div className="mt-4 flex items-center justify-center gap-3">
-                <button 
-                  onClick={() => setRotationAngle(prev => prev <= 0 ? 4 : prev - 1)}
-                  disabled={!mannequinStyle}
-                  className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Tourner à gauche"
-                >
-                  <RotateCcw className="h-5 w-5" />
-                </button>
-                
-                {/* 5 Rotation indicator dots */}
-                <div className="flex items-center gap-1.5">
-                  {rotationAngles.map((angle) => (
-                    <button
-                      key={angle}
-                      onClick={() => mannequinStyle && setRotationAngle(angle)}
-                      disabled={!mannequinStyle}
-                      className={`flex flex-col items-center transition-all ${
-                        rotationAngle === angle 
-                          ? 'scale-110' 
-                          : 'opacity-60 hover:opacity-100'
-                      } disabled:opacity-30`}
-                      title={rotationLabels[angle]}
-                    >
-                      <div className={`w-3 h-3 rounded-full ${
-                        rotationAngle === angle 
-                          ? 'bg-[#FFD700]' 
-                          : 'bg-slate-600'
-                      }`} />
-                      <span className={`text-[8px] mt-0.5 ${
-                        rotationAngle === angle 
-                          ? 'text-[#FFD700]' 
-                          : 'text-slate-500'
-                      }`}>
-                        {rotationLabels[angle].split(' ')[0]}
-                      </span>
-                    </button>
-                  ))}
+              <div className="mt-4 flex flex-col items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setRotationAngle(prev => prev <= 0 ? 2 : prev - 1)}
+                    disabled={!mannequinStyle || !views360}
+                    className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Tourner à gauche"
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                  </button>
+                  
+                  {/* 3 Rotation indicator dots */}
+                  <div className="flex items-center gap-3">
+                    {rotationAngles.map((angle) => (
+                      <button
+                        key={angle}
+                        onClick={() => mannequinStyle && views360 && setRotationAngle(angle)}
+                        disabled={!mannequinStyle || !views360}
+                        className={`flex flex-col items-center transition-all ${
+                          rotationAngle === angle 
+                            ? 'scale-110' 
+                            : 'opacity-60 hover:opacity-100'
+                        } disabled:opacity-30`}
+                        title={rotationLabels[angle]}
+                      >
+                        <div className={`w-4 h-4 rounded-full ${
+                          rotationAngle === angle 
+                            ? 'bg-[#FFD700]' 
+                            : 'bg-slate-600'
+                        }`} />
+                        <span className={`text-xs mt-1 ${
+                          rotationAngle === angle 
+                            ? 'text-[#FFD700] font-medium' 
+                            : 'text-slate-500'
+                        }`}>
+                          {rotationLabels[angle]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    onClick={() => setRotationAngle(prev => prev >= 2 ? 0 : prev + 1)}
+                    disabled={!mannequinStyle || !views360}
+                    className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Tourner à droite"
+                  >
+                    <RotateCw className="h-5 w-5" />
+                  </button>
                 </div>
                 
-                <button 
-                  onClick={() => setRotationAngle(prev => prev >= 4 ? 0 : prev + 1)}
-                  disabled={!mannequinStyle}
-                  className="p-3 bg-slate-700 hover:bg-[#FFD700] hover:text-slate-900 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Tourner à droite"
-                >
-                  <RotateCw className="h-5 w-5" />
-                </button>
+                {/* Generate 360 Button */}
+                {mannequinStyle && !views360 && (
+                  <Button
+                    onClick={generate360Views}
+                    disabled={loading360}
+                    className="bg-gradient-to-r from-[#FFD700] to-[#FFA500] hover:from-[#FFA500] hover:to-[#FFD700] text-slate-900 font-bold px-6"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loading360 ? 'animate-spin' : ''}`} />
+                    Générer Vue 360°
+                  </Button>
+                )}
               </div>
               
               <p className="text-center text-slate-500 text-xs mt-2">
-                5 vues disponibles : Face, Droite, Dos, Gauche, Dessus
+                3 vues disponibles : Face, Profil, Dos
               </p>
               
               {mannequinStyle && (
@@ -542,6 +608,7 @@ const AISimulation = () => {
                     setMannequinStyle(null);
                     setSelectedStyle("");
                     setRotationAngle(0);
+                    setViews360(null);
                   }}
                   className="mt-3 w-full text-center text-sm text-slate-400 hover:text-white transition-colors flex items-center justify-center gap-1"
                 >
