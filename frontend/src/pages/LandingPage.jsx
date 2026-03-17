@@ -1006,6 +1006,7 @@ const LandingPage = () => {
             <div className="flex items-center gap-8">
               <a href="#" className="text-[slate-300] hover:text-[#F59E0B] transition-colors text-sm">{t("footer.about")}</a>
               <a href="#" className="text-[slate-300] hover:text-[#F59E0B] transition-colors text-sm">{t("footer.contact")}</a>
+              <a href="/guides" className="text-[slate-300] hover:text-[#F59E0B] transition-colors text-sm">Guides PDF</a>
               <a href="#" className="text-[slate-300] hover:text-[#F59E0B] transition-colors text-sm">{t("footer.terms")}</a>
               <a href="#" className="text-[slate-300] hover:text-[#F59E0B] transition-colors text-sm">{t("footer.privacy")}</a>
             </div>

@@ -310,7 +310,33 @@ Structure dans /app/mobile avec:
 ## Next Tasks
 1. Vérifier build APK mobile avec mode offline
 2. Facebook Login (en attente de credentials utilisateur)
-3. Continuer Phase 2 Gamification (Abonnements mensuels, File d'attente virtuelle)
+3. Continuer refactoring server.py (5700+ lignes)
+
+## Completed (Session 9 - Mars 2026)
+- [x] **Abonnements Mensuels** - Système complet:
+  - 3 plans: Basic (29.99€), Standard (49.99€), Premium (79.99€)
+  - Endpoints: /api/subscriptions/plans, /my, /subscribe, /cancel, /use-cut
+  - Page /subscriptions avec affichage des plans
+  - Lien "Abonnements" dans la navigation principale
+  - +200 points bonus à l'inscription
+
+- [x] **File d'attente Virtuelle** - Système complet:
+  - Endpoints: /api/queue/{salon_id}, /join, /leave, /call-next, /my-position
+  - Composant VirtualQueue.jsx avec gestion complète
+  - Statistiques temps réel (en attente, en cours, temps estimé)
+  - Page /salon/queue intégrée au dashboard salon
+  - Interface de gestion pour propriétaires de salon
+
+- [x] **Guides PDF Téléchargeables**:
+  - Endpoints: /api/guides (liste), /api/guides/download/{filename}
+  - Page dédiée /guides avec téléchargement
+  - Lien "Guides PDF" ajouté au footer
+  - 2 PDFs: Guide Client (251 Ko), Guide Salon (167 Ko)
+
+- [x] **Composants Existants Vérifiés**:
+  - WebsiteImporter.jsx - Fonctionnel (import site web salon)
+  - ReassignClientModal.jsx - Fonctionnel (réassigner client)
+  - AppointmentQRScanner.jsx - Fonctionnel (scanner QR RDV)
 
 ## Completed (Session 8 - Mars 2026)
 - [x] Analytics avancés pour salons et founder (graphiques + tableaux)

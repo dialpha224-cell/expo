@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, Query, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -5652,6 +5652,38 @@ async def owner_set_phone_visibility(salon_id: str, barber_id: str, visible: boo
     
     await db.barbers.update_one({"barber_id": barber_id}, {"$set": {"phone_visible": visible}})
     return {"success": True}
+
+# =============================================================================
+# DOCUMENTATION / GUIDES PDF
+# =============================================================================
+
+DOCS_DIR = ROOT_DIR.parent / "docs" / "pdf"
+
+@api_router.get("/guides")
+async def list_guides():
+    """List available user guides"""
+    guides = []
+    if DOCS_DIR.exists():
+        for pdf_file in DOCS_DIR.glob("*.pdf"):
+            guides.append({
+                "name": pdf_file.stem.replace("_", " "),
+                "filename": pdf_file.name,
+                "size_kb": round(pdf_file.stat().st_size / 1024, 1),
+                "download_url": f"/api/guides/download/{pdf_file.name}"
+            })
+    return guides
+
+@api_router.get("/guides/download/{filename}")
+async def download_guide(filename: str):
+    """Download a PDF guide"""
+    file_path = DOCS_DIR / filename
+    if not file_path.exists() or not filename.endswith(".pdf"):
+        raise HTTPException(status_code=404, detail="Guide non trouvé")
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type="application/pdf"
+    )
 
 # =============================================================================
 # HEALTH CHECK

@@ -317,6 +317,7 @@ const SalonDashboard = () => {
             <Route path="products" element={<ProductsManagement />} />
             <Route path="stats" element={<SalonStats salonId={selectedSalonId} />} />
             <Route path="badges" element={<SalonBadges salonId={selectedSalonId} />} />
+            <Route path="queue" element={<VirtualQueue salonId={selectedSalonId} salonName={salon?.name} isOwner={true} />} />
             <Route path="settings" element={<SalonSettings salon={salon} onUpdate={() => fetchSalon(selectedSalonId)} />} />
           </Routes>
         </div>
