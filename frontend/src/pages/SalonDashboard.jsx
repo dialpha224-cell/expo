@@ -428,8 +428,11 @@ const BarbersManagement = ({ salonId }) => {
     name: "", 
     email: "",
     phone: "",
+    phone_visible: true,
     specialties: "", 
+    expertise: "",
     bio: "",
+    photo_url: "",
     role: "employee"
   });
 
@@ -470,15 +473,18 @@ const BarbersManagement = ({ salonId }) => {
         name: newBarber.name.trim(),
         email: newBarber.email.trim() || null,
         phone: newBarber.phone.trim() || null,
+        phone_visible: newBarber.phone_visible,
         specialties: newBarber.specialties ? newBarber.specialties.split(",").map(s => s.trim()).filter(s => s) : [],
+        expertise: newBarber.expertise.trim() || null,
         bio: newBarber.bio.trim() || null,
+        photo_url: newBarber.photo_url.trim() || null,
         role: newBarber.role
       };
       
       await axios.post(`${API}/salons/${salonId}/barbers`, barberData, { withCredentials: true });
-      toast.success("Coiffeur ajoute avec succes");
+      toast.success("Coiffeur ajouté avec succès");
       setShowCreateDialog(false);
-      setNewBarber({ name: "", email: "", phone: "", specialties: "", bio: "", role: "employee" });
+      setNewBarber({ name: "", email: "", phone: "", phone_visible: true, specialties: "", expertise: "", bio: "", photo_url: "", role: "employee" });
       fetchBarbers();
     } catch (error) {
       console.error("Error creating barber:", error);
@@ -520,11 +526,14 @@ const BarbersManagement = ({ salonId }) => {
         name: selectedBarber.name,
         email: selectedBarber.email,
         phone: selectedBarber.phone,
+        phone_visible: selectedBarber.phone_visible,
         role: selectedBarber.role,
         bio: selectedBarber.bio,
+        expertise: selectedBarber.expertise,
+        photo_url: selectedBarber.photo_url,
         specialties: selectedBarber.specialties
       }, { withCredentials: true });
-      toast.success("Coiffeur mis a jour");
+      toast.success("Coiffeur mis à jour");
       setShowEditDialog(false);
       fetchBarbers();
     } catch (error) {
@@ -554,11 +563,32 @@ const BarbersManagement = ({ salonId }) => {
               Ajouter un coiffeur
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-white">Ajouter un coiffeur</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
+              {/* Photo URL */}
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Photo du coiffeur (URL)</label>
+                <Input
+                  placeholder="https://example.com/photo.jpg"
+                  value={newBarber.photo_url}
+                  onChange={(e) => setNewBarber({...newBarber, photo_url: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+                {newBarber.photo_url && (
+                  <div className="mt-2 flex justify-center">
+                    <img 
+                      src={newBarber.photo_url} 
+                      alt="Aperçu" 
+                      className="w-20 h-20 rounded-full object-cover border-2 border-indigo-500"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                )}
+              </div>
+              
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Nom *</label>
                 <Input
@@ -581,7 +611,7 @@ const BarbersManagement = ({ salonId }) => {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 mb-1 block">Telephone</label>
+                  <label className="text-sm text-slate-400 mb-1 block">Téléphone</label>
                   <Input
                     placeholder="+33 6 12 34 56 78"
                     value={newBarber.phone}
@@ -590,24 +620,50 @@ const BarbersManagement = ({ salonId }) => {
                   />
                 </div>
               </div>
+              
+              {/* Visibilité téléphone */}
+              <div className="flex items-center gap-3 p-3 bg-slate-900 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="phone_visible"
+                  checked={newBarber.phone_visible}
+                  onChange={(e) => setNewBarber({...newBarber, phone_visible: e.target.checked})}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
+                />
+                <label htmlFor="phone_visible" className="text-sm text-slate-300">
+                  Afficher le téléphone aux clients
+                </label>
+              </div>
+              
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Role</label>
+                <label className="text-sm text-slate-400 mb-1 block">Rôle</label>
                 <Select value={newBarber.role} onValueChange={(v) => setNewBarber({...newBarber, role: v})}>
                   <SelectTrigger className="bg-slate-900 border-slate-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="owner" className="text-white">Proprietaire</SelectItem>
-                    <SelectItem value="employee" className="text-white">Employe</SelectItem>
-                    <SelectItem value="volunteer" className="text-white">Benevole</SelectItem>
+                    <SelectItem value="owner" className="text-white">Propriétaire</SelectItem>
+                    <SelectItem value="employee" className="text-white">Employé</SelectItem>
+                    <SelectItem value="volunteer" className="text-white">Bénévole</SelectItem>
                     <SelectItem value="intern" className="text-white">Stagiaire</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Specialites (separees par virgules)</label>
+                <label className="text-sm text-slate-400 mb-1 block">Expertise principale</label>
                 <Input
-                  placeholder="Ex: Fade, Degrade, Afro"
+                  placeholder="Ex: Spécialiste dégradés et tresses"
+                  value={newBarber.expertise}
+                  onChange={(e) => setNewBarber({...newBarber, expertise: e.target.value})}
+                  className="bg-slate-900 border-slate-700 text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Spécialités (séparées par virgules)</label>
+                <Input
+                  placeholder="Ex: Fade, Dégradé, Afro"
                   value={newBarber.specialties}
                   onChange={(e) => setNewBarber({...newBarber, specialties: e.target.value})}
                   className="bg-slate-900 border-slate-700 text-white"
@@ -617,7 +673,7 @@ const BarbersManagement = ({ salonId }) => {
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Bio</label>
                 <Textarea
-                  placeholder="Ex: Expert en degrades avec 10 ans d'experience"
+                  placeholder="Ex: Expert en dégradés avec 10 ans d'expérience"
                   value={newBarber.bio}
                   onChange={(e) => setNewBarber({...newBarber, bio: e.target.value})}
                   className="bg-slate-900 border-slate-700 text-white"
