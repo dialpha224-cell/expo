@@ -16,6 +16,9 @@ import { useAuth } from '../_layout';
 
 const { width } = Dimensions.get('window');
 
+// Logo couronne AfroCrown
+const CROWN_LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/9b808fc4e303c6a3046e6ff14107d11a2bf66d1418b5dedcfc4504becd301851.png";
+
 export default function TrimConnectScreen() {
   const { user, API_URL } = useAuth();
   const [contestants, setContestants] = useState([]);
@@ -71,12 +74,21 @@ export default function TrimConnectScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header avec logo couronne sur le T */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
-            <Ionicons name="trophy" size={28} color="#FFD700" />
+            <Image source={{ uri: CROWN_LOGO_URL }} style={styles.crownLogo} />
           </View>
-          <Text style={styles.title}>TrimConnect</Text>
+          <View style={styles.titleContainer}>
+            <View style={styles.titleRow}>
+              <View style={styles.letterT}>
+                <Image source={{ uri: CROWN_LOGO_URL }} style={styles.smallCrown} />
+                <Text style={styles.titleGold}>T</Text>
+              </View>
+              <Text style={styles.titleGold}>rim</Text>
+              <Text style={styles.titleWhite}>Connect</Text>
+            </View>
+          </View>
           <Text style={styles.subtitle}>Le concours des meilleurs coiffeurs</Text>
         </View>
 
@@ -133,10 +145,16 @@ export default function TrimConnectScreen() {
             
             {contestants.map((contestant, index) => (
               <View key={contestant.id} style={styles.contestantCard}>
-                {/* Rank Badge */}
-                <View style={[styles.rankBadge, { backgroundColor: getRankColor(contestant.rank) }]}>
-                  <Text style={styles.rankText}>#{contestant.rank}</Text>
-                </View>
+                {/* Rank Badge avec couronne pour le #1 */}
+                {contestant.rank === 1 ? (
+                  <View style={styles.winnerBadge}>
+                    <Image source={{ uri: CROWN_LOGO_URL }} style={styles.winnerCrown} />
+                  </View>
+                ) : (
+                  <View style={[styles.rankBadge, { backgroundColor: getRankColor(contestant.rank) }]}>
+                    <Text style={styles.rankText}>#{contestant.rank}</Text>
+                  </View>
+                )}
                 
                 {/* Photo */}
                 <Image source={{ uri: contestant.image }} style={styles.contestantImage} />
@@ -225,15 +243,48 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   logoCircle: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     backgroundColor: '#1e293b',
-    borderRadius: 30,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFD700',
     marginBottom: 10,
+    overflow: 'hidden',
+  },
+  crownLogo: {
+    width: 50,
+    height: 50,
+  },
+  titleContainer: {
+    alignItems: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  letterT: {
+    position: 'relative',
+  },
+  smallCrown: {
+    position: 'absolute',
+    top: -18,
+    left: -4,
+    width: 24,
+    height: 24,
+    transform: [{ rotate: '-15deg' }],
+  },
+  titleGold: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#FFD700',
+  },
+  titleWhite: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   title: {
     fontSize: 24,
@@ -243,7 +294,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     color: '#94a3b8',
-    marginTop: 2,
+    marginTop: 4,
   },
   
   // Stats
@@ -330,6 +381,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+  },
+  winnerBadge: {
+    position: 'absolute',
+    top: -14,
+    left: 6,
+    width: 32,
+    height: 32,
+  },
+  winnerCrown: {
+    width: 32,
+    height: 32,
   },
   rankText: {
     fontSize: 11,

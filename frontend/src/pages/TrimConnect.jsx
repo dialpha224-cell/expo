@@ -37,6 +37,9 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 
+// Logo couronne AfroCrown pour TrimConnect
+const CROWN_LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/9b808fc4e303c6a3046e6ff14107d11a2bf66d1418b5dedcfc4504becd301851.png";
+
 const PARTICIPATION_FEE = 50; // Frais de participation en EUR
 
 const TrimConnect = () => {
@@ -250,7 +253,17 @@ const TrimConnect = () => {
             </div>
             
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-extrabold text-white mb-6">
-              TrimConnect
+              <span className="relative inline-block">
+                {/* Couronne accrochée sur le T */}
+                <img 
+                  src={CROWN_LOGO_URL} 
+                  alt="Crown" 
+                  className="absolute -top-8 sm:-top-10 lg:-top-12 -left-2 sm:-left-3 w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 transform -rotate-12 drop-shadow-[0_0_15px_rgba(255,215,0,0.6)]"
+                />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">T</span>
+              </span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">rim</span>
+              <span className="text-white">Connect</span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#FFD700]">
                 Barber Battle
               </span>
@@ -490,9 +503,15 @@ const TrimConnect = () => {
                         </div>
                       )}
                       {entry.status === "winner" && (
-                        <div className="absolute top-2 right-2 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                          <Crown className="h-3 w-3" />
-                          Gagnant
+                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                          <img 
+                            src={CROWN_LOGO_URL} 
+                            alt="Winner Crown" 
+                            className="w-10 h-10 drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]"
+                          />
+                          <span className="bg-gradient-to-r from-amber-400 to-amber-600 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">
+                            Gagnant
+                          </span>
                         </div>
                       )}
                     </div>
@@ -549,13 +568,22 @@ const TrimConnect = () => {
                       className={`flex items-center gap-4 p-4 ${index < 3 ? 'bg-amber-500/5' : ''}`}
                       data-testid={`leaderboard-row-${index}`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold relative ${
                         index === 0 ? 'bg-amber-500 text-slate-900' :
                         index === 1 ? 'bg-slate-400 text-slate-900' :
                         index === 2 ? 'bg-amber-700 text-white' :
                         'bg-slate-700 text-slate-400'
                       }`}>
-                        {index === 0 && <Crown className="h-4 w-4" />}
+                        {index === 0 && (
+                          <>
+                            <img 
+                              src={CROWN_LOGO_URL} 
+                              alt="Crown" 
+                              className="absolute -top-6 left-1/2 -translate-x-1/2 w-8 h-8 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]"
+                            />
+                            <span className="text-xs">1</span>
+                          </>
+                        )}
                         {index !== 0 && (index + 1)}
                       </div>
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-700">
@@ -583,7 +611,11 @@ const TrimConnect = () => {
           {/* Hall of Fame Tab */}
           <TabsContent value="hall-of-fame" className="space-y-6">
             <div className="text-center mb-8">
-              <Crown className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+              <img 
+                src={CROWN_LOGO_URL} 
+                alt="Crown" 
+                className="w-20 h-20 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(255,215,0,0.6)]"
+              />
               <h2 className="text-2xl font-heading font-bold text-white">Hall of Fame</h2>
               <p className="text-slate-400">Les gagnants des éditions précédentes</p>
             </div>
@@ -608,13 +640,23 @@ const TrimConnect = () => {
                         alt={winner.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-2 right-2 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                        <Crown className="h-3 w-3" />
-                        {winner.contest_edition}
+                      <div className="absolute top-2 right-2 flex items-center gap-1">
+                        <img 
+                          src={CROWN_LOGO_URL} 
+                          alt="Winner Crown" 
+                          className="w-8 h-8 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]"
+                        />
+                        <span className="bg-gradient-to-r from-amber-400 to-amber-600 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">
+                          {winner.contest_edition}
+                        </span>
                       </div>
                     </div>
                     <div className="p-4 text-center">
-                      <Crown className="h-6 w-6 text-amber-500 mx-auto mb-2" />
+                      <img 
+                        src={CROWN_LOGO_URL} 
+                        alt="Winner Crown" 
+                        className="w-12 h-12 mx-auto mb-2 drop-shadow-[0_0_12px_rgba(255,215,0,0.6)]"
+                      />
                       <h3 className="font-heading font-bold text-white mb-1">{winner.title}</h3>
                       <p className="text-amber-400">{winner.barber_name}</p>
                       {winner.salon_name && (
