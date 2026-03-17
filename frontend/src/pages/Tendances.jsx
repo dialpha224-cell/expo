@@ -49,7 +49,7 @@ const Tendances = () => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get(`${API_URL}/auth/me`, { withCredentials: true });
+      const response = await axios.get(`${API_URL}/api/auth/me`, { withCredentials: true });
       setUser(response.data);
     } catch (error) {
       setUser(null);
@@ -59,7 +59,7 @@ const Tendances = () => {
   const fetchTrends = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/trends?limit=30`);
+      const response = await axios.get(`${API_URL}/api/trends?limit=30`);
       setTrends(response.data);
     } catch (error) {
       console.error('Error fetching trends:', error);
@@ -70,7 +70,7 @@ const Tendances = () => {
 
   const fetchMyLikes = async () => {
     try {
-      const response = await axios.get(`${API_URL}/trends/my-likes`, { withCredentials: true });
+      const response = await axios.get(`${API_URL}/api/trends/my-likes`, { withCredentials: true });
       setLikedTrends(response.data);
     } catch (error) {
       console.error('Error fetching likes:', error);
@@ -87,13 +87,13 @@ const Tendances = () => {
     
     try {
       if (isLiked) {
-        await axios.delete(`${API_URL}/trends/${trendId}/like`, { withCredentials: true });
+        await axios.delete(`${API_URL}/api/trends/${trendId}/like`, { withCredentials: true });
         setLikedTrends(prev => prev.filter(id => id !== trendId));
         setTrends(prev => prev.map(t => 
           t.trend_id === trendId ? { ...t, likes: t.likes - 1 } : t
         ));
       } else {
-        await axios.post(`${API_URL}/trends/${trendId}/like`, {}, { withCredentials: true });
+        await axios.post(`${API_URL}/api/trends/${trendId}/like`, {}, { withCredentials: true });
         setLikedTrends(prev => [...prev, trendId]);
         setTrends(prev => prev.map(t => 
           t.trend_id === trendId ? { ...t, likes: t.likes + 1 } : t
@@ -114,7 +114,7 @@ const Tendances = () => {
 
     setSubmitting(true);
     try {
-      await axios.post(`${API_URL}/trends`, newTrend, { withCredentials: true });
+      await axios.post(`${API_URL}/api/trends`, newTrend, { withCredentials: true });
       toast.success("Votre création a été soumise pour validation !");
       setShowSubmitDialog(false);
       setNewTrend({ title: '', description: '', message: '', image_url: '' });
