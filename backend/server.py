@@ -438,10 +438,27 @@ class BarberCreate(BaseModel):
     name: str
     email: Optional[str] = None
     specialties: List[str] = []
+    expertise: Optional[str] = None  # Expertise spécifique (type de coupes)
     bio: Optional[str] = None
     image_url: Optional[str] = None
+    photo_url: Optional[str] = None  # Photo du coiffeur
     role: str = "employee"  # owner, employee, volunteer, intern
     phone: Optional[str] = None
+    phone_visible: bool = True  # Visibilité du téléphone par le propriétaire
+    phone_hidden_by_admin: bool = False  # Si True, personne ne peut voir le téléphone
+
+class BarberUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    specialties: Optional[List[str]] = None
+    expertise: Optional[str] = None
+    bio: Optional[str] = None
+    image_url: Optional[str] = None
+    photo_url: Optional[str] = None
+    role: Optional[str] = None
+    phone: Optional[str] = None
+    phone_visible: Optional[bool] = None
+    phone_hidden_by_admin: Optional[bool] = None  # Only admin can set this
 
 class BarberResponse(BaseModel):
     barber_id: str
@@ -541,6 +558,35 @@ class PromotionResponse(BaseModel):
 # Profile Photo Update
 class ProfilePhotoUpdate(BaseModel):
     picture: str  # Cloudinary URL
+
+# Salon Update by Admin
+class SalonUpdateByAdmin(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+# Tendances du moment - Soumissions des salons
+class TrendSubmission(BaseModel):
+    title: str
+    description: Optional[str] = None
+    message: Optional[str] = None  # Message du propriétaire
+    image_url: str  # URL de l'image de la réalisation
+
+class TrendResponse(BaseModel):
+    trend_id: str
+    salon_id: str
+    salon_name: str
+    barber_name: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    message: Optional[str] = None
+    image_url: str
+    is_approved: bool = False
+    is_featured: bool = False
+    likes: int = 0
+    created_at: datetime
 
 class AppointmentCreate(BaseModel):
     salon_id: str
@@ -967,6 +1013,70 @@ async def login_with_password(credentials: UserLogin):
         "role": user["role"],
         "salon_id": user.get("salon_id"),
         "must_change_password": user.get("must_change_password", False)
+    })
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7*24*60*60
+    )
+    return response
+
+# User Registration Model
+class UserRegister(BaseModel):
+    name: str
+    email: str
+    password: str
+
+@api_router.post("/auth/register")
+async def register_user(user_data: UserRegister):
+    """Register a new user with email and password"""
+    # Check if email already exists
+    existing_user = await db.users.find_one({"email": user_data.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
+    
+    # Validate password
+    if len(user_data.password) < 6:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit faire au moins 6 caractères")
+    
+    # Create user
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    password_hash = hash_password(user_data.password)
+    
+    user_doc = {
+        "user_id": user_id,
+        "email": user_data.email,
+        "name": user_data.name,
+        "role": "client",
+        "password_hash": password_hash,
+        "must_change_password": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    # Create session
+    session_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    session_doc = {
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.user_sessions.insert_one(session_doc)
+    
+    response = JSONResponse(content={
+        "user_id": user_id,
+        "email": user_data.email,
+        "name": user_data.name,
+        "role": "client",
+        "salon_id": None,
+        "must_change_password": False
     })
     response.set_cookie(
         key="session_token",
@@ -2066,11 +2176,14 @@ async def create_barber(salon_id: str, barber: BarberCreate, user: UserBase = De
         "name": barber.name,
         "email": barber.email,
         "phone": barber.phone,
+        "phone_visible": barber.phone_visible,
+        "phone_hidden_by_admin": False,
         "specialties": barber.specialties,
         "specialty": barber.specialties[0] if barber.specialties else None,
+        "expertise": barber.expertise,
         "bio": barber.bio,
-        "image_url": barber.image_url,
-        "photo_url": barber.image_url,
+        "image_url": barber.image_url or barber.photo_url,
+        "photo_url": barber.photo_url or barber.image_url,
         "experience_years": 0,
         "rating": 0.0,
         "total_reviews": 0,
@@ -2114,7 +2227,12 @@ async def update_barber(barber_id: str, request: Request, user: UserBase = Depen
         raise HTTPException(status_code=403, detail="Access denied")
     
     body = await request.json()
-    allowed_fields = ["name", "email", "phone", "specialties", "bio", "image_url", "photo_url", "is_active", "role", "experience_years"]
+    allowed_fields = ["name", "email", "phone", "phone_visible", "specialties", "expertise", "bio", "image_url", "photo_url", "is_active", "role", "experience_years"]
+    
+    # Only admin can set phone_hidden_by_admin
+    if user.role == "founder":
+        allowed_fields.append("phone_hidden_by_admin")
+    
     update_data = {k: v for k, v in body.items() if k in allowed_fields}
     
     await db.barbers.update_one({"barber_id": barber_id}, {"$set": update_data})
@@ -4022,6 +4140,150 @@ async def order_tactile_screen(order: dict, user: UserBase = Depends(require_sal
             logger.error(f"Failed to send order email: {email_err}")
     
     return {"success": True, "order_id": order_id, "message": "Commande enregistree. Vous recevrez un email de confirmation."}
+
+# =============================================================================
+# TENDANCES DU MOMENT (TRENDS)
+# =============================================================================
+
+@api_router.post("/trends")
+async def submit_trend(trend: TrendSubmission, user: UserBase = Depends(require_salon_owner)):
+    """Submit a trend/realization for potential featuring"""
+    # Get salon info
+    salon = await db.salons.find_one({"salon_id": user.salon_id}, {"_id": 0})
+    if not salon:
+        raise HTTPException(status_code=404, detail="Salon non trouvé")
+    
+    trend_id = f"trend_{uuid.uuid4().hex[:12]}"
+    trend_doc = {
+        "trend_id": trend_id,
+        "salon_id": user.salon_id,
+        "salon_name": salon.get("name"),
+        "owner_id": user.user_id,
+        "owner_name": user.name,
+        "title": trend.title,
+        "description": trend.description,
+        "message": trend.message,
+        "image_url": trend.image_url,
+        "is_approved": False,
+        "is_featured": False,
+        "likes": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.trends.insert_one(trend_doc)
+    return {"success": True, "trend_id": trend_id, "message": "Votre création a été soumise !"}
+
+@api_router.get("/trends")
+async def get_trends(limit: int = 20, featured_only: bool = False):
+    """Get approved trends (random selection)"""
+    query = {"is_approved": True}
+    if featured_only:
+        query["is_featured"] = True
+    
+    all_trends = await db.trends.find(query, {"_id": 0}).to_list(100)
+    
+    import random
+    random.shuffle(all_trends)
+    
+    return all_trends[:limit]
+
+@api_router.get("/trends/all")
+async def get_all_trends_admin(user: UserBase = Depends(require_founder)):
+    """Get all trends for admin review"""
+    trends = await db.trends.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return trends
+
+@api_router.put("/trends/{trend_id}/approve")
+async def approve_trend(trend_id: str, user: UserBase = Depends(require_founder)):
+    """Approve a trend (admin only)"""
+    result = await db.trends.update_one({"trend_id": trend_id}, {"$set": {"is_approved": True}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Tendance non trouvée")
+    return {"success": True}
+
+@api_router.put("/trends/{trend_id}/feature")
+async def feature_trend(trend_id: str, featured: bool = True, user: UserBase = Depends(require_founder)):
+    """Feature a trend (admin only)"""
+    await db.trends.update_one({"trend_id": trend_id}, {"$set": {"is_featured": featured, "is_approved": True}})
+    return {"success": True}
+
+@api_router.delete("/trends/{trend_id}")
+async def delete_trend(trend_id: str, user: UserBase = Depends(require_auth)):
+    """Delete a trend"""
+    trend = await db.trends.find_one({"trend_id": trend_id}, {"_id": 0})
+    if not trend:
+        raise HTTPException(status_code=404, detail="Tendance non trouvée")
+    
+    if user.role != "founder" and trend.get("owner_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    await db.trends.delete_one({"trend_id": trend_id})
+    return {"success": True}
+
+@api_router.post("/trends/{trend_id}/like")
+async def like_trend(trend_id: str, user: UserBase = Depends(require_auth)):
+    """Like a trend"""
+    existing = await db.trend_likes.find_one({"trend_id": trend_id, "user_id": user.user_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Déjà aimé")
+    
+    await db.trend_likes.insert_one({"trend_id": trend_id, "user_id": user.user_id, "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.trends.update_one({"trend_id": trend_id}, {"$inc": {"likes": 1}})
+    return {"success": True}
+
+@api_router.delete("/trends/{trend_id}/like")
+async def unlike_trend(trend_id: str, user: UserBase = Depends(require_auth)):
+    """Unlike a trend"""
+    result = await db.trend_likes.delete_one({"trend_id": trend_id, "user_id": user.user_id})
+    if result.deleted_count > 0:
+        await db.trends.update_one({"trend_id": trend_id}, {"$inc": {"likes": -1}})
+    return {"success": True}
+
+@api_router.get("/trends/my-likes")
+async def get_my_trend_likes(user: UserBase = Depends(require_auth)):
+    """Get trends user liked"""
+    likes = await db.trend_likes.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    return [l["trend_id"] for l in likes]
+
+# =============================================================================
+# ADMIN - SALON & BARBER MANAGEMENT
+# =============================================================================
+
+@api_router.put("/admin/salons/{salon_id}")
+async def admin_update_salon(salon_id: str, update: SalonUpdateByAdmin, user: UserBase = Depends(require_founder)):
+    """Admin can update any salon"""
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Aucune donnée")
+    
+    result = await db.salons.update_one({"salon_id": salon_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Salon non trouvé")
+    return {"success": True}
+
+@api_router.put("/admin/barbers/{barber_id}/phone-visibility")
+async def admin_set_phone_visibility(barber_id: str, hidden: bool, user: UserBase = Depends(require_founder)):
+    """Admin hide/show barber phone (overrides owner)"""
+    result = await db.barbers.update_one({"barber_id": barber_id}, {"$set": {"phone_hidden_by_admin": hidden}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Coiffeur non trouvé")
+    return {"success": True}
+
+@api_router.put("/salons/{salon_id}/barbers/{barber_id}/phone-visibility")
+async def owner_set_phone_visibility(salon_id: str, barber_id: str, visible: bool, user: UserBase = Depends(require_salon_owner)):
+    """Owner set barber phone visibility (if not hidden by admin)"""
+    if user.role != "founder" and user.salon_id != salon_id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    barber = await db.barbers.find_one({"barber_id": barber_id, "salon_id": salon_id}, {"_id": 0})
+    if not barber:
+        raise HTTPException(status_code=404, detail="Coiffeur non trouvé")
+    
+    if barber.get("phone_hidden_by_admin"):
+        raise HTTPException(status_code=403, detail="Masqué par l'admin")
+    
+    await db.barbers.update_one({"barber_id": barber_id}, {"$set": {"phone_visible": visible}})
+    return {"success": True}
 
 # =============================================================================
 # HEALTH CHECK

@@ -27,7 +27,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Navigation,
-  Globe
+  Globe,
+  TrendingUp
 } from "lucide-react";
 import {
   Dialog,
@@ -49,7 +50,9 @@ const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [signupForm, setSignupForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
   const [loginLoading, setLoginLoading] = useState(false);
   
@@ -236,6 +239,42 @@ const LandingPage = () => {
     }
   };
 
+  // Handle signup
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    
+    if (signupForm.password !== signupForm.confirmPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+    if (signupForm.password.length < 6) {
+      toast.error("Le mot de passe doit faire au moins 6 caractères");
+      return;
+    }
+    if (!signupForm.name.trim()) {
+      toast.error("Veuillez entrer votre nom");
+      return;
+    }
+    
+    setLoginLoading(true);
+    try {
+      const response = await axios.post(`${API}/auth/register`, {
+        name: signupForm.name,
+        email: signupForm.email,
+        password: signupForm.password
+      }, { withCredentials: true });
+      
+      setUser(response.data);
+      setShowLoginDialog(false);
+      setSignupForm({ name: "", email: "", password: "", confirmPassword: "" });
+      toast.success("Compte créé avec succès ! Bienvenue sur AfroCrown !");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de l'inscription");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   // Pas de redirection automatique - l'utilisateur choisit où aller
 
   const features = [
@@ -290,6 +329,10 @@ const LandingPage = () => {
               <a href="/ai-simulation" className="text-slate-300 hover:text-[#FBBF24] transition-colors">{t("nav.simulation")}</a>
               <a href="/marketplace" className="text-slate-300 hover:text-[#FBBF24] transition-colors">{t("nav.marketplace")}</a>
               <a href="/trimconnect" className="text-slate-300 hover:text-[#FBBF24] transition-colors">{t("nav.trimconnect")}</a>
+              <a href="/tendances" className="text-slate-300 hover:text-[#FBBF24] transition-colors flex items-center gap-1">
+                <TrendingUp className="h-4 w-4" />
+                Tendances
+              </a>
               {user && user.role === 'client' && (
                 <a href="/my-appointments" className="text-slate-300 hover:text-[#FBBF24] transition-colors">{t("nav.appointments")}</a>
               )}
@@ -860,83 +903,166 @@ const LandingPage = () => {
         onClose={() => setIsVideoPlaying(false)} 
       />
 
-      {/* Login Dialog */}
+      {/* Login Dialog - Enhanced with multiple options */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
         <DialogContent className="bg-[#1E293B] border-[#F59E0B]/30 max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white text-center text-xl">{t("auth.login")}</DialogTitle>
+            <DialogTitle className="text-white text-center text-xl flex items-center justify-center gap-2">
+              <Scissors className="h-5 w-5 text-[#F59E0B]" />
+              {authMode === 'login' ? 'Connexion' : 'Créer un compte'}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6 mt-4">
-            {/* Google Login */}
-            <Button 
-              onClick={() => {
-                setShowLoginDialog(false);
-                login();
-              }}
-              className="w-full bg-white hover:bg-gray-100 text-gray-900 font-medium py-3"
-              data-testid="google-login-btn"
-            >
-              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              {t("auth.google_login")}
-            </Button>
+          <div className="space-y-4 mt-4">
+            {/* Social Login Buttons */}
+            <div className="space-y-3">
+              {/* Google Login */}
+              <Button 
+                onClick={() => {
+                  setShowLoginDialog(false);
+                  login();
+                }}
+                className="w-full bg-white hover:bg-gray-100 text-gray-900 font-medium py-3 flex items-center justify-center gap-3"
+                data-testid="google-login-btn"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continuer avec Google
+              </Button>
+
+              {/* Facebook Login */}
+              <Button 
+                onClick={() => {
+                  toast.info("Connexion Facebook bientôt disponible !");
+                }}
+                className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium py-3 flex items-center justify-center gap-3"
+                data-testid="facebook-login-btn"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                Continuer avec Facebook
+              </Button>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[#F59E0B]/30"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-[#1E293B] text-[slate-300]">{t("auth.or")}</span>
+                <span className="px-4 bg-[#1E293B] text-slate-400">ou</span>
               </div>
             </div>
 
-            {/* Email Login Form */}
-            <form onSubmit={handleEmailLogin} className="space-y-4">
+            {/* Email Form */}
+            <form onSubmit={authMode === 'login' ? handleEmailLogin : handleSignup} className="space-y-4">
+              {authMode === 'signup' && (
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Nom complet</label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#F59E0B]/50" />
+                    <Input
+                      type="text"
+                      placeholder="Jean Dupont"
+                      value={signupForm.name}
+                      onChange={(e) => setSignupForm({...signupForm, name: e.target.value})}
+                      className="pl-10 bg-[#0F172A] border-[#F59E0B]/30 text-white focus:border-[#F59E0B]"
+                      data-testid="signup-name-input"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
               <div>
-                <label className="text-sm text-[slate-300] mb-1 block">{t("auth.email")}</label>
+                <label className="text-sm text-slate-400 mb-1 block">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#F59E0B]/50" />
                   <Input
                     type="email"
                     placeholder="votre@email.com"
-                    value={loginForm.email}
-                    onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                    value={authMode === 'login' ? loginForm.email : signupForm.email}
+                    onChange={(e) => authMode === 'login' 
+                      ? setLoginForm({...loginForm, email: e.target.value})
+                      : setSignupForm({...signupForm, email: e.target.value})
+                    }
                     className="pl-10 bg-[#0F172A] border-[#F59E0B]/30 text-white focus:border-[#F59E0B]"
                     data-testid="login-email-input"
+                    required
                   />
                 </div>
               </div>
               <div>
-                <label className="text-sm text-[slate-300] mb-1 block">{t("auth.password")}</label>
+                <label className="text-sm text-slate-400 mb-1 block">Mot de passe</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#F59E0B]/50" />
                   <Input
                     type="password"
                     placeholder="••••••••"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                    value={authMode === 'login' ? loginForm.password : signupForm.password}
+                    onChange={(e) => authMode === 'login'
+                      ? setLoginForm({...loginForm, password: e.target.value})
+                      : setSignupForm({...signupForm, password: e.target.value})
+                    }
                     className="pl-10 bg-[#0F172A] border-[#F59E0B]/30 text-white focus:border-[#F59E0B]"
                     data-testid="login-password-input"
+                    required
                   />
                 </div>
               </div>
+              {authMode === 'signup' && (
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Confirmer le mot de passe</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#F59E0B]/50" />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={signupForm.confirmPassword}
+                      onChange={(e) => setSignupForm({...signupForm, confirmPassword: e.target.value})}
+                      className="pl-10 bg-[#0F172A] border-[#F59E0B]/30 text-white focus:border-[#F59E0B]"
+                      data-testid="signup-confirm-password-input"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
               <Button 
                 type="submit"
                 disabled={loginLoading}
-                className="w-full bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#FBBF24] hover:to-[#D97706] text-white"
+                className="w-full bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] hover:from-[#FBBF24] hover:to-[#D97706] text-white font-semibold py-3"
                 data-testid="email-login-submit"
               >
-                {loginLoading ? t("common.loading") : t("auth.submit")}
+                {loginLoading ? 'Chargement...' : authMode === 'login' ? 'Se connecter' : "S'inscrire"}
               </Button>
             </form>
 
-            <p className="text-center text-xs text-[slate-300]/60">
-              {t("auth.no_account")}
-            </p>
+            {/* Toggle between login and signup */}
+            <div className="text-center pt-2">
+              {authMode === 'login' ? (
+                <p className="text-slate-400 text-sm">
+                  Pas encore de compte ?{' '}
+                  <button 
+                    onClick={() => setAuthMode('signup')}
+                    className="text-[#F59E0B] hover:text-[#FBBF24] font-medium"
+                  >
+                    S'inscrire
+                  </button>
+                </p>
+              ) : (
+                <p className="text-slate-400 text-sm">
+                  Déjà un compte ?{' '}
+                  <button 
+                    onClick={() => setAuthMode('login')}
+                    className="text-[#F59E0B] hover:text-[#FBBF24] font-medium"
+                  >
+                    Se connecter
+                  </button>
+                </p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

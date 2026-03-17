@@ -23,6 +23,7 @@ import SalonLiveScreen from "./pages/SalonLiveScreen";
 import LoginAdmin from "./pages/LoginAdmin";
 import LoginSalon from "./pages/LoginSalon";
 import LoginClient from "./pages/LoginClient";
+import Tendances from "./pages/Tendances";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -174,6 +175,7 @@ function AppRouter() {
         />
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/trimconnect" element={<TrimConnect />} />
+        <Route path="/tendances" element={<Tendances />} />
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/booking/confirmation/:appointmentId" element={<BookingConfirmation />} />
         <Route path="/ai-simulation" element={<AISimulation />} />
