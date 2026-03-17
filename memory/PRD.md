@@ -249,12 +249,22 @@ Structure dans /app/mobile avec:
 - [x] GUIDE BUILD APK simplifie: /mobile/BUILD_APK.md
 - [x] Configuration app.json mise a jour pour EAS Build
 
+## Bug Fixes (Mars 2026 - Session 8)
+- [x] Page Tendances: Dropdown "Par salon" corrige (scrollable, z-index)
+- [x] Page Tendances: Erreur React "removeChild" corrigee (AnimatePresence mode="wait")
+- [x] Page Booking: Images dupliquees corrigees (nouvelles images generees)
+- [x] Bug Founder Login: Role non reconnu - CORRIGE (utilisateur manquait dans la DB test_database)
+- [x] Compte Founder cree: founder@afrocrown.com / founder123
+
 ## Next Tasks
-1. Tester manuellement la connexion Google avec dialpha224@gmail.com (verifier bouton Admin)
-2. User: Telecharger et builder l'APK mobile via EAS (voir /mobile/BUILD_APK.md)
-3. Verifier domaine Resend pour envoi emails en production
-4. Continuer refactoring server.py (4000+ lignes) - migrer routes vers /backend/routes/
-5. Etendre les traductions aux autres pages (Booking, Marketplace, TrimConnect, Dashboards)
+1. Attendre validation APK mobile par l'utilisateur
+2. Verifier domaine Resend pour envoi emails en production
+3. Continuer refactoring server.py (4000+ lignes) - migrer routes vers /backend/routes/
+4. Etendre les traductions aux autres pages (Booking, Marketplace, TrimConnect, Dashboards)
+5. Implementer Facebook Login (en attente de credentials utilisateur)
+
+## Credentials
+- **Founder**: founder@afrocrown.com / founder123
 
 ## Mobile App - Instructions Build
 Voir `/mobile/BUILD_APK.md` pour les instructions completes.
