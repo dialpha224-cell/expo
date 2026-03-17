@@ -5763,6 +5763,79 @@ async def download_guide(filename: str):
     )
 
 # =============================================================================
+# RGPD / GDPR COMPLIANCE ENDPOINTS
+# =============================================================================
+
+@api_router.get("/rgpd/my-data")
+async def export_my_data(user: UserBase = Depends(require_auth)):
+    """Export all user data (RGPD Article 20 - Portability)"""
+    user_id = user.user_id
+    
+    # Collect all user data
+    user_data = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+    appointments = await db.appointments.find({"user_id": user_id}, {"_id": 0}).to_list(1000)
+    reviews = await db.reviews.find({"user_id": user_id}, {"_id": 0}).to_list(1000)
+    loyalty = await db.loyalty.find_one({"user_id": user_id}, {"_id": 0})
+    subscriptions = await db.subscriptions.find({"user_id": user_id}, {"_id": 0}).to_list(100)
+    
+    return {
+        "export_date": datetime.now(timezone.utc).isoformat(),
+        "user_profile": user_data,
+        "appointments": appointments,
+        "reviews": reviews,
+        "loyalty_data": loyalty,
+        "subscriptions": subscriptions,
+        "message": "Conformément à l'article 20 du RGPD, voici l'export de vos données personnelles."
+    }
+
+@api_router.delete("/rgpd/delete-my-account")
+async def delete_my_account(user: UserBase = Depends(require_auth)):
+    """Delete user account and all associated data (RGPD Article 17 - Right to erasure)"""
+    user_id = user.user_id
+    
+    # Delete all user data
+    await db.users.delete_one({"user_id": user_id})
+    await db.user_sessions.delete_many({"user_id": user_id})
+    await db.appointments.delete_many({"user_id": user_id})
+    await db.reviews.delete_many({"user_id": user_id})
+    await db.loyalty.delete_one({"user_id": user_id})
+    await db.subscriptions.delete_many({"user_id": user_id})
+    await db.badges.delete_many({"user_id": user_id})
+    await db.notifications.delete_many({"user_id": user_id})
+    await db.queue_entries.delete_many({"user_id": user_id})
+    
+    return {
+        "success": True,
+        "message": "Votre compte et toutes vos données ont été supprimés conformément à l'article 17 du RGPD."
+    }
+
+@api_router.get("/rgpd/consent-status")
+async def get_consent_status(user: UserBase = Depends(require_auth)):
+    """Get user consent status"""
+    user_data = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "consents": 1})
+    return {
+        "consents": user_data.get("consents", {
+            "marketing_emails": False,
+            "data_analytics": False,
+            "photo_sharing": False,
+            "third_party_sharing": False
+        })
+    }
+
+@api_router.put("/rgpd/update-consent")
+async def update_consent(consents: dict, user: UserBase = Depends(require_auth)):
+    """Update user consent preferences"""
+    allowed_consents = ["marketing_emails", "data_analytics", "photo_sharing", "third_party_sharing"]
+    filtered_consents = {k: v for k, v in consents.items() if k in allowed_consents}
+    
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"consents": filtered_consents, "consent_updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"success": True, "message": "Vos préférences de consentement ont été mises à jour."}
+
+# =============================================================================
 # HEALTH CHECK
 # =============================================================================
 
@@ -5774,8 +5847,27 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+# =============================================================================
+# SECURITY HEADERS MIDDLEWARE
+# =============================================================================
+
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(self), microphone=()"
+        return response
+
 # Include router and add middleware
 app.include_router(api_router)
+
+# Add Security Headers Middleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

@@ -75,6 +75,7 @@ import AppointmentCalendar from "../components/AppointmentCalendar";
 import SalonBadges from "../components/SalonBadges";
 import InactiveClientReminders from "../components/InactiveClientReminders";
 import VirtualQueue from "../components/VirtualQueue";
+import PrivacySettings from "../components/PrivacySettings";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -2420,6 +2421,7 @@ const SalonSettings = ({ salon, onUpdate }) => {
     description: ""
   });
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
 
   useEffect(() => {
     if (salon) {
@@ -2438,10 +2440,10 @@ const SalonSettings = ({ salon, onUpdate }) => {
     setSaving(true);
     try {
       await axios.put(`${API}/salons/${salon.salon_id}`, formData, { withCredentials: true });
-      toast.success("Parametres mis a jour");
+      toast.success("Paramètres mis à jour");
       onUpdate();
     } catch (error) {
-      toast.error("Erreur lors de la mise a jour");
+      toast.error("Erreur lors de la mise à jour");
     } finally {
       setSaving(false);
     }
@@ -2450,7 +2452,7 @@ const SalonSettings = ({ salon, onUpdate }) => {
   if (!salon) {
     return (
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-12 text-center">
-        <p className="text-slate-400">Selectionnez un salon pour modifier ses parametres.</p>
+        <p className="text-slate-400">Sélectionnez un salon pour modifier ses paramètres.</p>
       </div>
     );
   }
@@ -2458,58 +2460,86 @@ const SalonSettings = ({ salon, onUpdate }) => {
   return (
     <div className="space-y-6" data-testid="salon-settings">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-heading font-bold text-white">Parametres du salon</h1>
+        <h1 className="text-2xl font-heading font-bold text-white">Paramètres</h1>
         <WebsiteImporter salonId={salon?.salon_id} />
       </div>
-      
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-2xl">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Nom du salon</label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="bg-slate-900 border-slate-700 text-white"
-              data-testid="settings-name-input"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Adresse</label>
-            <Input
-              value={formData.address}
-              onChange={(e) => setFormData({...formData, address: e.target.value})}
-              className="bg-slate-900 border-slate-700 text-white"
-              data-testid="settings-address-input"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Telephone</label>
-            <Input
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-              className="bg-slate-900 border-slate-700 text-white"
-              data-testid="settings-phone-input"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Description</label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="bg-slate-900 border-slate-700 text-white"
-              data-testid="settings-description-input"
-            />
-          </div>
-          <Button 
-            onClick={handleSubmit}
-            disabled={saving}
-            className="bg-indigo-600 hover:bg-indigo-700"
-            data-testid="save-settings-btn"
-          >
-            {saving ? "Enregistrement..." : "Enregistrer"}
-          </Button>
-        </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-700 pb-2">
+        <button
+          onClick={() => setActiveTab("general")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "general"
+              ? "bg-indigo-600 text-white"
+              : "text-slate-400 hover:text-white hover:bg-slate-700"
+          }`}
+        >
+          Général
+        </button>
+        <button
+          onClick={() => setActiveTab("privacy")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "privacy"
+              ? "bg-indigo-600 text-white"
+              : "text-slate-400 hover:text-white hover:bg-slate-700"
+          }`}
+        >
+          Confidentialité & RGPD
+        </button>
       </div>
+      
+      {activeTab === "general" && (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-2xl">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Nom du salon</label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="settings-name-input"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Adresse</label>
+              <Input
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="settings-address-input"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Téléphone</label>
+              <Input
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="settings-phone-input"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">Description</label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                className="bg-slate-900 border-slate-700 text-white"
+                data-testid="settings-description-input"
+              />
+            </div>
+            <Button 
+              onClick={handleSubmit}
+              disabled={saving}
+              className="bg-indigo-600 hover:bg-indigo-700"
+              data-testid="save-settings-btn"
+            >
+              {saving ? "Enregistrement..." : "Enregistrer"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "privacy" && <PrivacySettings />}
     </div>
   );
 };
