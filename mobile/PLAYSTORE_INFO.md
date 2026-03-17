@@ -1,5 +1,17 @@
 # AfroCrown - Informations Play Store
 
+## Assets générés ✅
+
+### Feature Graphic (1024x500)
+![Feature Graphic](https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/23fe7ae2e86d4fa1ff2a40f67a4050bc19993e9e517e674a21a1d76e0c3fd50c.png)
+
+### Screenshots Mockups
+1. **Écran d'accueil**: https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/0f85f4ef3033ea3cb578a387694ce5482295075b8f67088ee1d2b863a7b947b6.png
+2. **Réservation**: https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/b4962f8a7762b974d75084daa55ac41caad02ef8f5df8af1b8ef49d4f3ed0d42.png
+3. **Simulation IA**: https://static.prod-images.emergentagent.com/jobs/203a8c76-f88a-4348-b201-f9f8c0298fc2/images/f5f08e54fc0f62e56580c5b1e0c4c93530c9f0827d13c27de3a9a708c2a3cfa3.png
+
+---
+
 ## Titre de l'application (max 30 caractères)
 AfroCrown
 
